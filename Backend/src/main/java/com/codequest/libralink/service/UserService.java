@@ -8,6 +8,8 @@ import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class UserService {
 
@@ -22,17 +24,24 @@ public class UserService {
 
     @Transactional
     public User registerUser(User user) {
-        // Validation check preventing the "Identifier may not be null" crash
+
         if (user.getInstitution() == null || user.getInstitution().getInstitutionId() == null) {
-            throw new IllegalArgumentException("Registration failed: 'institution.institutionId' is missing or null in the request body.");
+            throw new IllegalArgumentException(
+                    "Registration failed: 'institution.institutionId' is missing or null in the request body."
+            );
         }
 
         Integer instId = user.getInstitution().getInstitutionId();
 
-        // Safely fetch reference now that we know instId is definitely not null
-        Institution managedInstitution = entityManager.getReference(Institution.class, instId);
+        Institution managedInstitution =
+                entityManager.getReference(Institution.class, instId);
+
         user.setInstitution(managedInstitution);
 
         return userRepository.save(user);
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 }
