@@ -47,4 +47,8 @@ public class BorrowRecordService {
     public List<BorrowRecord> getAllBorrowRecords() {
         return borrowRecordRepository.findAll();
     }
+
+    public List<BorrowRecord> getBorrowRecordsByUser(Integer userId) {
+        return borrowRecordRepository.findByUserId(userId);
+    }
 }

@@ -1,54 +1,35 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-
-const BORROWED = [
-  {
-    id: "2",
-    title: "Introduction to Calculus",
-    author: "J. Stewart",
-    due: "Due 30 Jun 2026",
-    status: "active",
-    progress: "3 days left",
-  },
-  {
-    id: "4",
-    title: "African Economic Dev.",
-    author: "Aryeetey & Fosu",
-    due: "Overdue",
-    status: "overdue",
-    fine: "GHS 1.00",
-  },
-  {
-    id: "5",
-    title: "Data Structures in Practice",
-    author: "Mark Allen Weiss",
-    due: "Pick-up 2:00 PM today",
-    status: "ready",
-  },
-];
+import { API_BASE_URL } from "../../config/api";
+import { useAuth } from "../../contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
 function getLoanStatusStyle(status: string) {
-  return {
-    color:
-      status === "overdue"
-        ? "#dc2626"
-        : status === "ready"
-          ? "#15803d"
-          : "#0b6efd",
-    fontWeight: "700" as const,
-  };
+  const s = (status || "").toUpperCase();
+  if (s === "OVERDUE" || s === "LATE") {
+    return { color: "#dc2626", fontWeight: "700" as const };
+  }
+  if (s === "RETURNED") {
+    return { color: "#15803d", fontWeight: "700" as const };
+  }
+  return { color: "#0b6efd", fontWeight: "700" as const };
 }
 
 function LoanCard({ loan }: any) {
+  const book = loan.book || {};
+  const dueDate = loan.dueDate || "";
+  const status = (loan.status || "BORROWED").toUpperCase();
+
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{loan.title}</Text>
-        <Text style={getLoanStatusStyle(loan.status)}>{loan.status}</Text>
+        <Text style={styles.cardTitle}>{book.title || "Untitled"}</Text>
+        <Text style={getLoanStatusStyle(status)}>{status}</Text>
       </View>
-      <Text style={styles.cardAuthor}>{loan.author}</Text>
+      <Text style={styles.cardAuthor}>{book.isbn || ""}</Text>
       <View style={styles.cardFooter}>
-        <Text style={styles.cardNote}>{loan.progress || loan.due}</Text>
-        {loan.fine ? <Text style={styles.cardFine}>{loan.fine}</Text> : null}
+        <Text style={styles.cardNote}>
+          {dueDate ? `Due ${dueDate}` : "No due date"}
+        </Text>
       </View>
       <View style={styles.cardActions}>
         <Pressable style={styles.actionButton}>
@@ -63,19 +44,36 @@ function LoanCard({ loan }: any) {
 }
 
 export default function Borrowed() {
+  const { userId } = useAuth();
+  const [records, setRecords] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${API_BASE_URL}/api/borrow-records/user/${userId}`)
+      .then((r) => r.json())
+      .then((data) => setRecords(data))
+      .catch(() => setRecords([]))
+      .finally(() => setLoading(false));
+  }, [userId]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>My Borrowed Books</Text>
       <Text style={styles.subtitle}>
         Active loans, overdue alerts, and pick-up status
       </Text>
-      <FlatList
-        data={BORROWED}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <LoanCard loan={item} />}
-        style={styles.list}
-        contentContainerStyle={{ paddingBottom: 24 }}
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#0b6efd" style={{ marginTop: 24 }} />
+      ) : (
+        <FlatList
+          data={records}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => <LoanCard loan={item} />}
+          style={styles.list}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        />
+      )}
     </View>
   );
 }

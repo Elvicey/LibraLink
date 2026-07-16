@@ -6,7 +6,7 @@ export default function BookCard({ book }: { book: any }) {
     <View style={styles.card}>
       <View style={{ flex: 1 }}>
         <Text style={styles.title}>{book.title}</Text>
-        <Text style={styles.meta}>{book.author}</Text>
+        <Text style={styles.meta}>{book.isbn || ""}</Text>
       </View>
       <Link href={`/book/${book.id}` as any} style={styles.link}>
         <Text style={styles.linkText}>Open</Text>

@@ -1,5 +1,6 @@
 package com.codequest.libralink.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -25,6 +26,7 @@ public class User {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
+    @JsonIgnore
     @Column(name = "password", nullable = false, length = 255)
     private String passwordHash;
 
@@ -40,7 +42,7 @@ public class User {
     public User() {}
 
     public Integer getId() { return id; }
-    public void setId(Integer Id) { this.id = id; }
+    public void setId(Integer id) { this.id = id; }
 
     public Institution getInstitution() { return institution; }
     public void setInstitution(Institution institution) { this.institution = institution; }

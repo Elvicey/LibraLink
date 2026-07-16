@@ -23,4 +23,9 @@ public class BorrowRecordController {
     public List<BorrowRecord> getAllBorrowRecords() {
         return borrowRecordService.getAllBorrowRecords();
     }
+
+    @GetMapping("/user/{userId}")
+    public List<BorrowRecord> getBorrowRecordsByUser(@PathVariable Integer userId) {
+        return borrowRecordService.getBorrowRecordsByUser(userId);
+    }
 }

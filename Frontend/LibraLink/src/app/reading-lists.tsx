@@ -1,22 +1,22 @@
+import { API_BASE_URL } from "../config/api";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
-const LISTS = [
-  {
-    id: "1",
-    label: "Semester reading list",
-    detail: "17 titles for current courses",
-  },
-  {
-    id: "2",
-    label: "Research references",
-    detail: "7 books saved for project work",
-  },
-  { id: "3", label: "Exam prep", detail: "5 essential guides" },
-];
+const CURRENT_COURSE_ID = 1;
 
 export default function ReadingLists() {
   const router = useRouter();
+  const [lists, setLists] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/reading-lists/course/${CURRENT_COURSE_ID}`)
+      .then((r) => r.json())
+      .then((data) => setLists(data))
+      .catch(() => setLists([]))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -27,12 +27,16 @@ export default function ReadingLists() {
       <Text style={styles.description}>
         Your saved book collections for study, research, and reading goals.
       </Text>
-      {LISTS.map((list) => (
-        <View key={list.id} style={styles.card}>
-          <Text style={styles.cardTitle}>{list.label}</Text>
-          <Text style={styles.cardValue}>{list.detail}</Text>
-        </View>
-      ))}
+      {loading ? (
+        <ActivityIndicator size="large" color="#0b6efd" style={{ marginTop: 24 }} />
+      ) : (
+        lists.map((list) => (
+          <View key={String(list.id)} style={styles.card}>
+            <Text style={styles.cardTitle}>{list.title}</Text>
+            <Text style={styles.cardValue}>{list.description || ""}</Text>
+          </View>
+        ))
+      )}
     </View>
   );
 }

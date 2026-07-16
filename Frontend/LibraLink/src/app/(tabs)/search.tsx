@@ -1,42 +1,29 @@
-import { useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, TextInput, View } from "react-native";
+import { API_BASE_URL } from "../../config/api";
+import { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, View } from "react-native";
 import BookCard from "../../components/BookCard";
-
-const SAMPLE_BOOKS = [
-  {
-    id: "1",
-    title: "Things Fall Apart",
-    author: "Chinua Achebe",
-    available: true,
-    tag: "Classic",
-  },
-  {
-    id: "2",
-    title: "Introduction to Calculus",
-    author: "J. Stewart",
-    available: false,
-    tag: "Exam prep",
-  },
-  {
-    id: "3",
-    title: "African Economics",
-    author: "A. Smith",
-    available: true,
-    tag: "Policy",
-  },
-];
 
 export default function Search() {
   const [query, setQuery] = useState("");
+  const [books, setBooks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/books`)
+      .then((r) => r.json())
+      .then((data) => setBooks(data))
+      .catch(() => setBooks([]))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = useMemo(
     () =>
-      SAMPLE_BOOKS.filter((b) =>
-        `${b.title} ${b.author} ${b.tag}`
+      books.filter((b) =>
+        `${b.title} ${b.description || ""} ${b.isbn || ""}`
           .toLowerCase()
           .includes(query.toLowerCase()),
       ),
-    [query],
+    [query, books],
   );
 
   return (
@@ -67,13 +54,17 @@ export default function Search() {
       </View>
 
       <Text style={styles.resultsTitle}>Search results</Text>
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <BookCard book={item} />}
-        style={styles.list}
-        contentContainerStyle={{ paddingBottom: 24 }}
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#0b6efd" style={{ marginTop: 24 }} />
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => <BookCard book={item} />}
+          style={styles.list}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        />
+      )}
     </View>
   );
 }

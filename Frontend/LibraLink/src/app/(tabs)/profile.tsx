@@ -1,34 +1,46 @@
+import { API_BASE_URL } from "../../config/api";
+import { useAuth } from "../../contexts/AuthContext";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function Profile() {
   const router = useRouter();
+  const { userId } = useAuth();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${API_BASE_URL}/api/users/${userId}`)
+      .then((r) => r.json())
+      .then((data) => setUser(data))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  const fullName = user
+    ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+    : "User";
+  const email = user?.email || "";
+  const initial = (user?.firstName || "U").charAt(0).toUpperCase();
 
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarInitial}>E</Text>
+          <Text style={styles.avatarInitial}>{initial}</Text>
         </View>
         <View style={styles.userInfo}>
-          <Text style={styles.title}>Esther Asamoah</Text>
-          <Text style={styles.email}>esther@knust.edu.gh</Text>
-          <Text style={styles.statusBadge}>Student member</Text>
-        </View>
-      </View>
-
-      <View style={styles.summaryRow}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryValue}>14</Text>
-          <Text style={styles.summaryLabel}>Borrowed this semester</Text>
-        </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryValue}>96%</Text>
-          <Text style={styles.summaryLabel}>On-time return rate</Text>
-        </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryValue}>3</Text>
-          <Text style={styles.summaryLabel}>Active holds</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#0b6efd" />
+          ) : (
+            <>
+              <Text style={styles.title}>{fullName}</Text>
+              <Text style={styles.email}>{email}</Text>
+              <Text style={styles.statusBadge}>Student member</Text>
+            </>
+          )}
         </View>
       </View>
 
@@ -116,21 +128,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     fontWeight: "700",
   },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 24,
-  },
-  summaryCard: {
-    flex: 1,
-    padding: 18,
-    borderRadius: 20,
-    backgroundColor: "white",
-    marginHorizontal: 4,
-    minWidth: 100,
-  },
-  summaryValue: { fontSize: 24, fontWeight: "700" },
-  summaryLabel: { color: "#6b7280", marginTop: 8, fontSize: 13 },
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 12 },
   menuSection: {
@@ -140,5 +137,4 @@ const styles = StyleSheet.create({
   },
   menuItem: { padding: 16, borderBottomWidth: 1, borderColor: "#f1f3f5" },
   menuText: { fontSize: 16, fontWeight: "600" },
-  signOutText: { color: "#dc2626" },
 });

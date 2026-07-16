@@ -1,8 +1,27 @@
+import { API_BASE_URL } from "../config/api";
+import { useAuth } from "../contexts/AuthContext";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function PayFines() {
   const router = useRouter();
+  const { userId } = useAuth();
+  const [fines, setFines] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${API_BASE_URL}/api/fines/user/${userId}`)
+      .then((r) => r.json())
+      .then((data) => setFines(data))
+      .catch(() => setFines([]))
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  const totalOutstanding = fines
+    .filter((f) => (f.status || "").toUpperCase() === "UNPAID")
+    .reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
 
   return (
     <View style={styles.container}>
@@ -13,13 +32,19 @@ export default function PayFines() {
       <Text style={styles.description}>
         Settle overdue fees quickly and keep your account in good standing.
       </Text>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Outstanding balance</Text>
-        <Text style={styles.cardValue}>GHS 1.00</Text>
-      </View>
-      <Pressable style={styles.payButton}>
-        <Text style={styles.payButtonText}>Pay now</Text>
-      </Pressable>
+      {loading ? (
+        <ActivityIndicator size="large" color="#0b6efd" style={{ marginTop: 24 }} />
+      ) : (
+        <>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Outstanding balance</Text>
+            <Text style={styles.cardValue}>GHS {totalOutstanding.toFixed(2)}</Text>
+          </View>
+          <Pressable style={styles.payButton}>
+            <Text style={styles.payButtonText}>Pay now</Text>
+          </Pressable>
+        </>
+      )}
     </View>
   );
 }
