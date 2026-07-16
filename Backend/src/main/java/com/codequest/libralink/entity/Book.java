@@ -1,7 +1,10 @@
 package com.codequest.libralink.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "books")
@@ -69,6 +72,15 @@ public class Book {
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "book_authors",
+        joinColumns = @JoinColumn(name = "book_id"),
+        inverseJoinColumns = @JoinColumn(name = "author_id")
+    )
+    @JsonIgnoreProperties("books")
+    private Set<Author> authors = new HashSet<>();
 
     @Column(name = "borrow_count", nullable = false)
     private Integer borrowCount = 0;
@@ -162,6 +174,9 @@ public class Book {
 
     public Integer getBorrowCount() { return borrowCount; }
     public void setBorrowCount(Integer borrowCount) { this.borrowCount = borrowCount; }
+
+    public Set<Author> getAuthors() { return authors; }
+    public void setAuthors(Set<Author> authors) { this.authors = authors; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

@@ -1,11 +1,40 @@
+import { API_BASE_URL } from "../config/api";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SignIn() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please enter email and password.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Invalid email or password.");
+      }
+      await AsyncStorage.setItem("authToken", data.token);
+      await AsyncStorage.setItem("userId", String(data.userId));
+      router.replace("/(tabs)/home" as any);
+    } catch (e: any) {
+      Alert.alert("Sign in failed", e.message || "Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -32,10 +61,13 @@ export default function SignIn() {
         <Text style={styles.linkText}>Forgot password?</Text>
       </Pressable>
       <Pressable
-        style={styles.submitButton}
-        onPress={() => router.replace("/home" as any)}
+        style={[styles.submitButton, loading && { opacity: 0.6 }]}
+        onPress={handleSignIn}
+        disabled={loading}
       >
-        <Text style={styles.submitText}>Sign in</Text>
+        <Text style={styles.submitText}>
+          {loading ? "Signing in..." : "Sign in"}
+        </Text>
       </Pressable>
       <View style={styles.socialRow}>
         <Pressable style={styles.socialButton}>

@@ -1,26 +1,23 @@
+import { API_BASE_URL } from "../config/api";
+import { useAuth } from "../contexts/AuthContext";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-
-const ALERTS = [
-  {
-    id: "1",
-    title: "Due soon",
-    message: "Your Calculus book is due in 3 days.",
-  },
-  {
-    id: "2",
-    title: "New resource added",
-    message: "AI study guide for economics is available.",
-  },
-  {
-    id: "3",
-    title: "Fine reminder",
-    message: "You have a pending fine for an overdue loan.",
-  },
-];
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function Notifications() {
   const router = useRouter();
+  const { userId } = useAuth();
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${API_BASE_URL}/api/notifications/user/${userId}`)
+      .then((r) => r.json())
+      .then((data) => setAlerts(data))
+      .catch(() => setAlerts([]))
+      .finally(() => setLoading(false));
+  }, [userId]);
 
   return (
     <View style={styles.container}>
@@ -31,12 +28,16 @@ export default function Notifications() {
       <Text style={styles.description}>
         Recent alerts, reminders, and library updates for your account.
       </Text>
-      {ALERTS.map((alert) => (
-        <View key={alert.id} style={styles.card}>
-          <Text style={styles.cardTitle}>{alert.title}</Text>
-          <Text style={styles.cardValue}>{alert.message}</Text>
-        </View>
-      ))}
+      {loading ? (
+        <ActivityIndicator size="large" color="#0b6efd" style={{ marginTop: 24 }} />
+      ) : (
+        alerts.map((alert) => (
+          <View key={String(alert.id)} style={styles.card}>
+            <Text style={styles.cardTitle}>{alert.title}</Text>
+            <Text style={styles.cardValue}>{alert.message}</Text>
+          </View>
+        ))
+      )}
     </View>
   );
 }

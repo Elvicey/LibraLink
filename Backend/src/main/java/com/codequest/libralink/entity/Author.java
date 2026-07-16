@@ -1,7 +1,10 @@
 package com.codequest.libralink.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "authors")
@@ -16,6 +19,10 @@ public class Author {
 
     @Column(columnDefinition = "TEXT")
     private String bio;
+
+    @ManyToMany(mappedBy = "authors", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("authors")
+    private Set<Book> books = new HashSet<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -36,6 +43,8 @@ public class Author {
 
     public String getBio() { return bio; }
     public void setBio(String bio) { this.bio = bio; }
+
+    public Set<Book> getBooks() { return books; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

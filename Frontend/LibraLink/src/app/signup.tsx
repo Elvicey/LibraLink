@@ -1,12 +1,45 @@
+import { API_BASE_URL } from "../config/api";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SignUp() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSignUp = async () => {
+    if (!name || !email || !password) {
+      Alert.alert("Error", "Please fill in all fields.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const nameParts = name.trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ firstName, lastName, email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `Request failed (${res.status})`);
+      }
+      await AsyncStorage.setItem("authToken", data.token);
+      await AsyncStorage.setItem("userId", String(data.userId));
+      router.replace("/(tabs)/home" as any);
+    } catch (e: any) {
+      Alert.alert("Sign up failed", e.message || "Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -36,10 +69,13 @@ export default function SignUp() {
         onChangeText={setPassword}
       />
       <Pressable
-        style={styles.submitButton}
-        onPress={() => router.replace("/home" as any)}
+        style={[styles.submitButton, loading && { opacity: 0.6 }]}
+        onPress={handleSignUp}
+        disabled={loading}
       >
-        <Text style={styles.submitText}>Sign up</Text>
+        <Text style={styles.submitText}>
+          {loading ? "Creating account..." : "Sign up"}
+        </Text>
       </Pressable>
       <Pressable
         style={styles.bottomLink}

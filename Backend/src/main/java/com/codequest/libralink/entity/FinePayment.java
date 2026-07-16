@@ -21,8 +21,8 @@ public class FinePayment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal amount_paid;
+    @Column(name = "amount_paid", nullable = false, precision = 10, scale = 2)
+    private BigDecimal amountPaid;
 
     @Column(name = "payment_method", length = 50)
     private String paymentMethod;
@@ -38,14 +38,14 @@ public class FinePayment {
 
     public FinePayment() {}
 
-    public FinePayment(Integer id, Integer fineId, Integer userId, BigDecimal amount,BigDecimal amount_paid,
+    public FinePayment(Integer id, Integer fineId, Integer userId, BigDecimal amount, BigDecimal amountPaid,
                        String paymentMethod, String transactionRef,
                        LocalDateTime paidAt, LocalDateTime createdAt) {
         this.id = id;
         this.fineId = fineId;
         this.userId = userId;
         this.amount = amount;
-        this.amount_paid =amount_paid;
+        this.amountPaid = amountPaid;
         this.paymentMethod = paymentMethod;
         this.transactionRef = transactionRef;
         this.paidAt = paidAt;
@@ -64,8 +64,8 @@ public class FinePayment {
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
 
-    public BigDecimal getAmount_paid() { return amount_paid; }
-    public void setAmount_paid(BigDecimal amount_paid) { this.amount_paid = amount_paid; }
+    public BigDecimal getAmountPaid() { return amountPaid; }
+    public void setAmountPaid(BigDecimal amountPaid) { this.amountPaid = amountPaid; }
 
 
     public String getPaymentMethod() { return paymentMethod; }
