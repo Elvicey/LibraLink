@@ -1,11 +1,16 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Card from "../../components/common/Card";
+import ScreenWrapper from "../../components/common/ScreenWrapper";
+import { useTheme } from "../../constants/theme";
 
 export default function Profile() {
   const router = useRouter();
+  const { colors, spacing, borderRadius, typography, isDark, toggleTheme } = useTheme();
+  const styles = createStyles(colors, spacing, borderRadius, typography);
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper scrollable contentContainerStyle={styles.container}>
       <View style={styles.headerRow}>
         <View style={styles.avatar}>
           <Text style={styles.avatarInitial}>E</Text>
@@ -18,18 +23,18 @@ export default function Profile() {
       </View>
 
       <View style={styles.summaryRow}>
-        <View style={styles.summaryCard}>
+        <Card style={styles.summaryCard}>
           <Text style={styles.summaryValue}>14</Text>
           <Text style={styles.summaryLabel}>Borrowed this semester</Text>
-        </View>
-        <View style={styles.summaryCard}>
+        </Card>
+        <Card style={styles.summaryCard}>
           <Text style={styles.summaryValue}>96%</Text>
           <Text style={styles.summaryLabel}>On-time return rate</Text>
-        </View>
-        <View style={styles.summaryCard}>
+        </Card>
+        <Card style={styles.summaryCard}>
           <Text style={styles.summaryValue}>3</Text>
           <Text style={styles.summaryLabel}>Active holds</Text>
-        </View>
+        </Card>
       </View>
 
       <View style={styles.section}>
@@ -77,68 +82,171 @@ export default function Profile() {
           >
             <Text style={styles.menuText}>Security</Text>
           </Pressable>
-          <Pressable style={styles.menuItem}>
-            <Text style={styles.menuText}>Sign out</Text>
+          <View style={[styles.menuItem, styles.menuItemRow]}>
+            <Text style={styles.menuText}>Dark Mode</Text>
+            <Pressable
+              style={[
+                styles.switchBase,
+                isDark
+                  ? { backgroundColor: colors.primary }
+                  : { backgroundColor: colors.borderDark },
+              ]}
+              onPress={toggleTheme}
+            >
+              <View
+                style={[
+                  styles.switchThumb,
+                  { backgroundColor: colors.textLight },
+                  isDark ? styles.switchThumbActive : styles.switchThumbInactive,
+                ]}
+              />
+            </Pressable>
+          </View>
+          <Pressable
+            style={[styles.menuItem, styles.lastMenuItem]}
+            onPress={() => router.replace("/signin" as any)}
+          >
+            <Text style={[styles.menuText, styles.signOutText]}>Sign out</Text>
           </Pressable>
         </View>
       </View>
-    </View>
+    </ScreenWrapper>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: "#f7f9fc" },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: "#0b6efd",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  avatarInitial: { color: "white", fontSize: 28, fontWeight: "800" },
-  userInfo: { flex: 1 },
-  title: { fontSize: 28, fontWeight: "800" },
-  email: { color: "#6b7280", marginTop: 4 },
-  statusBadge: {
-    marginTop: 10,
-    alignSelf: "flex-start",
-    backgroundColor: "#eff6ff",
-    color: "#0b6efd",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 18,
-    fontWeight: "700",
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 24,
-  },
-  summaryCard: {
-    flex: 1,
-    padding: 18,
-    borderRadius: 20,
-    backgroundColor: "white",
-    marginHorizontal: 4,
-    minWidth: 100,
-  },
-  summaryValue: { fontSize: 24, fontWeight: "700" },
-  summaryLabel: { color: "#6b7280", marginTop: 8, fontSize: 13 },
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 12 },
-  menuSection: {
-    backgroundColor: "white",
-    borderRadius: 24,
-    overflow: "hidden",
-  },
-  menuItem: { padding: 16, borderBottomWidth: 1, borderColor: "#f1f3f5" },
-  menuText: { fontSize: 16, fontWeight: "600" },
-  signOutText: { color: "#dc2626" },
-});
+const createStyles = (colors: any, spacing: any, borderRadius: any, typography: any) =>
+  StyleSheet.create({
+    container: {
+      padding: spacing.lg,
+      backgroundColor: colors.background,
+    },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: spacing.xl,
+    },
+    avatar: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.md,
+    },
+    avatarInitial: {
+      color: colors.textLight,
+      fontSize: 28,
+      fontWeight: "800",
+    },
+    userInfo: {
+      flex: 1,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: "800",
+      color: colors.text,
+    },
+    email: {
+      color: colors.textMuted,
+      marginTop: spacing.xs,
+      fontSize: 14,
+    },
+    statusBadge: {
+      marginTop: spacing.sm,
+      alignSelf: "flex-start",
+      backgroundColor: colors.primaryLight,
+      color: colors.primary,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs + 2,
+      borderRadius: borderRadius.round,
+      fontWeight: "700",
+      fontSize: 13,
+    },
+    summaryRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: spacing.xl,
+      gap: spacing.xs,
+    },
+    summaryCard: {
+      flex: 1,
+      padding: spacing.md,
+      borderRadius: borderRadius.lg,
+      alignItems: "center",
+      minWidth: 90,
+    },
+    summaryValue: {
+      fontSize: 22,
+      fontWeight: "700",
+      color: colors.text,
+    },
+    summaryLabel: {
+      color: colors.textMuted,
+      marginTop: spacing.sm,
+      fontSize: 12,
+      textAlign: "center",
+    },
+    section: {
+      marginBottom: spacing.lg,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: "700",
+      color: colors.text,
+      marginBottom: spacing.md,
+    },
+    menuSection: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.xl,
+      overflow: "hidden",
+      shadowColor: "#000",
+      shadowOpacity: 0.02,
+      shadowRadius: 8,
+      elevation: 1,
+    },
+    menuItem: {
+      padding: spacing.lg,
+      borderBottomWidth: 1,
+      borderColor: colors.border,
+    },
+    lastMenuItem: {
+      borderBottomWidth: 0,
+    },
+    menuItemRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    menuText: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.text,
+    },
+    signOutText: {
+      color: colors.danger,
+    },
+    // Switch styles
+    switchBase: {
+      width: 48,
+      height: 28,
+      borderRadius: 14,
+      padding: 2,
+      justifyContent: "center",
+    },
+    switchThumb: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      shadowColor: "#000",
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    switchThumbActive: {
+      alignSelf: "flex-end",
+    },
+    switchThumbInactive: {
+      alignSelf: "flex-start",
+    },
+  });
