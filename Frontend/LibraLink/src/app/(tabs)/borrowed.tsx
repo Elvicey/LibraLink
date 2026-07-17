@@ -1,4 +1,7 @@
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
+import Button from "../../components/common/Button";
+import ScreenWrapper from "../../components/common/ScreenWrapper";
+import { useTheme } from "../../constants/theme";
 
 const BORROWED = [
   {
@@ -26,102 +29,123 @@ const BORROWED = [
   },
 ];
 
-function getLoanStatusStyle(status: string) {
-  return {
-    color:
-      status === "overdue"
-        ? "#dc2626"
-        : status === "ready"
-          ? "#15803d"
-          : "#0b6efd",
-    fontWeight: "700" as const,
-  };
+function getLoanStatusColor(status: string, colors: any) {
+  return status === "overdue"
+    ? colors.danger
+    : status === "ready"
+      ? colors.success
+      : colors.primary;
 }
 
-function LoanCard({ loan }: any) {
+function LoanCard({ loan, colors, spacing, borderRadius }: any) {
+  const statusColor = getLoanStatusColor(loan.status, colors);
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, borderRadius: borderRadius.xl, padding: spacing.lg, borderColor: colors.border }]}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{loan.title}</Text>
-        <Text style={getLoanStatusStyle(loan.status)}>{loan.status}</Text>
+        <Text style={[styles.cardTitle, { color: colors.text, marginRight: spacing.sm }]}>{loan.title}</Text>
+        <Text style={{ color: statusColor, fontWeight: "700", textTransform: "uppercase", fontSize: 12 }}>
+          {loan.status}
+        </Text>
       </View>
-      <Text style={styles.cardAuthor}>{loan.author}</Text>
-      <View style={styles.cardFooter}>
-        <Text style={styles.cardNote}>{loan.progress || loan.due}</Text>
-        {loan.fine ? <Text style={styles.cardFine}>{loan.fine}</Text> : null}
+      <Text style={[styles.cardAuthor, { color: colors.textMuted, marginBottom: spacing.md }]}>{loan.author}</Text>
+      <View style={[styles.cardFooter, { marginBottom: spacing.md }]}>
+        <Text style={[styles.cardNote, { color: colors.textMuted }]}>{loan.progress || loan.due}</Text>
+        {loan.fine ? <Text style={{ color: colors.danger, fontWeight: "700", fontSize: 14 }}>{loan.fine}</Text> : null}
       </View>
       <View style={styles.cardActions}>
-        <Pressable style={styles.actionButton}>
-          <Text style={styles.actionText}>Renew</Text>
-        </Pressable>
-        <Pressable style={styles.actionButtonSecondary}>
-          <Text style={styles.actionTextSecondary}>Return</Text>
-        </Pressable>
+        <Button
+          title="Renew"
+          onPress={() => {}}
+          size="sm"
+          style={{ flex: 1, marginRight: spacing.sm, borderRadius: borderRadius.md }}
+        />
+        <Button
+          title="Return"
+          onPress={() => {}}
+          size="sm"
+          variant="secondary"
+          style={{ flex: 1, backgroundColor: colors.background, borderRadius: borderRadius.md }}
+          textStyle={{ color: colors.text, fontWeight: "700" }}
+        />
       </View>
     </View>
   );
 }
 
 export default function Borrowed() {
+  const { colors, spacing, borderRadius } = useTheme();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>My Borrowed Books</Text>
-      <Text style={styles.subtitle}>
-        Active loans, overdue alerts, and pick-up status
-      </Text>
-      <FlatList
-        data={BORROWED}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <LoanCard loan={item} />}
-        style={styles.list}
-        contentContainerStyle={{ paddingBottom: 24 }}
-      />
-    </View>
+    <ScreenWrapper style={{ backgroundColor: colors.background }}>
+      <View style={[styles.container, { padding: spacing.lg }]}>
+        <Text style={{ fontSize: 24, fontWeight: "800", color: colors.text, marginBottom: spacing.xs }}>
+          My Borrowed Books
+        </Text>
+        <Text style={{ color: colors.textMuted, marginBottom: spacing.lg, fontSize: 15 }}>
+          Active loans, overdue alerts, and pick-up status
+        </Text>
+        <FlatList
+          data={BORROWED}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <LoanCard
+              loan={item}
+              colors={colors}
+              spacing={spacing}
+              borderRadius={borderRadius}
+            />
+          )}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f7f9fc" },
-  title: { fontSize: 24, fontWeight: "800", marginBottom: 4 },
-  subtitle: { color: "#6b7280", marginBottom: 16 },
-  list: { width: "100%" },
+  container: {
+    flex: 1,
+  },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 24,
+  },
   card: {
-    backgroundColor: "white",
-    padding: 18,
-    borderRadius: 24,
     marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 1,
+    borderWidth: 1,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  cardTitle: { fontSize: 16, fontWeight: "700", flex: 1, marginRight: 8 },
-  cardAuthor: { color: "#4b5563", marginBottom: 12 },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    flex: 1,
+  },
+  cardAuthor: {
+    fontSize: 14,
+  },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 14,
   },
-  cardNote: { color: "#6b7280" },
-  cardFine: { color: "#dc2626", fontWeight: "700" },
-  cardActions: { flexDirection: "row", justifyContent: "space-between" },
-  actionButton: {
-    flex: 1,
-    backgroundColor: "#0b6efd",
-    borderRadius: 16,
-    paddingVertical: 12,
-    marginRight: 8,
-    alignItems: "center",
+  cardNote: {
+    fontSize: 14,
   },
-  actionText: { color: "white", fontWeight: "700" },
-  actionButtonSecondary: {
-    flex: 1,
-    backgroundColor: "#f3f4f6",
-    borderRadius: 16,
-    paddingVertical: 12,
-    alignItems: "center",
+  cardActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
-  actionTextSecondary: { color: "#1f2937", fontWeight: "700" },
 });
