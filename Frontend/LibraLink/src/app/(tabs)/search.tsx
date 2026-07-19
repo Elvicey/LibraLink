@@ -1,47 +1,44 @@
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View, Modal, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import BookCard from "../../components/BookCard";
 import Input from "../../components/common/Input";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
+import Card from "../../components/common/Card";
 
+// Expanded sample data containing matching categories
 const SAMPLE_BOOKS = [
-  {
-    id: "1",
-    title: "Things Fall Apart",
-    author: "Chinua Achebe",
-    available: true,
-    tag: "Classic",
-  },
-  {
-    id: "2",
-    title: "Introduction to Calculus",
-    author: "J. Stewart",
-    available: false,
-    tag: "Exam prep",
-  },
-  {
-    id: "3",
-    title: "African Economics",
-    author: "A. Smith",
-    available: true,
-    tag: "Policy",
-  },
+  { id: "1", title: "Things Fall Apart", author: "Chinua Achebe", available: true, tag: "Classic" },
+  { id: "2", title: "Introduction to Calculus", author: "J. Stewart", available: false, tag: "Exam prep" },
+  { id: "3", title: "African Economics", author: "A. Smith", available: true, tag: "Policy" },
+  { id: "4", title: "African Economic Dev.", author: "Aryeetey & Fosu", available: false, tag: "Policy" },
+  { id: "5", title: "Data Structures in Practice", author: "Mark Allen Weiss", available: true, tag: "Computing" },
 ];
 
+const SUBJECT_OPTIONS = ["All", "Classic", "Exam prep", "Policy", "Computing"];
+const AUTHOR_OPTIONS = ["All", "Chinua Achebe", "J. Stewart", "A. Smith", "Aryeetey & Fosu", "Mark Allen Weiss"];
+const AVAILABILITY_OPTIONS = ["All", "Available", "On Loan"];
+
 const CATEGORIES = [
-  { label: "Science", emoji: "🧬", query: "Calculus" },
-  { label: "Literature", emoji: "📖", query: "Things Fall Apart" },
-  { label: "Computing", emoji: "💻", query: "Data" },
-  { label: "Economics", emoji: "📈", query: "Economics" },
+  { label: "Science", emoji: "🧬", query: "Calculus", tint: "rgba(11, 110, 253, 0.08)" },
+  { label: "Literature", emoji: "📖", query: "Things Fall Apart", tint: "rgba(139, 92, 246, 0.08)" },
+  { label: "Computing", emoji: "💻", query: "Data", tint: "rgba(6, 182, 212, 0.08)" },
+  { label: "Economics", emoji: "📈", query: "Economics", tint: "rgba(245, 158, 11, 0.08)" },
 ];
 
 export default function Search() {
   const [query, setQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"all" | "available" | "loan">("all");
+  const [selectedSubject, setSelectedSubject] = useState("All");
+  const [selectedAuthor, setSelectedAuthor] = useState("All");
+  const [selectedAvailability, setSelectedAvailability] = useState("All");
+  
+  const [activeDropdown, setActiveDropdown] = useState<"subject" | "author" | "availability" | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
-  const { colors, spacing, borderRadius, typography } = useTheme();
-  const styles = createStyles(colors, spacing, borderRadius, typography);
+  const [isListening, setIsListening] = useState(false);
+  
+  const { colors, spacing, borderRadius, typography, isDark } = useTheme();
+  const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
 
   const filtered = useMemo(() => {
     return SAMPLE_BOOKS.filter((b) => {
@@ -49,15 +46,19 @@ export default function Search() {
         .toLowerCase()
         .includes(query.toLowerCase());
       
-      if (activeFilter === "available") {
-        return matchesSearch && b.available;
+      const matchesSubject = selectedSubject === "All" || b.tag === selectedSubject;
+      const matchesAuthor = selectedAuthor === "All" || b.author === selectedAuthor;
+      
+      let matchesAvailability = true;
+      if (selectedAvailability === "Available") {
+        matchesAvailability = b.available;
+      } else if (selectedAvailability === "On Loan") {
+        matchesAvailability = !b.available;
       }
-      if (activeFilter === "loan") {
-        return matchesSearch && !b.available;
-      }
-      return matchesSearch;
+      
+      return matchesSearch && matchesSubject && matchesAuthor && matchesAvailability;
     });
-  }, [query, activeFilter]);
+  }, [query, selectedSubject, selectedAuthor, selectedAvailability]);
 
   const suggestions = useMemo(() => {
     if (!query.trim()) return [];
@@ -67,6 +68,36 @@ export default function Search() {
         b.title.toLowerCase() !== query.toLowerCase()
     ).map((b) => b.title);
   }, [query]);
+
+  const getDropdownOptions = () => {
+    if (activeDropdown === "subject") return SUBJECT_OPTIONS;
+    if (activeDropdown === "author") return AUTHOR_OPTIONS;
+    return AVAILABILITY_OPTIONS;
+  };
+
+  const getActiveValue = () => {
+    if (activeDropdown === "subject") return selectedSubject;
+    if (activeDropdown === "author") return selectedAuthor;
+    return selectedAvailability;
+  };
+
+  const handleSelectOption = (option: string) => {
+    if (activeDropdown === "subject") setSelectedSubject(option);
+    else if (activeDropdown === "author") setSelectedAuthor(option);
+    else if (activeDropdown === "availability") setSelectedAvailability(option);
+    setActiveDropdown(null);
+  };
+
+  const startVoiceMock = () => {
+    setIsListening(true);
+    setTimeout(() => {
+      setIsListening(false);
+      setQuery("Calculus J. Stewart");
+      setSelectedSubject("All");
+      setSelectedAuthor("All");
+      setSelectedAvailability("All");
+    }, 2200);
+  };
 
   return (
     <ScreenWrapper style={styles.safeArea}>
@@ -87,9 +118,21 @@ export default function Search() {
             onFocus={() => setShowDropdown(true)}
             onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
             containerStyle={styles.searchContainer}
+            leftIcon={<Ionicons name="search-outline" size={20} color={colors.textMuted} />}
+            rightIcon={
+              query ? (
+                <Pressable onPress={() => setQuery("")}>
+                  <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                </Pressable>
+              ) : (
+                <Pressable onPress={startVoiceMock}>
+                  <Ionicons name="mic-outline" size={20} color={colors.primary} />
+                </Pressable>
+              )
+            }
           />
           {showDropdown && suggestions.length > 0 && (
-            <View style={styles.dropdown}>
+            <View style={styles.suggestionsList}>
               {suggestions.map((sug, idx) => (
                 <Pressable
                   key={idx}
@@ -109,6 +152,43 @@ export default function Search() {
           )}
         </View>
 
+        {/* Dynamic Dropdown Filter Chips */}
+        <View style={styles.filterRow}>
+          <Pressable
+            style={[
+              styles.filterPill,
+              selectedSubject !== "All" && styles.activePill,
+            ]}
+            onPress={() => setActiveDropdown("subject")}
+          >
+            <Text style={[styles.filterPillText, selectedSubject !== "All" && styles.activePillText]}>
+              Subject: {selectedSubject} ▾
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.filterPill,
+              selectedAuthor !== "All" && styles.activePill,
+            ]}
+            onPress={() => setActiveDropdown("author")}
+          >
+            <Text style={[styles.filterPillText, selectedAuthor !== "All" && styles.activePillText]}>
+              Author: {selectedAuthor} ▾
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.filterPill,
+              selectedAvailability !== "All" && styles.activePill,
+            ]}
+            onPress={() => setActiveDropdown("availability")}
+          >
+            <Text style={[styles.filterPillText, selectedAvailability !== "All" && styles.activePillText]}>
+              Status: {selectedAvailability} ▾
+            </Text>
+          </Pressable>
+        </View>
+
         {/* Category Browsing Grid */}
         <Text style={styles.sectionTitle}>Browse Categories</Text>
         <View style={styles.categoryGrid}>
@@ -116,49 +196,19 @@ export default function Search() {
             <Pressable
               key={cat.label}
               style={styles.categoryTile}
-              onPress={() => setQuery(cat.query)}
+              onPress={() => {
+                setQuery(cat.query);
+                setSelectedSubject("All");
+                setSelectedAuthor("All");
+                setSelectedAvailability("All");
+              }}
             >
-              <Text style={styles.catEmoji}>{cat.emoji}</Text>
+              <View style={[styles.catEmojiWrapper, { backgroundColor: cat.tint }]}>
+                <Text style={styles.catEmoji}>{cat.emoji}</Text>
+              </View>
               <Text style={styles.catLabel}>{cat.label}</Text>
             </Pressable>
           ))}
-        </View>
-
-        {/* Filter Pills */}
-        <View style={styles.filterRow}>
-          <Pressable
-            style={[
-              styles.filterPill,
-              activeFilter === "all" && styles.activePill,
-            ]}
-            onPress={() => setActiveFilter("all")}
-          >
-            <Text style={[styles.filterPillText, activeFilter === "all" && styles.activePillText]}>
-              All ({SAMPLE_BOOKS.length})
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.filterPill,
-              activeFilter === "available" && styles.activePill,
-            ]}
-            onPress={() => setActiveFilter("available")}
-          >
-            <Text style={[styles.filterPillText, activeFilter === "available" && styles.activePillText]}>
-              Available ({SAMPLE_BOOKS.filter((b) => b.available).length})
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.filterPill,
-              activeFilter === "loan" && styles.activePill,
-            ]}
-            onPress={() => setActiveFilter("loan")}
-          >
-            <Text style={[styles.filterPillText, activeFilter === "loan" && styles.activePillText]}>
-              On Loan ({SAMPLE_BOOKS.filter((b) => !b.available).length})
-            </Text>
-          </Pressable>
         </View>
 
         {/* Search Results */}
@@ -170,13 +220,80 @@ export default function Search() {
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+              No books match the selected filters.
+            </Text>
+          }
         />
       </View>
+
+      {/* Premium Option Selector Bottom Sheet Modal */}
+      <Modal
+        visible={activeDropdown !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setActiveDropdown(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setActiveDropdown(null)}>
+          <View style={[styles.modalSheet, isDark ? styles.modalSheetDark : null]}>
+            <View style={styles.sheetHeader}>
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>
+                Select {activeDropdown === "subject" ? "Subject" : activeDropdown === "author" ? "Author" : "Availability"}
+              </Text>
+              <Pressable onPress={() => setActiveDropdown(null)}>
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </Pressable>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.sheetContent}>
+              {getDropdownOptions().map((opt) => {
+                const isSelected = getActiveValue() === opt;
+                return (
+                  <Pressable
+                    key={opt}
+                    style={[
+                      styles.sheetOption,
+                      isSelected && { backgroundColor: colors.primaryLight },
+                    ]}
+                    onPress={() => handleSelectOption(opt)}
+                  >
+                    <Text style={[styles.optionText, isSelected && { color: colors.primary, fontWeight: "700" }, { color: colors.text }]}>
+                      {opt}
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Voice Interaction Listening Modal Overlay */}
+      <Modal visible={isListening} transparent animationType="fade">
+        <View style={styles.voiceOverlay}>
+          <Card style={[styles.voiceCard, isDark ? styles.cardDark : null]}>
+            <Text style={[styles.voiceTitle, { color: colors.text }]}>Listening...</Text>
+            <Text style={[styles.voiceDesc, { color: colors.textMuted }]}>
+              Say a book title, author, or subject.
+            </Text>
+            
+            <View style={[styles.pulseCircle, { borderColor: colors.primaryLight }]}>
+              <View style={[styles.pulseInner, { backgroundColor: colors.primary }]}>
+                <Ionicons name="mic" size={32} color={colors.textLight} />
+              </View>
+            </View>
+            
+            <Text style={[styles.speechHint, { color: colors.primary }]}>"Calculus by J. Stewart"</Text>
+          </Card>
+        </View>
+      </Modal>
     </ScreenWrapper>
   );
 }
 
-const createStyles = (colors: any, spacing: any, borderRadius: any, typography: any) =>
+const createStyles = (colors: any, spacing: any, borderRadius: any, typography: any, isDark: boolean) =>
   StyleSheet.create({
     safeArea: {
       backgroundColor: colors.background,
@@ -204,9 +321,9 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       zIndex: 100,
     },
     searchContainer: {
-      marginBottom: spacing.md,
+      marginBottom: spacing.sm,
     },
-    dropdown: {
+    suggestionsList: {
       position: "absolute",
       top: 50,
       left: 0,
@@ -252,7 +369,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       width: "47%",
       backgroundColor: colors.surface,
       borderRadius: borderRadius.xl,
-      padding: spacing.md,
+      padding: spacing.sm,
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
@@ -263,8 +380,15 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       borderWidth: 1,
       borderColor: colors.border,
     },
+    catEmojiWrapper: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     catEmoji: {
-      fontSize: 22,
+      fontSize: 18,
     },
     catLabel: {
       fontSize: 14,
@@ -274,28 +398,31 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
     filterRow: {
       flexDirection: "row",
       gap: spacing.sm,
-      marginBottom: spacing.md,
-      zIndex: 1,
+      marginBottom: spacing.lg,
+      zIndex: 50,
     },
     filterPill: {
-      paddingHorizontal: spacing.md,
+      flex: 1,
+      paddingHorizontal: spacing.sm,
       paddingVertical: spacing.sm - 2,
       borderRadius: borderRadius.round,
       backgroundColor: colors.surface,
       borderWidth: 1,
       borderColor: colors.border,
+      alignItems: "center",
+      justifyContent: "center",
     },
     activePill: {
-      backgroundColor: colors.primary,
+      backgroundColor: colors.primaryLight,
       borderColor: colors.primary,
     },
     filterPillText: {
-      fontSize: 12,
-      color: colors.textMuted,
+      fontSize: 11,
+      color: colors.text,
       fontWeight: "600",
     },
     activePillText: {
-      color: colors.textLight,
+      color: colors.primary,
       fontWeight: "700",
     },
     resultsTitle: {
@@ -311,5 +438,110 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
     },
     listContent: {
       paddingBottom: spacing.xxl,
+    },
+    emptyText: {
+      textAlign: "center",
+      paddingVertical: spacing.xxl,
+      fontSize: 14,
+      fontStyle: "italic",
+    },
+    // Modal selection sheet styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0, 0, 0, 0.4)",
+      justifyContent: "flex-end",
+    },
+    modalSheet: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: borderRadius.xl,
+      borderTopRightRadius: borderRadius.xl,
+      padding: spacing.lg,
+      maxHeight: "60%",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 10,
+      elevation: 10,
+    },
+    modalSheetDark: {
+      backgroundColor: "#181c33",
+      borderColor: "rgba(255, 255, 255, 0.08)",
+      borderTopWidth: 1,
+    },
+    sheetHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      paddingBottom: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    sheetTitle: {
+      fontSize: 16,
+      fontWeight: "800",
+    },
+    sheetContent: {
+      paddingBottom: spacing.xl,
+    },
+    sheetOption: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.sm,
+      borderRadius: borderRadius.md,
+    },
+    optionText: {
+      fontSize: 15,
+      fontWeight: "500",
+    },
+    // Voice Modal styles
+    voiceOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(6, 9, 19, 0.7)",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: spacing.xl,
+    },
+    voiceCard: {
+      padding: spacing.xl,
+      alignItems: "center",
+      width: "85%",
+    },
+    cardDark: {
+      backgroundColor: "rgba(24, 28, 51, 0.85)",
+      borderColor: "rgba(255, 255, 255, 0.06)",
+      borderWidth: 1,
+    },
+    voiceTitle: {
+      fontSize: 18,
+      fontWeight: "800",
+    },
+    voiceDesc: {
+      fontSize: 13,
+      marginTop: spacing.xs,
+      textAlign: "center",
+    },
+    pulseCircle: {
+      width: 90,
+      height: 90,
+      borderRadius: 45,
+      borderWidth: 6,
+      alignItems: "center",
+      justifyContent: "center",
+      marginVertical: spacing.xl,
+    },
+    pulseInner: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    speechHint: {
+      fontSize: 14,
+      fontStyle: "italic",
+      fontWeight: "700",
     },
   });

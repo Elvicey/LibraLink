@@ -1,14 +1,10 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Button from "../../components/common/Button";
 import Card from "../../components/common/Card";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
-
-const HIGHLIGHTS = [
-  { title: "Next due", value: "Calculus in 3 days", color: "#fde68a" },
-  { title: "Suggested", value: "AI for Education", color: "#a7f3d0" },
-];
 
 const RECOMMENDED = [
   {
@@ -36,8 +32,8 @@ const RECOMMENDED = [
 
 export default function Home() {
   const router = useRouter();
-  const { colors, spacing, borderRadius, typography } = useTheme();
-  const styles = createStyles(colors, spacing, borderRadius, typography);
+  const { colors, spacing, borderRadius, typography, isDark } = useTheme();
+  const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
 
   const getGreeting = () => {
     const hours = new Date().getHours();
@@ -46,8 +42,51 @@ export default function Home() {
     return "Good evening";
   };
 
+  const highlightsList = [
+    {
+      title: "Next due",
+      value: "Calculus in 3 days",
+      icon: "calendar-outline",
+      bg: isDark ? "rgba(245, 158, 11, 0.12)" : "#fffbeb",
+      border: isDark ? "rgba(245, 158, 11, 0.25)" : "rgba(245, 158, 11, 0.15)",
+      color: isDark ? "#fbbf24" : colors.warning,
+    },
+    {
+      title: "Suggested",
+      value: "AI for Education",
+      icon: "bulb-outline",
+      bg: isDark ? "rgba(34, 197, 94, 0.12)" : "#eefbf2",
+      border: isDark ? "rgba(34, 197, 94, 0.25)" : "rgba(34, 197, 94, 0.15)",
+      color: isDark ? "#4ade80" : colors.success,
+    },
+  ];
+
   return (
-    <ScreenWrapper scrollable contentContainerStyle={styles.container}>
+    <ScreenWrapper scrollable style={styles.screen} contentContainerStyle={styles.container}>
+      {/* Background Ambient Glow Orbs */}
+      <View
+        style={[
+          styles.orb,
+          {
+            backgroundColor: isDark ? "rgba(59, 130, 246, 0.15)" : "rgba(11, 110, 253, 0.05)",
+            top: "5%",
+            right: "-15%",
+            shadowColor: colors.primary,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.orb,
+          {
+            backgroundColor: isDark ? "rgba(139, 92, 246, 0.12)" : "rgba(139, 92, 246, 0.04)",
+            bottom: "20%",
+            left: "-15%",
+            shadowColor: "#8b5cf6",
+          },
+        ]}
+      />
+
       {/* Header Row */}
       <View style={styles.headerRow}>
         <View>
@@ -58,7 +97,7 @@ export default function Home() {
           style={styles.bellButton}
           onPress={() => router.push("/notifications" as any)}
         >
-          <Text style={styles.bellIcon}>🔔</Text>
+          <Ionicons name="notifications-outline" size={22} color={colors.text} />
           <View style={styles.bellBadge} />
         </Pressable>
       </View>
@@ -72,28 +111,30 @@ export default function Home() {
         <Text style={styles.heroBadge}>Student</Text>
       </Card>
 
-      {/* Search Bar Card */}
+      {/* Interactive Search Bar input layout */}
       <Pressable
-        style={styles.searchCard}
+        style={styles.searchBar}
         onPress={() => router.push("/search" as any)}
       >
-        <Text style={styles.searchLabel}>Search the catalogue</Text>
-        <Text style={styles.searchText}>
-          Tap to find books, journals, or notes
-        </Text>
+        <Ionicons name="search-outline" size={20} color={colors.textMuted} style={{ marginRight: spacing.sm }} />
+        <Text style={styles.searchPlaceholder}>Search by title, author or subject</Text>
+        <Ionicons name="scan-outline" size={20} color={colors.primary} style={{ marginLeft: "auto" }} />
       </Pressable>
 
-      {/* Quick Stats */}
+      {/* Quick Stats Grid */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
+          <Ionicons name="book-outline" size={20} color={colors.primary} style={{ marginBottom: spacing.xs }} />
           <Text style={styles.statValue}>2</Text>
           <Text style={styles.statLabel}>Borrowed</Text>
         </View>
         <View style={styles.statCard}>
+          <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={{ marginBottom: spacing.xs }} />
           <Text style={[styles.statValue, { color: colors.danger }]}>1</Text>
           <Text style={styles.statLabel}>Overdue</Text>
         </View>
         <View style={styles.statCard}>
+          <Ionicons name="bookmark-outline" size={20} color={colors.warning} style={{ marginBottom: spacing.xs }} />
           <Text style={styles.statValue}>3</Text>
           <Text style={styles.statLabel}>Holds</Text>
         </View>
@@ -108,30 +149,50 @@ export default function Home() {
       <View style={styles.quickActions}>
         <Pressable
           style={[styles.quickButton, styles.quickPrimary]}
-          onPress={() => router.push("/search" as any)}
+          onPress={() => router.push("/scan" as any)}
         >
-          <Text style={styles.quickTitle}>Scan to borrow</Text>
-          <Text style={styles.quickSubtitle}>Self-service checkout</Text>
+          <View style={[styles.quickIconCircle, { backgroundColor: isDark ? "rgba(59, 130, 246, 0.16)" : colors.primaryLight }]}>
+            <Ionicons name="scan-outline" size={22} color={colors.primary} />
+          </View>
+          <View style={styles.quickTextWrapper}>
+            <Text style={styles.quickTitle}>Scan to borrow</Text>
+            <Text style={styles.quickSubtitle}>Self-service checkout</Text>
+          </View>
         </Pressable>
         <Pressable
           style={[styles.quickButton, styles.quickSecondary]}
           onPress={() => router.push("/ai" as any)}
         >
-          <Text style={styles.quickTitle}>Ask Libra</Text>
-          <Text style={styles.quickSubtitle}>Get learning suggestions</Text>
+          <View style={[styles.quickIconCircle, { backgroundColor: isDark ? "rgba(139, 92, 246, 0.16)" : "rgba(139, 92, 246, 0.06)" }]}>
+            <Ionicons name="sparkles-outline" size={22} color={isDark ? "#a78bfa" : "#8b5cf6"} />
+          </View>
+          <View style={styles.quickTextWrapper}>
+            <Text style={styles.quickTitle}>Ask Libra</Text>
+            <Text style={styles.quickSubtitle}>Get learning suggestions</Text>
+          </View>
         </Pressable>
       </View>
 
       {/* Today's Highlights Section */}
       <Text style={styles.sectionTitle}>Today's highlights</Text>
       <View style={styles.highlightRow}>
-        {HIGHLIGHTS.map((item) => (
+        {highlightsList.map((item) => (
           <View
             key={item.title}
-            style={[styles.highlightCard, { backgroundColor: item.color }]}
+            style={[
+              styles.highlightCard,
+              {
+                backgroundColor: item.bg,
+                borderColor: item.border,
+                borderWidth: 1.5,
+              },
+            ]}
           >
-            <Text style={styles.highlightTitle}>{item.title}</Text>
-            <Text style={styles.highlightValue}>{item.value}</Text>
+            <View style={styles.highlightHeader}>
+              <Ionicons name={item.icon as any} size={16} color={item.color} style={{ marginRight: 6 }} />
+              <Text style={[styles.highlightTitle, { color: item.color }]}>{item.title}</Text>
+            </View>
+            <Text style={[styles.highlightValue, { color: colors.text }]}>{item.value}</Text>
           </View>
         ))}
       </View>
@@ -145,10 +206,14 @@ export default function Home() {
             <Text style={styles.resourceLabel}>
               Data Structures in Practice
             </Text>
-            <Text style={styles.resourceMeta}>37% complete</Text>
+            <Text style={styles.resourceMeta}>50% complete</Text>
           </View>
-          <View style={styles.progressPill}>
-            <Text style={styles.progressText}>37%</Text>
+          
+          {/* Custom Circular Progress Arc */}
+          <View style={styles.circularProgressContainer}>
+            <View style={styles.progressTrack} />
+            <View style={styles.progressSegment} />
+            <Text style={styles.progressPercent}>50%</Text>
           </View>
         </View>
       </Card>
@@ -187,17 +252,33 @@ export default function Home() {
   );
 }
 
-const createStyles = (colors: any, spacing: any, borderRadius: any, typography: any) =>
+const createStyles = (colors: any, spacing: any, borderRadius: any, typography: any, isDark: boolean) =>
   StyleSheet.create({
+    screen: {
+      backgroundColor: colors.background,
+    },
     container: {
       padding: spacing.lg,
-      backgroundColor: colors.background,
+      position: "relative",
+    },
+    orb: {
+      position: "absolute",
+      width: 200,
+      height: 200,
+      borderRadius: 100,
+      opacity: 0.22,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.6,
+      shadowRadius: 50,
+      elevation: 0,
+      zIndex: 0,
     },
     headerRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       marginBottom: spacing.lg,
+      zIndex: 1,
     },
     greetingText: {
       fontSize: 14,
@@ -214,7 +295,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       width: 44,
       height: 44,
       borderRadius: 22,
-      backgroundColor: colors.surface,
+      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
       justifyContent: "center",
       alignItems: "center",
       borderWidth: 1,
@@ -225,9 +306,6 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       shadowRadius: 4,
       elevation: 1,
     },
-    bellIcon: {
-      fontSize: 18,
-    },
     bellBadge: {
       position: "absolute",
       top: 10,
@@ -237,7 +315,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       borderRadius: 4,
       backgroundColor: colors.danger,
       borderWidth: 1.5,
-      borderColor: colors.surface,
+      borderColor: isDark ? "#181c33" : colors.surface,
     },
     heroCard: {
       padding: spacing.lg,
@@ -245,6 +323,10 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
+      zIndex: 1,
+      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : "transparent",
+      borderWidth: isDark ? 1 : 0,
     },
     heroTextContainer: {
       flex: 1,
@@ -269,24 +351,25 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       borderRadius: borderRadius.round,
       fontWeight: "700",
       fontSize: 12,
+      overflow: "hidden",
     },
-    searchCard: {
-      backgroundColor: colors.surface,
+    searchBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
+      borderWidth: 1.2,
       borderRadius: borderRadius.xl,
-      padding: spacing.lg,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
       marginBottom: spacing.lg,
       shadowColor: "#000",
       shadowOpacity: 0.04,
       shadowRadius: 10,
       elevation: 2,
+      zIndex: 1,
     },
-    searchLabel: {
-      color: colors.primary,
-      fontWeight: "700",
-      fontSize: 14,
-      marginBottom: spacing.xs,
-    },
-    searchText: {
+    searchPlaceholder: {
       color: colors.textMuted,
       fontSize: 15,
     },
@@ -295,11 +378,15 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       justifyContent: "space-between",
       marginBottom: spacing.lg,
       gap: spacing.sm,
+      zIndex: 1,
     },
     statCard: {
       flex: 1,
-      backgroundColor: colors.surface,
-      padding: spacing.lg,
+      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : "transparent",
+      borderWidth: isDark ? 1 : 0,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.sm,
       borderRadius: borderRadius.lg,
       alignItems: "center",
       shadowColor: "#000",
@@ -308,7 +395,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       elevation: 1,
     },
     statValue: {
-      fontSize: 22,
+      fontSize: 20,
       fontWeight: "800",
       color: colors.text,
     },
@@ -322,65 +409,93 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: spacing.sm,
+      marginBottom: spacing.xs,
+      zIndex: 1,
     },
     sectionTitle: {
       fontSize: 16,
       fontWeight: "700",
       color: colors.text,
       marginVertical: spacing.sm,
+      zIndex: 1,
     },
     quickActions: {
       flexDirection: "row",
       justifyContent: "space-between",
       marginBottom: spacing.lg,
       gap: spacing.sm,
+      zIndex: 1,
     },
     quickButton: {
       flex: 1,
       borderRadius: borderRadius.xl,
-      padding: spacing.lg,
+      padding: spacing.md,
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
     },
     quickPrimary: {
-      backgroundColor: colors.primaryLight,
+      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
     },
     quickSecondary: {
-      backgroundColor: colors.secondaryLight,
+      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
+    },
+    quickIconCircle: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: spacing.sm,
+    },
+    quickTextWrapper: {
+      flex: 1,
     },
     quickTitle: {
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: "700",
-      marginBottom: spacing.xs,
       color: colors.text,
     },
     quickSubtitle: {
       color: colors.textMuted,
-      fontSize: 12,
+      fontSize: 11,
+      marginTop: 2,
     },
     highlightRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       marginBottom: spacing.lg,
       gap: spacing.sm,
+      zIndex: 1,
     },
     highlightCard: {
       flex: 1,
       borderRadius: borderRadius.xl,
-      padding: spacing.lg,
+      padding: spacing.md,
+    },
+    highlightHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 6,
     },
     highlightTitle: {
-      color: colors.text,
       fontSize: 13,
-      fontWeight: "700",
-      marginBottom: spacing.xs,
+      fontWeight: "800",
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
     },
     highlightValue: {
-      color: colors.text,
       fontWeight: "700",
-      fontSize: 13,
+      fontSize: 14,
     },
     resourcesCard: {
       marginBottom: spacing.lg,
+      zIndex: 1,
+      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : "transparent",
+      borderWidth: isDark ? 1 : 0,
     },
     resourcesTitle: {
       fontSize: 16,
@@ -408,20 +523,42 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       marginTop: spacing.xs,
       fontSize: 12,
     },
-    progressPill: {
-      backgroundColor: colors.primaryLight,
-      borderRadius: borderRadius.round,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
+    // Circular Progress Arc styles
+    circularProgressContainer: {
+      width: 52,
+      height: 52,
+      justifyContent: "center",
+      alignItems: "center",
+      position: "relative",
     },
-    progressText: {
-      color: colors.primary,
-      fontWeight: "700",
+    progressTrack: {
+      position: "absolute",
+      width: "100%",
+      height: "100%",
+      borderRadius: 26,
+      borderWidth: 4.5,
+      borderColor: colors.border,
+    },
+    progressSegment: {
+      position: "absolute",
+      width: "100%",
+      height: "100%",
+      borderRadius: 26,
+      borderWidth: 4.5,
+      borderColor: colors.primary,
+      borderTopColor: "transparent",
+      borderRightColor: "transparent",
+      transform: [{ rotate: "45deg" }],
+    },
+    progressPercent: {
       fontSize: 12,
+      fontWeight: "800",
+      color: colors.text,
     },
     recommendedSection: {
       marginTop: spacing.md,
       marginBottom: spacing.xl,
+      zIndex: 1,
     },
     carouselContainer: {
       paddingRight: spacing.lg,
@@ -430,7 +567,8 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
     },
     carouselCard: {
       width: 170,
-      backgroundColor: colors.surface,
+      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
       borderRadius: borderRadius.xl,
       padding: spacing.md,
       shadowColor: "#000",
@@ -438,7 +576,6 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       shadowRadius: 8,
       elevation: 2,
       borderWidth: 1,
-      borderColor: colors.border,
     },
     carouselCardHeader: {
       flexDirection: "row",
@@ -458,6 +595,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       paddingHorizontal: spacing.sm,
       paddingVertical: 2,
       borderRadius: borderRadius.sm,
+      overflow: "hidden",
     },
     carouselTitle: {
       fontSize: 14,

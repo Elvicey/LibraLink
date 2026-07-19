@@ -17,6 +17,8 @@ interface InputProps extends TextInputProps {
   variant?: "light" | "glass";
   containerStyle?: StyleProp<ViewStyle>;
   inputStyle?: StyleProp<TextStyle>;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
 export default function Input({
@@ -25,6 +27,8 @@ export default function Input({
   variant = "light",
   containerStyle,
   inputStyle,
+  leftIcon,
+  rightIcon,
   onFocus,
   onBlur,
   ...props
@@ -55,30 +59,45 @@ export default function Input({
           {label}
         </Text>
       )}
-      <TextInput
+      <View
         style={[
-          styles.input,
+          styles.inputContainer,
           {
-            paddingHorizontal: spacing.lg,
-            paddingVertical: spacing.md,
             borderRadius: borderRadius.lg,
             borderColor: activeInputBorder,
             backgroundColor: activeInputBg,
-            color: inputTextColor,
+            borderWidth: 1,
+            flexDirection: "row",
+            alignItems: "center",
           },
-          inputStyle,
         ]}
-        placeholderTextColor={isGlass ? "rgba(255, 255, 255, 0.4)" : colors.textMuted}
-        onFocus={(e) => {
-          setIsFocused(true);
-          onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setIsFocused(false);
-          onBlur?.(e);
-        }}
-        {...props}
-      />
+      >
+        {leftIcon && <View style={{ paddingLeft: spacing.md }}>{leftIcon}</View>}
+        <TextInput
+          style={[
+            styles.input,
+            {
+              paddingLeft: leftIcon ? spacing.sm : spacing.lg,
+              paddingRight: rightIcon ? spacing.sm : spacing.lg,
+              paddingVertical: spacing.md,
+              color: inputTextColor,
+              flex: 1,
+            },
+            inputStyle,
+          ]}
+          placeholderTextColor={isGlass ? "rgba(255, 255, 255, 0.4)" : colors.textMuted}
+          onFocus={(e) => {
+            setIsFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            onBlur?.(e);
+          }}
+          {...props}
+        />
+        {rightIcon && <View style={{ paddingRight: spacing.md }}>{rightIcon}</View>}
+      </View>
       {error && <Text style={[styles.errorText, { color: colors.danger, marginTop: spacing.xs }]}>{error}</Text>}
     </View>
   );
@@ -92,13 +111,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  input: {
+  inputContainer: {
     width: "100%",
-    borderWidth: 1,
+  },
+  input: {
     fontSize: 16,
   },
   errorText: {
     fontSize: 12,
-    fontWeight: "500",
   },
 });
