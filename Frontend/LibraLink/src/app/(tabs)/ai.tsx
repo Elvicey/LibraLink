@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Input from "../../components/common/Input";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
@@ -27,8 +28,8 @@ export default function AI() {
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const { colors, spacing, borderRadius, typography } = useTheme();
-  const styles = createStyles(colors, spacing, borderRadius, typography);
+  const { colors, spacing, borderRadius, typography, isDark } = useTheme();
+  const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
 
   const sendMessage = (text: string) => {
     if (!text.trim()) return;
@@ -79,6 +80,12 @@ export default function AI() {
     return "I searched the catalog for that query. I suggest checking out the main collection under Class B or talking to a librarian at the reference desk.";
   };
 
+  const getPromptIcon = (text: string) => {
+    if (text.includes("Recommend")) return "bulb-outline";
+    if (text.includes("guides")) return "trending-up-outline";
+    return "reader-outline";
+  };
+
   return (
     <ScreenWrapper style={styles.safeArea}>
       <View style={styles.container}>
@@ -95,20 +102,27 @@ export default function AI() {
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View
-              style={[
-                styles.bubble,
-                item.sender === "user" ? styles.userBubble : styles.libraBubble,
-              ]}
-            >
-              <Text
+            <View style={item.sender === "user" ? styles.userRow : styles.libraRow}>
+              {item.sender === "libra" && (
+                <View style={[styles.avatarCircle, { backgroundColor: isDark ? "rgba(59, 130, 246, 0.16)" : colors.primaryLight }]}>
+                  <Ionicons name="sparkles" size={14} color={colors.primary} />
+                </View>
+              )}
+              <View
                 style={[
-                  styles.bubbleText,
-                  item.sender === "user" ? styles.userText : styles.libraText,
+                  styles.bubble,
+                  item.sender === "user" ? styles.userBubble : styles.libraBubble,
                 ]}
               >
-                {item.text}
-              </Text>
+                <Text
+                  style={[
+                    styles.bubbleText,
+                    item.sender === "user" ? styles.userText : styles.libraText,
+                  ]}
+                >
+                  {item.text}
+                </Text>
+              </View>
             </View>
           )}
           style={styles.chatList}
@@ -116,9 +130,14 @@ export default function AI() {
           showsVerticalScrollIndicator={false}
           ListFooterComponent={
             isTyping ? (
-              <View style={[styles.bubble, styles.libraBubble, styles.typingBox]}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={styles.typingText}>Libra is typing...</Text>
+              <View style={styles.libraRow}>
+                <View style={[styles.avatarCircle, { backgroundColor: isDark ? "rgba(59, 130, 246, 0.16)" : colors.primaryLight }]}>
+                  <Ionicons name="sparkles" size={14} color={colors.primary} />
+                </View>
+                <View style={[styles.bubble, styles.libraBubble, styles.typingBox]}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={styles.typingText}>Libra is thinking...</Text>
+                </View>
               </View>
             ) : null
           }
@@ -135,6 +154,7 @@ export default function AI() {
                   style={styles.promptChip}
                   onPress={() => sendMessage(item)}
                 >
+                  <Ionicons name={getPromptIcon(item) as any} size={14} color={colors.primary} style={{ marginRight: 6 }} />
                   <Text style={styles.promptText}>{item}</Text>
                 </Pressable>
               ))}
@@ -151,9 +171,10 @@ export default function AI() {
             containerStyle={styles.textInputContainer}
             onSubmitEditing={() => sendMessage(prompt)}
             returnKeyType="send"
+            leftIcon={<Ionicons name="chatbox-ellipses-outline" size={18} color={colors.textMuted} />}
           />
           <Pressable style={styles.sendButton} onPress={() => sendMessage(prompt)}>
-            <Text style={styles.sendIcon}>➔</Text>
+            <Ionicons name="arrow-forward" size={20} color={colors.textLight} />
           </Pressable>
         </View>
       </View>
@@ -161,7 +182,7 @@ export default function AI() {
   );
 }
 
-const createStyles = (colors: any, spacing: any, borderRadius: any, typography: any) =>
+const createStyles = (colors: any, spacing: any, borderRadius: any, typography: any, isDark: boolean) =>
   StyleSheet.create({
     safeArea: {
       backgroundColor: colors.background,
@@ -191,10 +212,31 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
     chatListContent: {
       paddingBottom: spacing.lg,
     },
+    userRow: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      marginBottom: spacing.md,
+      width: "100%",
+    },
+    libraRow: {
+      flexDirection: "row",
+      justifyContent: "flex-start",
+      alignItems: "flex-end", // Align avatar bottom to chat bubble bottom
+      marginBottom: spacing.md,
+      width: "100%",
+    },
+    avatarCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      justifyContent: "center",
+      alignItems: "center",
+      marginRight: spacing.sm,
+      marginBottom: 2, // Align with bubble shadow offset
+    },
     bubble: {
       padding: spacing.md,
       borderRadius: borderRadius.xl,
-      marginBottom: spacing.md,
       maxWidth: "80%",
       shadowColor: "#000",
       shadowOpacity: 0.01,
@@ -203,12 +245,10 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
     },
     userBubble: {
       backgroundColor: colors.primary,
-      alignSelf: "flex-end",
       borderBottomRightRadius: borderRadius.xs,
     },
     libraBubble: {
       backgroundColor: colors.surface,
-      alignSelf: "flex-start",
       borderBottomLeftRadius: borderRadius.xs,
       borderWidth: 1,
       borderColor: colors.border,
@@ -253,11 +293,13 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
     promptChip: {
       backgroundColor: colors.surface,
       borderRadius: borderRadius.round,
-      paddingVertical: spacing.sm,
+      paddingVertical: spacing.sm - 2,
       paddingHorizontal: spacing.md,
       borderWidth: 1,
       borderColor: colors.border,
       marginBottom: spacing.xs,
+      flexDirection: "row",
+      alignItems: "center",
     },
     promptText: {
       color: colors.text,
@@ -285,10 +327,5 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       shadowOpacity: 0.1,
       shadowRadius: 4,
       elevation: 2,
-    },
-    sendIcon: {
-      color: colors.textLight,
-      fontSize: 20,
-      fontWeight: "bold",
     },
   });

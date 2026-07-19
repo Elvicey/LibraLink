@@ -1,15 +1,16 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Button from "../components/common/Button";
 import Card from "../components/common/Card";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { useTheme } from "../constants/theme";
 
 const INITIAL_DEVICES = [
-  { id: "1", name: "Esther's iPhone 14 Pro", location: "Accra, Ghana (Active Now)", icon: "📱" },
-  { id: "2", name: "Chrome on macOS", location: "KNUST Campus Net", icon: "💻" },
-  { id: "3", name: "TECNO Camon 20", location: "Kumasi, Ghana", icon: "📱" },
+  { id: "1", name: "Esther's iPhone 14 Pro", location: "Accra, Ghana (Active Now)", isPhone: true },
+  { id: "2", name: "Chrome on macOS", location: "KNUST Campus Net", isPhone: false },
+  { id: "3", name: "TECNO Camon 20", location: "Kumasi, Ghana", isPhone: true },
 ];
 
 export default function Security() {
@@ -17,7 +18,7 @@ export default function Security() {
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
   const [devices, setDevices] = useState(INITIAL_DEVICES);
-  const { colors, spacing, borderRadius, typography } = useTheme();
+  const { colors, spacing, borderRadius, typography, isDark } = useTheme();
 
   const handleRevokeDevice = (id: string) => {
     setDevices((prev) => prev.filter((d) => d.id !== id));
@@ -45,8 +46,12 @@ export default function Security() {
 
   return (
     <ScreenWrapper scrollable contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
+      {/* Back button with chevron icon */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <Text style={[styles.backText, { color: colors.primary }]}>← Back</Text>
+        <View style={styles.backButtonRow}>
+          <Ionicons name="chevron-back" size={20} color={colors.primary} />
+          <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
+        </View>
       </Pressable>
 
       <Text style={[styles.title, { fontSize: typography.titleMedium.fontSize, color: colors.text, marginBottom: spacing.xs }]}>
@@ -57,8 +62,8 @@ export default function Security() {
       </Text>
 
       {/* Account Authentication Toggles */}
-      <Text style={[styles.sectionTitle, { color: colors.text, marginVertical: spacing.md }]}>Login Security</Text>
-      <Card style={{ padding: spacing.md, marginBottom: spacing.sm }}>
+      <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: spacing.md }]}>Login Security</Text>
+      <Card style={[styles.formCard, isDark ? styles.formCardDark : null, { padding: spacing.md, marginBottom: spacing.xl }]}>
         <View style={[styles.toggleRow, { paddingVertical: spacing.md, borderColor: colors.border }]}>
           <View style={[styles.toggleTextSection, { marginRight: spacing.md }]}>
             <Text style={[styles.settingTitle, { color: colors.text }]}>Two-Factor Authentication</Text>
@@ -80,8 +85,8 @@ export default function Security() {
       </Card>
 
       {/* Connected Sessions */}
-      <Text style={[styles.sectionTitle, { color: colors.text, marginVertical: spacing.md }]}>Connected Devices</Text>
-      <Card style={{ padding: spacing.md, marginBottom: spacing.sm }}>
+      <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: spacing.md }]}>Connected Devices</Text>
+      <Card style={[styles.formCard, isDark ? styles.formCardDark : null, { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginBottom: spacing.sm }]}>
         {devices.length === 0 ? (
           <Text style={[styles.noDevicesText, { color: colors.textMuted, paddingVertical: spacing.lg }]}>
             No active devices connected.
@@ -97,7 +102,14 @@ export default function Security() {
               ]}
             >
               <View style={[styles.deviceInfo, { gap: spacing.md }]}>
-                <Text style={styles.deviceIcon}>{device.icon}</Text>
+                {/* Circular styled icon background */}
+                <View style={[styles.deviceIconWrapper, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : colors.background }]}>
+                  <Ionicons
+                    name={device.isPhone ? "phone-portrait-outline" : "laptop-outline"}
+                    size={20}
+                    color={colors.text}
+                  />
+                </View>
                 <View>
                   <Text style={[styles.deviceName, { color: colors.text }]}>{device.name}</Text>
                   <Text style={[styles.deviceLoc, { color: colors.textMuted, marginTop: spacing.xs }]}>
@@ -111,6 +123,7 @@ export default function Security() {
                   variant="text"
                   size="sm"
                   onPress={() => handleRevokeDevice(device.id)}
+                  icon={<Ionicons name="close-circle-outline" size={14} color={colors.danger} />}
                   textStyle={{ color: colors.danger, fontSize: 13, fontWeight: "700" }}
                 />
               )}
@@ -127,8 +140,13 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   backButton: {
-    marginBottom: 12,
+    marginBottom: 16,
     alignSelf: "flex-start",
+  },
+  backButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: -4,
   },
   backText: {
     fontWeight: "700",
@@ -143,6 +161,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
+  },
+  formCard: {
+    padding: 16,
+  },
+  formCardDark: {
+    backgroundColor: "rgba(24, 28, 51, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderWidth: 1,
   },
   toggleRow: {
     flexDirection: "row",
@@ -200,8 +226,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  deviceIcon: {
-    fontSize: 24,
+  deviceIconWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
   },
   deviceName: {
     fontSize: 14,

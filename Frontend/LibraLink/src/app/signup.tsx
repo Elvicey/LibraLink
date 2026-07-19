@@ -1,16 +1,50 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ImageBackground, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { theme, darkColors } from "../constants/theme";
+import { authService } from "../services/auth";
 
 export default function SignUp() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSignUp = async () => {
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError("Please fill in all student credentials.");
+      return;
+    }
+    
+    setError(null);
+    setLoading(true);
+
+    try {
+      const nameParts = name.trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "Student";
+
+      await authService.register({
+        firstName,
+        lastName,
+        email: email.trim(),
+        passwordHash: password, // maps directly to backend DB password validation
+        institutionId: 1, // KNUST Main Campus (default basic tier)
+      });
+
+      // Automatically routes to dashboard home screen upon successful registration
+      router.replace("/home" as any);
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please check network connections.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScreenWrapper
@@ -20,6 +54,14 @@ export default function SignUp() {
       style={styles.screen}
       contentContainerStyle={styles.container}
     >
+      {/* Absolute background image placed inside the ScreenWrapper */}
+      <ImageBackground
+        source={require("../../assets/images/onboarding-bg.jpg")}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      />
+      <View style={styles.darkOverlay} />
+
       {/* Background Ambient Glow Orbs */}
       <View
         style={[
@@ -56,12 +98,20 @@ export default function SignUp() {
           </Text>
         </View>
 
+        {/* Error warning banner */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
         <Input
           label="Full Name"
           placeholder="Esther Asamoah"
           value={name}
           onChangeText={setName}
           variant="glass"
+          editable={!loading}
         />
         <Input
           label="Student Email"
@@ -71,6 +121,7 @@ export default function SignUp() {
           value={email}
           onChangeText={setEmail}
           variant="glass"
+          editable={!loading}
         />
         <Input
           label="Password"
@@ -79,11 +130,13 @@ export default function SignUp() {
           value={password}
           onChangeText={setPassword}
           variant="glass"
+          editable={!loading}
         />
 
         <Button
           title="Sign up"
-          onPress={() => router.replace("/home" as any)}
+          onPress={handleSignUp}
+          loading={loading}
           style={[styles.submitButton, { backgroundColor: darkColors.primary }]}
           textStyle={styles.submitButtonText}
         />
@@ -91,6 +144,7 @@ export default function SignUp() {
         <Pressable
           style={styles.bottomLink}
           onPress={() => router.replace("/signin" as any)}
+          disabled={loading}
         >
           <Text style={styles.bottomText}>
             Already have an account?{" "}
@@ -104,7 +158,11 @@ export default function SignUp() {
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: "#060913", // Deep dark canvas background
+    backgroundColor: "#060913", // Fallback color
+  },
+  darkOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(6, 9, 19, 0.65)", // Moody overlay shield showing shelf background
   },
   container: {
     padding: theme.spacing.lg,
@@ -148,6 +206,20 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.65)",
     fontSize: theme.typography.bodyLarge.fontSize,
   },
+  errorContainer: {
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.25)",
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+  errorText: {
+    color: "#f87171",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+  },
   submitButton: {
     width: "100%",
     paddingVertical: theme.spacing.md,
@@ -175,3 +247,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
+

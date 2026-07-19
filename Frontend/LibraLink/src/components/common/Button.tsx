@@ -7,6 +7,7 @@ import {
   TextStyle,
   ViewStyle,
   StyleProp,
+  View,
 } from "react-native";
 import { useTheme } from "../../constants/theme";
 
@@ -19,6 +20,7 @@ interface ButtonProps {
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
+  icon?: React.ReactNode;
 }
 
 export default function Button({
@@ -30,6 +32,7 @@ export default function Button({
   loading = false,
   style,
   textStyle,
+  icon,
 }: ButtonProps) {
   const { colors, spacing, borderRadius } = useTheme();
 
@@ -98,17 +101,20 @@ export default function Button({
           size="small"
         />
       ) : (
-        <Text
-          style={[
-            styles.baseText,
-            styles[`${size}Text`],
-            textVariantStyles[variant],
-            disabled && disabledTextStyle,
-            textStyle,
-          ]}
-        >
-          {title}
-        </Text>
+        <>
+          {icon && <View style={{ marginRight: spacing.xs }}>{icon}</View>}
+          <Text
+            style={[
+              styles.baseText,
+              styles[`${size}Text`],
+              textVariantStyles[variant],
+              disabled && disabledTextStyle,
+              textStyle,
+            ]}
+          >
+            {title}
+          </Text>
+        </>
       )}
     </Pressable>
   );

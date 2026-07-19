@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Button from "../components/common/Button";
 import Card from "../components/common/Card";
 import Input from "../components/common/Input";
@@ -14,7 +15,7 @@ export default function ProfileDetails() {
   const [campus, setCampus] = useState("KNUST Main Library");
   const [isUpdating, setIsUpdating] = useState(false);
   const [msg, setMsg] = useState("");
-  const { colors, spacing, borderRadius, typography } = useTheme();
+  const { colors, spacing, borderRadius, typography, isDark } = useTheme();
 
   const handleSave = () => {
     setIsUpdating(true);
@@ -27,8 +28,12 @@ export default function ProfileDetails() {
 
   return (
     <ScreenWrapper scrollable contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
+      {/* Premium Back navigation with chevron icon */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <Text style={[styles.backText, { color: colors.primary }]}>← Back</Text>
+        <View style={styles.backButtonRow}>
+          <Ionicons name="chevron-back" size={20} color={colors.primary} />
+          <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
+        </View>
       </Pressable>
 
       <Text style={[styles.title, { fontSize: typography.titleMedium.fontSize, color: colors.text, marginBottom: spacing.xs }]}>
@@ -38,28 +43,39 @@ export default function ProfileDetails() {
         Manage your contact information and campus choices.
       </Text>
 
+      {/* Stateful Success Toast Banner */}
       {msg ? (
-        <Text style={[styles.successMsg, { backgroundColor: colors.successLight, color: colors.success, padding: spacing.md, borderRadius: borderRadius.md, marginBottom: spacing.md }]}>
-          {msg}
-        </Text>
+        <View style={[styles.successMsgContainer, { backgroundColor: colors.successLight, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.md }]}>
+          <Ionicons name="checkmark-circle" size={18} color={colors.success} style={{ marginRight: spacing.xs }} />
+          <Text style={[styles.successMsgText, { color: colors.success }]}>
+            {msg}
+          </Text>
+        </View>
       ) : null}
 
-      <Card style={{ marginBottom: spacing.xl }}>
+      {/* Styled Form Card */}
+      <Card style={[styles.formCard, isDark ? styles.formCardDark : null, { marginBottom: spacing.xl }]}>
         <Input
           label="Full Name"
           value={name}
           onChangeText={setName}
+          leftIcon={<Ionicons name="person-outline" size={20} color={colors.textMuted} />}
+          variant={isDark ? "glass" : "light"}
         />
         <Input
           label="Student Email"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
+          leftIcon={<Ionicons name="mail-outline" size={20} color={colors.textMuted} />}
+          variant={isDark ? "glass" : "light"}
         />
         <Input
           label="Preferred Campus"
           value={campus}
           onChangeText={setCampus}
+          leftIcon={<Ionicons name="business-outline" size={20} color={colors.textMuted} />}
+          variant={isDark ? "glass" : "light"}
         />
       </Card>
 
@@ -67,6 +83,7 @@ export default function ProfileDetails() {
         title={isUpdating ? "Saving changes..." : "Save changes"}
         onPress={handleSave}
         loading={isUpdating}
+        icon={isUpdating ? undefined : <Ionicons name="checkmark-circle-outline" size={18} color={colors.textLight} />}
         style={[styles.saveButton, { paddingVertical: spacing.md, borderRadius: borderRadius.xl }]}
       />
     </ScreenWrapper>
@@ -78,8 +95,13 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   backButton: {
-    marginBottom: 12,
+    marginBottom: 16,
     alignSelf: "flex-start",
+  },
+  backButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: -4, // Counteract icon edge padding
   },
   backText: {
     fontWeight: "700",
@@ -91,11 +113,23 @@ const styles = StyleSheet.create({
   description: {
     fontWeight: "500",
   },
-  successMsg: {
-    fontWeight: "600",
-    textAlign: "center",
+  successMsgContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(21, 128, 61, 0.15)",
+  },
+  successMsgText: {
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  formCard: {
+    padding: 16,
+  },
+  formCardDark: {
+    backgroundColor: "rgba(24, 28, 51, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderWidth: 1,
   },
   saveButton: {
     paddingVertical: 12,

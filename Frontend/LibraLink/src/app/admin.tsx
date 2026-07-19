@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Card from "../components/common/Card";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { useTheme } from "../constants/theme";
@@ -13,7 +14,7 @@ const TRANSACTIONS = [
 
 export default function Admin() {
   const router = useRouter();
-  const { colors, spacing, borderRadius, typography } = useTheme();
+  const { colors, spacing, borderRadius, typography, isDark } = useTheme();
 
   const CHART_DATA = [
     { day: "Mon", count: 120, height: 60, color: colors.primary },
@@ -31,36 +32,70 @@ export default function Admin() {
     return colors.info;
   };
 
+  const getTxnBg = (txn: any) => {
+    if (txn.isDanger) return colors.dangerLight;
+    if (txn.isSuccess) return colors.successLight;
+    if (txn.isPrimary) return colors.primaryLight;
+    return colors.infoLight;
+  };
+
   return (
     <ScreenWrapper scrollable contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
+      {/* Back navigation header */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <Text style={[styles.backText, { color: colors.primary }]}>← Back</Text>
+        <View style={styles.backButtonRow}>
+          <Ionicons name="chevron-back" size={20} color={colors.primary} />
+          <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
+        </View>
       </Pressable>
 
       <Text style={[styles.title, { fontSize: typography.titleMedium.fontSize, color: colors.text, marginBottom: spacing.xs }]}>
         Admin Dashboard
       </Text>
       <Text style={[styles.description, { color: colors.textMuted, fontSize: typography.bodyMedium.fontSize, lineHeight: typography.bodyMedium.lineHeight, marginBottom: spacing.lg }]}>
-        Library circulation logs, inventory updates, and campus metrics.
+        Library circulation logs, inventory updates, and KNUST campus metrics.
       </Text>
+
+      {/* Course readings management shortcut */}
+      <Pressable
+        style={[styles.manageLinkCard, isDark ? styles.cardDark : null, { marginBottom: spacing.lg }]}
+        onPress={() => router.push("/course?mode=librarian" as any)}
+      >
+        <View style={styles.manageLinkRow}>
+          <View style={[styles.manageIconCircle, { backgroundColor: isDark ? "rgba(11, 110, 253, 0.16)" : colors.primaryLight }]}>
+            <Ionicons name="book-outline" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.manageTextStack}>
+            <Text style={[styles.manageTitle, { color: colors.text }]}>Manage Course Textbooks</Text>
+            <Text style={[styles.manageSubtitle, { color: colors.textMuted }]}>Assign core textbooks per course list</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} style={{ marginLeft: "auto" }} />
+        </View>
+      </Pressable>
 
       {/* Analytics Summary */}
       <View style={[styles.metricsRow, { gap: spacing.md, marginBottom: spacing.lg }]}>
-        <Card style={[styles.metricCard, { padding: spacing.md }]}>
-          <Text style={[styles.metricLabel, { color: colors.textMuted, marginBottom: spacing.xs }]}>Total Loans</Text>
+        <Card style={[styles.metricCard, isDark ? styles.cardDark : null, { padding: spacing.md }]}>
+          <View style={styles.metricHeader}>
+            <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Total Loans</Text>
+            <Ionicons name="bar-chart-outline" size={16} color={colors.primary} />
+          </View>
           <Text style={[styles.metricValue, { color: colors.text }]}>1,248</Text>
           <Text style={[styles.metricChange, { color: colors.success, marginTop: spacing.xs }]}>+12% vs last week</Text>
         </Card>
-        <Card style={[styles.metricCard, { padding: spacing.md }]}>
-          <Text style={[styles.metricLabel, { color: colors.textMuted, marginBottom: spacing.xs }]}>Overdue</Text>
+        <Card style={[styles.metricCard, isDark ? styles.cardDark : null, { padding: spacing.md }]}>
+          <View style={styles.metricHeader}>
+            <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Overdue</Text>
+            <Ionicons name="alert-circle-outline" size={16} color={colors.danger} />
+          </View>
           <Text style={[styles.metricValue, { color: colors.danger }]}>24</Text>
-          <Text style={[styles.metricChange, { color: colors.success, marginTop: spacing.xs }]}>Requires alerts</Text>
+          <Text style={[styles.metricChange, { color: colors.textMuted, marginTop: spacing.xs }]}>Requires alerts</Text>
         </Card>
       </View>
 
-      {/* Stylized Flexbox Column Chart */}
-      <Text style={[styles.sectionTitle, { color: colors.text, marginVertical: spacing.md }]}>Weekly Circulation Traffic</Text>
-      <Card style={{ padding: spacing.lg, marginBottom: spacing.sm }}>
+      {/* Weekly Circulation Traffic chart */}
+      <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: spacing.md }]}>Weekly Circulation Traffic</Text>
+      <Card style={[styles.cardBg, isDark ? styles.cardDark : null, { padding: spacing.lg, marginBottom: spacing.lg }]}>
         <View style={[styles.chartColumns, { paddingTop: spacing.lg }]}>
           {CHART_DATA.map((item) => (
             <View key={item.day} style={styles.chartCol}>
@@ -68,7 +103,12 @@ export default function Admin() {
               <View
                 style={[
                   styles.chartBar,
-                  { height: item.height, backgroundColor: item.color, borderRadius: borderRadius.sm },
+                  {
+                    height: item.height,
+                    backgroundColor: item.color,
+                    borderRadius: borderRadius.sm,
+                    opacity: isDark ? 0.85 : 1,
+                  },
                 ]}
               />
               <Text style={[styles.chartLabel, { color: colors.textMuted, marginTop: spacing.sm }]}>{item.day}</Text>
@@ -78,10 +118,11 @@ export default function Admin() {
       </Card>
 
       {/* Transaction Log */}
-      <Text style={[styles.sectionTitle, { color: colors.text, marginVertical: spacing.md }]}>Recent Transactions</Text>
-      <Card style={{ padding: spacing.md, marginBottom: spacing.xxl }}>
+      <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: spacing.md }]}>Recent Transactions</Text>
+      <Card style={[styles.cardBg, isDark ? styles.cardDark : null, { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginBottom: spacing.xxl }]}>
         {TRANSACTIONS.map((txn, idx) => {
           const txnColor = getTxnColor(txn);
+          const txnBg = getTxnBg(txn);
           return (
             <View
               key={txn.id}
@@ -92,21 +133,22 @@ export default function Admin() {
               ]}
             >
               <View style={[styles.txnLeft, { gap: spacing.md }]}>
-                <View style={[styles.avatarMini, { backgroundColor: colors.primaryLight }]}>
-                  <Text style={[styles.avatarText, { color: colors.primary }]}>{txn.user[0]}</Text>
+                {/* Circular styled initials badge */}
+                <View style={[styles.avatarMini, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : colors.background }]}>
+                  <Text style={[styles.avatarText, { color: colors.text }]}>{txn.user[0]}</Text>
                 </View>
                 <View>
                   <Text style={[styles.txnUser, { color: colors.text }]}>{txn.user} ({txn.id})</Text>
                   <Text style={[styles.txnBook, { color: colors.textMuted, marginTop: spacing.xs }]}>{txn.book}</Text>
                 </View>
               </View>
+              
               <View style={styles.txnRight}>
-                <View style={[styles.statusBadge, { backgroundColor: txnColor + "12", borderRadius: borderRadius.sm }]}>
-                  <Text style={[styles.statusText, { color: txnColor }]}>
-                    {txn.status}
-                  </Text>
+                {/* Visual Status Tag badge */}
+                <View style={[styles.statusPill, { backgroundColor: txnBg, marginBottom: spacing.xs }]}>
+                  <Text style={[styles.statusText, { color: txnColor }]}>{txn.status.toUpperCase()}</Text>
                 </View>
-                <Text style={[styles.txnDate, { color: colors.textMuted, marginTop: spacing.xs }]}>{txn.date}</Text>
+                <Text style={[styles.txnDate, { color: colors.textMuted }]}>{txn.date}</Text>
               </View>
             </View>
           );
@@ -121,8 +163,13 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   backButton: {
-    marginBottom: 12,
+    marginBottom: 16,
     alignSelf: "flex-start",
+  },
+  backButtonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: -4,
   },
   backText: {
     fontWeight: "700",
@@ -134,29 +181,36 @@ const styles = StyleSheet.create({
   description: {
     fontWeight: "500",
   },
-  metricsRow: {
-    flexDirection: "row",
-  },
-  metricCard: {
-    flex: 1,
-  },
-  metricLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-  },
-  metricValue: {
-    fontSize: 22,
-    fontWeight: "800",
-  },
-  metricChange: {
-    fontSize: 11,
-    fontWeight: "500",
-  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
   },
+  metricsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  metricCard: {
+    flex: 1,
+  },
+  metricHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  metricLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  metricValue: {
+    fontSize: 24,
+    fontWeight: "800",
+  },
+  metricChange: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  // Chart styles
   chartColumns: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -173,12 +227,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   chartBar: {
-    width: 20,
+    width: 24,
   },
   chartLabel: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
+  // Transaction logs
   txnRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -196,11 +251,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
   },
   avatarText: {
-    fontWeight: "700",
+    fontWeight: "800",
     fontSize: 14,
   },
   txnUser: {
@@ -208,21 +263,67 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   txnBook: {
-    fontSize: 12,
+    fontSize: 13,
   },
   txnRight: {
     alignItems: "flex-end",
   },
-  statusBadge: {
+  txnDate: {
+    fontSize: 12,
+  },
+  statusPill: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statusText: {
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.5,
   },
-  txnDate: {
-    fontSize: 11,
+  cardBg: {
+    padding: 16,
+  },
+  cardDark: {
+    backgroundColor: "rgba(24, 28, 51, 0.85)",
+    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderWidth: 1,
+  },
+  manageLinkCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  manageLinkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  manageIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  manageTextStack: {
+    flex: 1,
+  },
+  manageTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  manageSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
   },
 });

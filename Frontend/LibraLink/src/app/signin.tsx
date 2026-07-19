@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ImageBackground, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
@@ -19,6 +19,14 @@ export default function SignIn() {
       style={styles.screen}
       contentContainerStyle={styles.container}
     >
+      {/* Absolute background image placed inside the ScreenWrapper */}
+      <ImageBackground
+        source={require("../../assets/images/onboarding-bg.jpg")}
+        style={StyleSheet.absoluteFill}
+        resizeMode="cover"
+      />
+      <View style={styles.darkOverlay} />
+
       {/* Background Ambient Glow Orbs */}
       <View
         style={[
@@ -73,13 +81,28 @@ export default function SignIn() {
           variant="glass"
         />
 
-        <Pressable style={styles.linkButton} onPress={() => {}}>
+        {/* Role-based routing info banner */}
+        <Text style={styles.roleNote}>
+          ℹ️ Students use standard logins. Librarians log in with <Text style={{ fontWeight: "700" }}>admin@knust.edu.gh</Text>.
+        </Text>
+
+        <Pressable
+          style={styles.linkButton}
+          onPress={() => router.push("/forgot-password" as any)}
+        >
           <Text style={styles.linkText}>Forgot password?</Text>
         </Pressable>
 
         <Button
           title="Sign in"
-          onPress={() => router.replace("/home" as any)}
+          onPress={() => {
+            const isLibrarian = email.toLowerCase().includes("admin") || email.toLowerCase().includes("librarian");
+            if (isLibrarian) {
+              router.replace("/admin" as any);
+            } else {
+              router.replace("/home" as any);
+            }
+          }}
           style={[styles.submitButton, { backgroundColor: darkColors.primary }]}
           textStyle={styles.submitButtonText}
         />
@@ -122,7 +145,11 @@ export default function SignIn() {
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: "#060913", // Deep dark canvas background
+    backgroundColor: "#060913", // Fallback color
+  },
+  darkOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(6, 9, 19, 0.65)", // Moody overlay shield showing shelf background
   },
   container: {
     padding: theme.spacing.lg,
@@ -173,6 +200,17 @@ const styles = StyleSheet.create({
   linkText: {
     color: darkColors.primary,
     fontWeight: "600",
+  },
+  roleNote: {
+    color: "rgba(255, 255, 255, 0.65)",
+    fontSize: 13,
+    lineHeight: 18,
+    marginVertical: theme.spacing.sm,
+    backgroundColor: "rgba(11, 110, 253, 0.12)",
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: "rgba(11, 110, 253, 0.25)",
   },
   submitButton: {
     width: "100%",
