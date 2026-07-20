@@ -2,6 +2,8 @@ package com.codequest.libralink.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -14,8 +16,15 @@ public class User {
 
     @ManyToOne
     @JoinColumn(name = "institution_id")
-    private Institution institution;   // ← Here
+    private Institution institution;
 
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "user_roles",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
 
     @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
@@ -36,6 +45,9 @@ public class User {
     @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;
 
+    @Column(name = "push_token", length = 500)
+    private String pushToken;
+
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
@@ -46,6 +58,9 @@ public class User {
 
     public Institution getInstitution() { return institution; }
     public void setInstitution(Institution institution) { this.institution = institution; }
+
+    public Set<Role> getRoles() { return roles; }
+    public void setRoles(Set<Role> roles) { this.roles = roles; }
 
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
@@ -64,6 +79,9 @@ public class User {
 
     public String getProfileImageUrl() { return profileImageUrl; }
     public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
+
+    public String getPushToken() { return pushToken; }
+    public void setPushToken(String pushToken) { this.pushToken = pushToken; }
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }

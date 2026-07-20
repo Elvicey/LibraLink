@@ -28,6 +28,9 @@ public class BookService {
     @Autowired
     private InstitutionRepository institutionRepository;
 
+    @Autowired
+    private NlSearchService nlSearchService;
+
     @Transactional
     public Book addBook(BookRequest request) {
         Book book = new Book();
@@ -49,6 +52,45 @@ public class BookService {
 
     public Optional<Book> getBookById(Integer id) {
         return bookRepository.findById(id);
+    }
+
+    public List<Book> searchBooks(String query, String author, String subject, String availability) {
+        if (query != null && !query.isBlank()) {
+            return nlSearchService.naturalLanguageSearch(query);
+        }
+
+        List<Book> results = bookRepository.findAll();
+
+        if (author != null && !author.isBlank()) {
+            results = results.stream()
+                    .filter(b -> b.getAuthors().stream()
+                            .anyMatch(a -> a.getFullName().toLowerCase().contains(author.toLowerCase())))
+                    .toList();
+        }
+
+        if (subject != null && !subject.isBlank()) {
+            results = results.stream()
+                    .filter(b -> b.getTitle().toLowerCase().contains(subject.toLowerCase())
+                            || (b.getDescription() != null
+                                && b.getDescription().toLowerCase().contains(subject.toLowerCase())))
+                    .toList();
+        }
+
+        if (availability != null && !availability.isBlank()) {
+            if (availability.equalsIgnoreCase("available") || availability.equalsIgnoreCase("true")) {
+                results = results.stream()
+                        .filter(b -> b.getAvailableCopies() > 0)
+                        .toList();
+            }
+        }
+
+        return results;
+    }
+
+    public boolean isBookAvailable(Integer bookId) {
+        return bookRepository.findById(bookId)
+                .map(b -> b.getAvailableCopies() > 0)
+                .orElse(false);
     }
 
     private void applyRequestFields(Book book, BookRequest request) {
