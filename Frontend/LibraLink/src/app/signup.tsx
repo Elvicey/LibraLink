@@ -1,10 +1,10 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ImageBackground, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
-import { theme, darkColors } from "../constants/theme";
+import { theme, lightColors } from "../constants/theme";
 import { authService } from "../services/auth";
 
 export default function SignUp() {
@@ -49,45 +49,26 @@ export default function SignUp() {
   return (
     <ScreenWrapper
       scrollable
-      statusBarColor="#060913"
-      statusBarStyle="light-content"
+      statusBarColor="#ffffff"
+      statusBarStyle="dark-content"
       style={styles.screen}
       contentContainerStyle={styles.container}
     >
-      {/* Absolute background image placed inside the ScreenWrapper */}
-      <ImageBackground
-        source={require("../../assets/images/onboarding-bg.jpg")}
-        style={StyleSheet.absoluteFill}
-        resizeMode="cover"
-      />
-      <View style={styles.darkOverlay} />
-
-      {/* Background Ambient Glow Orbs */}
-      <View
-        style={[
-          styles.orb,
-          {
-            backgroundColor: "rgba(16, 185, 129, 0.2)", // Emerald Green Orb
-            top: "8%",
-            left: "-12%",
-            shadowColor: "#10b981",
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.orb,
-          {
-            backgroundColor: "rgba(11, 110, 253, 0.22)", // Primary Blue Orb
-            bottom: "12%",
-            right: "-15%",
-            width: 250,
-            height: 250,
-            borderRadius: 125,
-            shadowColor: darkColors.primary,
-          },
-        ]}
-      />
+      {/* Decorative background circles */}
+      <View style={styles.backgroundCirclesContainer}>
+        {/* Large soft blue circle top left */}
+        <View style={[styles.circle, styles.circleBlueLarge, { top: -100, left: -100 }]} />
+        {/* Medium yellow circle top right */}
+        <View style={[styles.circle, styles.circleYellowMedium, { top: 80, right: -40 }]} />
+        {/* Medium blue ring middle left */}
+        <View style={[styles.circle, styles.circleBlueRing, { top: "45%", left: -50 }]} />
+        {/* Small yellow circle bottom left */}
+        <View style={[styles.circle, styles.circleYellowSmall, { bottom: 120, left: -30 }]} />
+        {/* Large blue circle bottom right */}
+        <View style={[styles.circle, styles.circleBlueLarge, { bottom: -120, right: -80 }]} />
+        {/* Medium-small yellow ring middle right */}
+        <View style={[styles.circle, styles.circleYellowRing, { top: "25%", right: "15%" }]} />
+      </View>
 
       {/* Glassmorphic Form Card */}
       <View style={styles.glassCard}>
@@ -110,7 +91,6 @@ export default function SignUp() {
           placeholder="Esther Asamoah"
           value={name}
           onChangeText={setName}
-          variant="glass"
           editable={!loading}
         />
         <Input
@@ -120,7 +100,6 @@ export default function SignUp() {
           autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
-          variant="glass"
           editable={!loading}
         />
         <Input
@@ -129,7 +108,6 @@ export default function SignUp() {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
-          variant="glass"
           editable={!loading}
         />
 
@@ -137,7 +115,7 @@ export default function SignUp() {
           title="Sign up"
           onPress={handleSignUp}
           loading={loading}
-          style={[styles.submitButton, { backgroundColor: darkColors.primary }]}
+          style={[styles.submitButton, { backgroundColor: lightColors.primary }]}
           textStyle={styles.submitButtonText}
         />
 
@@ -158,11 +136,7 @@ export default function SignUp() {
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: "#060913", // Fallback color
-  },
-  darkOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(6, 9, 19, 0.65)", // Moody overlay shield showing shelf background
+    backgroundColor: "#ffffff",
   },
   container: {
     padding: theme.spacing.lg,
@@ -170,28 +144,17 @@ const styles = StyleSheet.create({
     minHeight: "100%",
     position: "relative",
   },
-  orb: {
-    position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    opacity: 0.25,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 70,
-    elevation: 0,
-  },
   glassCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    backgroundColor: "rgba(255, 255, 255, 0.75)",
     borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.12)",
+    borderColor: "rgba(13, 37, 63, 0.08)",
     borderRadius: theme.borderRadius.huge,
     padding: theme.spacing.xl,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.4,
-    shadowRadius: 24,
-    elevation: 8,
+    shadowColor: "#0d253f",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
+    elevation: 5,
   },
   header: {
     marginBottom: theme.spacing.xl,
@@ -199,11 +162,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "800",
-    color: darkColors.textLight,
+    color: lightColors.text,
     marginBottom: theme.spacing.xs,
   },
   subtitle: {
-    color: "rgba(255, 255, 255, 0.65)",
+    color: lightColors.textMuted,
     fontSize: theme.typography.bodyLarge.fontSize,
   },
   errorContainer: {
@@ -215,7 +178,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   errorText: {
-    color: "#f87171",
+    color: "#dc2626",
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
@@ -227,12 +190,12 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.xl,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 3,
   },
   submitButtonText: {
-    color: darkColors.textLight,
+    color: lightColors.textLight,
     fontSize: 16,
     fontWeight: "700",
   },
@@ -240,11 +203,51 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   bottomText: {
-    color: "rgba(255, 255, 255, 0.6)",
+    color: lightColors.textMuted,
   },
   bottomLinkText: {
-    color: darkColors.primary,
+    color: lightColors.primary,
     fontWeight: "700",
+  },
+  backgroundCirclesContainer: {
+    ...StyleSheet.absoluteFill,
+    overflow: "hidden",
+    zIndex: -1,
+  },
+  circle: {
+    position: "absolute",
+  },
+  circleBlueLarge: {
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: "rgba(13, 37, 63, 0.5)",
+  },
+  circleBlueRing: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 2,
+    borderColor: "rgba(13, 37, 63, 0.5)",
+  },
+  circleYellowMedium: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(245, 186, 19, 0.5)",
+  },
+  circleYellowSmall: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(245, 186, 19, 0.5)",
+  },
+  circleYellowRing: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 1.5,
+    borderColor: "rgba(245, 186, 19, 0.5)",
   },
 });
 
