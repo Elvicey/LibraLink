@@ -39,14 +39,14 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
-        String token = jwtUtil.generateToken(user.getId(), user.getEmail());
-        List<String> roles = user.getRoles().stream()
+        List<String> roleNames = user.getRoles().stream()
                 .map(Role::getName)
                 .collect(Collectors.toList());
+        String token = jwtUtil.generateToken(user.getId(), user.getEmail(), roleNames);
         Integer instId = user.getInstitution() != null ? user.getInstitution().getInstitutionId() : null;
 
         return new AuthResponse(token, user.getId(), user.getEmail(),
-                user.getFirstName(), user.getLastName(), roles, instId);
+                user.getFirstName(), user.getLastName(), roleNames, instId);
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -60,20 +60,18 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
 
-        String roleName = (request.getRole() != null && !request.getRole().isBlank())
-                ? request.getRole().toUpperCase() : "STUDENT";
-        Role role = roleRepository.findByName(roleName)
-                .orElseGet(() -> roleRepository.save(new Role(roleName)));
+        Role role = roleRepository.findByName("STUDENT")
+                .orElseGet(() -> roleRepository.save(new Role("STUDENT")));
         Set<Role> roles = new HashSet<>();
         roles.add(role);
         user.setRoles(roles);
 
         User saved = userRepository.save(user);
 
-        String token = jwtUtil.generateToken(saved.getId(), saved.getEmail());
         List<String> roleNames = saved.getRoles().stream()
                 .map(Role::getName)
                 .collect(Collectors.toList());
+        String token = jwtUtil.generateToken(saved.getId(), saved.getEmail(), roleNames);
         Integer instId = saved.getInstitution() != null ? saved.getInstitution().getInstitutionId() : null;
 
         return new AuthResponse(token, saved.getId(), saved.getEmail(),
