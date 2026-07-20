@@ -1,7 +1,6 @@
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
 import {
-  ImageBackground,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -72,12 +71,21 @@ export default function Onboarding() {
 
   return (
     <View style={styles.outerContainer}>
-      {/* Absolute background image filling entire viewport */}
-      <ImageBackground
-        source={require("../../assets/images/onboarding-bg.jpg")}
-        style={StyleSheet.absoluteFill}
-        resizeMode="cover"
-      />
+      {/* Decorative background circles */}
+      <View style={styles.backgroundCirclesContainer}>
+        {/* Large soft blue circle top left */}
+        <View style={[styles.circle, styles.circleBlueLarge, { top: -100, left: -100 }]} />
+        {/* Medium yellow circle top right */}
+        <View style={[styles.circle, styles.circleYellowMedium, { top: 80, right: -40 }]} />
+        {/* Medium blue ring middle left */}
+        <View style={[styles.circle, styles.circleBlueRing, { top: "45%", left: -50 }]} />
+        {/* Small yellow circle bottom left */}
+        <View style={[styles.circle, styles.circleYellowSmall, { bottom: 120, left: -30 }]} />
+        {/* Large blue circle bottom right */}
+        <View style={[styles.circle, styles.circleBlueLarge, { bottom: -120, right: -80 }]} />
+        {/* Medium-small yellow ring middle right */}
+        <View style={[styles.circle, styles.circleYellowRing, { top: "25%", right: "15%" }]} />
+      </View>
       
       <View style={styles.wrapper}>
         <ScrollView
@@ -185,10 +193,11 @@ const styles = StyleSheet.create({
   outerContainer: {
     flex: 1,
     position: "relative",
+    backgroundColor: "#ffffff",
   },
   wrapper: {
     flex: 1,
-    backgroundColor: "rgba(247, 249, 252, 0.22)", // Translucent overlay mask
+    backgroundColor: "transparent",
   },
   container: {
     paddingHorizontal: theme.spacing.xl,
@@ -321,5 +330,45 @@ const styles = StyleSheet.create({
     color: lightColors.textLight,
     fontSize: 16,
     fontWeight: "700",
+  },
+  backgroundCirclesContainer: {
+    ...StyleSheet.absoluteFill,
+    overflow: "hidden",
+    zIndex: -1,
+  },
+  circle: {
+    position: "absolute",
+  },
+  circleBlueLarge: {
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: "rgba(13, 37, 63, 0.5)",
+  },
+  circleBlueRing: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 2,
+    borderColor: "rgba(13, 37, 63, 0.5)",
+  },
+  circleYellowMedium: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "rgba(245, 186, 19, 0.5)",
+  },
+  circleYellowSmall: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(245, 186, 19, 0.5)",
+  },
+  circleYellowRing: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 1.5,
+    borderColor: "rgba(245, 186, 19, 0.5)",
   },
 });
