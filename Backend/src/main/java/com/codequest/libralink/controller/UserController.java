@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -18,25 +19,31 @@ public class UserController {
         this.userService = userService;
     }
 
-    // Create User
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
         User registeredUser = userService.registerUser(user);
         return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
     }
 
-    // Get All Users
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
 
-    // Get User by ID
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable Integer id) {
         return userService.getUserById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}/push-token")
+    public ResponseEntity<Map<String, String>> updatePushToken(
+            @PathVariable Integer id,
+            @RequestBody Map<String, String> body) {
+        String token = body.get("pushToken");
+        userService.updatePushToken(id, token);
+        return ResponseEntity.ok(Map.of("message", "Push token updated"));
     }
 }

@@ -3,9 +3,11 @@ package com.codequest.libralink.controller;
 import com.codequest.libralink.entity.Course;
 import com.codequest.libralink.service.CourseService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/courses")
@@ -13,11 +15,11 @@ public class CourseController {
 
     private final CourseService courseService;
 
-    // Explicit constructor instead of Lombok's @RequiredArgsConstructor
     public CourseController(CourseService courseService) {
         this.courseService = courseService;
     }
 
+    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
     @PostMapping
     public ResponseEntity<Course> createCourse(@RequestBody Course course) {
         return ResponseEntity.ok(courseService.saveCourse(course));
@@ -26,5 +28,31 @@ public class CourseController {
     @GetMapping("/institutions/{instId}")
     public ResponseEntity<List<Course>> getCourses(@PathVariable Integer instId) {
         return ResponseEntity.ok(courseService.getCoursesByInstitution(instId));
+    }
+
+    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PutMapping("/{courseId}/books")
+    public ResponseEntity<?> addBooksToCourse(@PathVariable Integer courseId,
+                                               @RequestBody Map<String, Object> body) {
+        try {
+            @SuppressWarnings("unchecked")
+            List<Integer> bookIds = (List<Integer>) body.get("bookIds");
+            Course updated = courseService.addBooksToCourse(courseId, bookIds);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @DeleteMapping("/{courseId}/books/{bookId}")
+    public ResponseEntity<?> removeBookFromCourse(@PathVariable Integer courseId,
+                                                   @PathVariable Integer bookId) {
+        try {
+            Course updated = courseService.removeBookFromCourse(courseId, bookId);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

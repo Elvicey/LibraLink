@@ -3,22 +3,22 @@ package com.codequest.libralink.controller;
 import com.codequest.libralink.entity.ReadingList;
 import com.codequest.libralink.service.ReadingListService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/reading-lists")
-// Lombok removed: @RequiredArgsConstructor is gone
 public class ReadingListController {
 
     private final ReadingListService readingListService;
 
-    // Explicit constructor added for dependency injection
     public ReadingListController(ReadingListService readingListService) {
         this.readingListService = readingListService;
     }
 
+    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
     @PostMapping
     public ResponseEntity<ReadingList> createReadingList(@RequestBody ReadingList list) {
         return ResponseEntity.ok(readingListService.saveReadingList(list));

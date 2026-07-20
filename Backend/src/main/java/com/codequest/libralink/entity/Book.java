@@ -7,7 +7,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "books")
+@Table(name = "books", indexes = {
+        @Index(name = "idx_book_title", columnList = "title"),
+        @Index(name = "idx_book_isbn", columnList = "isbn"),
+        @Index(name = "idx_book_isbn13", columnList = "isbn13"),
+        @Index(name = "idx_book_category", columnList = "category_id")
+})
 public class Book {
 
     @Id
