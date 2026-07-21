@@ -1,7 +1,7 @@
 import Constants from "expo-constants";
 
-// The developer local server port for Spring Boot is 8081.
-const DEFAULT_PORT = "8081";
+// The developer local server port for Spring Boot is 8080.
+const DEFAULT_PORT = "8080";
 
 export const getBaseUrl = (): string => {
   // If running in development, construct URL using the packager host IP
