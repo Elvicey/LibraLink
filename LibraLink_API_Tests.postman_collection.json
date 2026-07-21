@@ -1,65 +1,22 @@
 {
 	"info": {
 		"name": "LibraLink API Tests",
-		"description": "API test collection for LibraLink Backend - Authentication endpoints for all roles.\n\nSETUP:\n1. Import this collection into Postman\n2. Set the 'baseUrl' variable to your backend URL (default: http://localhost:8080)\n3. Use the Auth endpoints to login/register for each role\n4. Tokens are auto-saved to role-specific variables\n5. All authenticated requests use the appropriate token variable",
+		"description": "Complete API test collection for LibraLink Backend - All endpoints with clean request bodies.\n\nSETUP:\n1. Import this collection into Postman\n2. Set the 'baseUrl' variable to your backend URL (default: http://localhost:8080)\n3. Run Auth > Login for each role to get JWT tokens\n4. Tokens are auto-saved to role-specific variables\n5. All authenticated requests use the appropriate token variable automatically",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
-		{
-			"key": "baseUrl",
-			"value": "http://localhost:8080",
-			"type": "string"
-		},
-		{
-			"key": "adminToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "librarianToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "studentToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "lecturerToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "testUserId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "testBookId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "testInstitutionId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "testCategoryId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "testPublisherId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "testAuthorId",
-			"value": "",
-			"type": "string"
-		}
+		{ "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+		{ "key": "adminToken", "value": "", "type": "string" },
+		{ "key": "librarianToken", "value": "", "type": "string" },
+		{ "key": "studentToken", "value": "", "type": "string" },
+		{ "key": "lecturerToken", "value": "", "type": "string" },
+		{ "key": "authToken", "value": "", "type": "string" },
+		{ "key": "testUserId", "value": "", "type": "string" },
+		{ "key": "testBookId", "value": "", "type": "string" },
+		{ "key": "testInstitutionId", "value": "", "type": "string" },
+		{ "key": "testCategoryId", "value": "", "type": "string" },
+		{ "key": "testPublisherId", "value": "", "type": "string" },
+		{ "key": "testAuthorId", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -67,364 +24,79 @@
 			"item": [
 				{
 					"name": "Login - Admin",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response has token and ADMIN role', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('token');",
-									"    pm.expect(json.roles).to.include('ADMIN');",
-									"    pm.collectionVariables.set('adminToken', json.token);",
-									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "login"]
-						}
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Has token and ADMIN role', function () { var j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.expect(j.roles).to.include('ADMIN'); pm.collectionVariables.set('adminToken', j.token); pm.collectionVariables.set('authToken', j.token); if (j.userId) pm.collectionVariables.set('testUserId', j.userId); });"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}" },
+						"url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
 					}
 				},
 				{
 					"name": "Register - Student",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 201', function () {",
-									"    pm.expect(pm.response.code).to.equal(201);",
-									"});",
-									"",
-									"pm.test('Response has token and STUDENT role', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('token');",
-									"    pm.expect(json.roles).to.include('STUDENT');",
-									"    pm.collectionVariables.set('studentToken', json.token);",
-									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"password\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/register",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "register"]
-						}
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 201', function () { pm.expect(pm.response.code).to.equal(201); });",
+						"pm.test('Has token and STUDENT role', function () { var j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.expect(j.roles).to.include('STUDENT'); pm.collectionVariables.set('studentToken', j.token); pm.collectionVariables.set('authToken', j.token); if (j.userId) pm.collectionVariables.set('testUserId', j.userId); });"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"password\": \"\"\n}" },
+						"url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
 					}
 				},
 				{
 					"name": "Login - Student",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response has token and user data', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('token');",
-									"    pm.expect(json).to.have.property('userId');",
-									"    pm.expect(json).to.have.property('email');",
-									"    pm.expect(json).to.have.property('roles');",
-									"    pm.collectionVariables.set('studentToken', json.token);",
-									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "login"]
-						}
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Has token and user data', function () { var j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.expect(j).to.have.property('userId'); pm.collectionVariables.set('studentToken', j.token); pm.collectionVariables.set('authToken', j.token); if (j.userId) pm.collectionVariables.set('testUserId', j.userId); });"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}" },
+						"url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
 					}
 				},
 				{
 					"name": "Register - Librarian (Admin only)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 201', function () {",
-									"    pm.expect(pm.response.code).to.equal(201);",
-									"});",
-									"",
-									"pm.test('Response has token and LIBRARIAN role', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('token');",
-									"    pm.expect(json.roles).to.include('LIBRARIAN');",
-									"    pm.collectionVariables.set('librarianToken', json.token);",
-									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"password\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/register-librarian",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "register-librarian"]
-						}
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 201', function () { pm.expect(pm.response.code).to.equal(201); });",
+						"pm.test('Has token and LIBRARIAN role', function () { var j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.expect(j.roles).to.include('LIBRARIAN'); pm.collectionVariables.set('librarianToken', j.token); pm.collectionVariables.set('authToken', j.token); if (j.userId) pm.collectionVariables.set('testUserId', j.userId); });"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+						"body": { "mode": "raw", "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"password\": \"\"\n}" },
+						"url": { "raw": "{{baseUrl}}/api/auth/register-librarian", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register-librarian"] }
 					}
 				},
 				{
 					"name": "Login - Librarian",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Login successful with token', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('token');",
-									"    pm.expect(json.roles).to.include('LIBRARIAN');",
-									"    pm.collectionVariables.set('librarianToken', json.token);",
-									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "login"]
-						}
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Has token and LIBRARIAN role', function () { var j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.expect(j.roles).to.include('LIBRARIAN'); pm.collectionVariables.set('librarianToken', j.token); pm.collectionVariables.set('authToken', j.token); if (j.userId) pm.collectionVariables.set('testUserId', j.userId); });"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}" },
+						"url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
 					}
 				},
 				{
 					"name": "Register - Lecturer",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 201', function () {",
-									"    pm.expect(pm.response.code).to.equal(201);",
-									"});",
-									"",
-									"pm.test('Response has token and LECTURER role', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('token');",
-									"    pm.expect(json.roles).to.include('LECTURER');",
-									"    pm.collectionVariables.set('lecturerToken', json.token);",
-									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"password\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/register-lecturer",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "register-lecturer"]
-						}
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 201', function () { pm.expect(pm.response.code).to.equal(201); });",
+						"pm.test('Has token and LECTURER role', function () { var j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.expect(j.roles).to.include('LECTURER'); pm.collectionVariables.set('lecturerToken', j.token); pm.collectionVariables.set('authToken', j.token); if (j.userId) pm.collectionVariables.set('testUserId', j.userId); });"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"password\": \"\"\n}" },
+						"url": { "raw": "{{baseUrl}}/api/auth/register-lecturer", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register-lecturer"] }
 					}
 				},
 				{
 					"name": "Login - Lecturer",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response has token and LECTURER role', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('token');",
-									"    pm.expect(json.roles).to.include('LECTURER');",
-									"    pm.collectionVariables.set('lecturerToken', json.token);",
-									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/login",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "login"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Books",
-			"item": [
-				{
-					"name": "Get All Books",
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/api/books",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books"]
-						}
-					}
-				},
-				{
-					"name": "Get Book by ID",
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/api/books/{{testBookId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books", "{{testBookId}}"]
-						}
-					}
-				},
-				{
-					"name": "Search Books",
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/api/books/search?q=",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books", "search"],
-							"query": [
-								{
-									"key": "q",
-									"value": ""
-								}
-							]
-						}
-					}
-				},
-				{
-					"name": "Create Book (Librarian)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"title\": \"\",\n  \"isbn\": \"\",\n  \"totalCopies\": 1,\n  \"availableCopies\": 1,\n  \"language\": \"English\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/books",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books"]
-						}
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"pm.test('Has token and LECTURER role', function () { var j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.expect(j.roles).to.include('LECTURER'); pm.collectionVariables.set('lecturerToken', j.token); pm.collectionVariables.set('authToken', j.token); if (j.userId) pm.collectionVariables.set('testUserId', j.userId); });"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}" },
+						"url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
 					}
 				}
 			]
@@ -432,266 +104,300 @@
 		{
 			"name": "Users",
 			"item": [
-				{
-					"name": "Get All Users (Admin)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/users",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "users"]
-						}
-					}
-				},
-				{
-					"name": "Get User by ID",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/users/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "users", "{{testUserId}}"]
-						}
-					}
-				},
-				{
-					"name": "Assign Role (Admin)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{adminToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"role\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/users/{{testUserId}}/roles",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "users", "{{testUserId}}", "roles"]
-						}
-					}
-				}
+				{ "name": "Get All Users", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"] } } },
+				{ "name": "Get User by ID", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/users/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "users", "{{testUserId}}"] } } },
+				{ "name": "Update Push Token", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"pushToken\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/users/{{testUserId}}/push-token", "host": ["{{baseUrl}}"], "path": ["api", "users", "{{testUserId}}", "push-token"] }
+				}}
+			]
+		},
+		{
+			"name": "Institutions",
+			"item": [
+				{ "name": "Create Institution (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"name\": \"\",\n  \"shortName\": \"\",\n  \"tier\": \"\",\n  \"city\": \"\",\n  \"country\": \"\",\n  \"email\": \"\",\n  \"phone\": \"\",\n  \"isActive\": true\n}" },
+					"url": { "raw": "{{baseUrl}}/api/institutions", "host": ["{{baseUrl}}"], "path": ["api", "institutions"] }
+				}},
+				{ "name": "Get All Institutions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/institutions", "host": ["{{baseUrl}}"], "path": ["api", "institutions"] } } }
+			]
+		},
+		{
+			"name": "Categories",
+			"item": [
+				{ "name": "Create Category (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"name\": \"\",\n  \"description\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api", "categories"] }
+				}},
+				{ "name": "Get All Categories", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api", "categories"] } } }
+			]
+		},
+		{
+			"name": "Publishers",
+			"item": [
+				{ "name": "Create Publisher (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"name\": \"\",\n  \"country\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/publishers", "host": ["{{baseUrl}}"], "path": ["api", "publishers"] }
+				}},
+				{ "name": "Get All Publishers", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/publishers", "host": ["{{baseUrl}}"], "path": ["api", "publishers"] } } }
+			]
+		},
+		{
+			"name": "Authors",
+			"item": [
+				{ "name": "Create Author (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"fullName\": \"\",\n  \"bio\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/authors", "host": ["{{baseUrl}}"], "path": ["api", "authors"] }
+				}},
+				{ "name": "Get All Authors", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/authors", "host": ["{{baseUrl}}"], "path": ["api", "authors"] } } },
+				{ "name": "Get Author by ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/authors/{{testAuthorId}}", "host": ["{{baseUrl}}"], "path": ["api", "authors", "{{testAuthorId}}"] } } }
+			]
+		},
+		{
+			"name": "Books",
+			"item": [
+				{ "name": "Create Book (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"title\": \"\",\n  \"isbn\": \"\",\n  \"totalCopies\": 1,\n  \"availableCopies\": 1,\n  \"language\": \"English\",\n  \"isActive\": true\n}" },
+					"url": { "raw": "{{baseUrl}}/api/books", "host": ["{{baseUrl}}"], "path": ["api", "books"] }
+				}},
+				{ "name": "Get All Books", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/books", "host": ["{{baseUrl}}"], "path": ["api", "books"] } } },
+				{ "name": "Get Book by ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/books/{{testBookId}}", "host": ["{{baseUrl}}"], "path": ["api", "books", "{{testBookId}}"] } } },
+				{ "name": "Update Book (Librarian)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"title\": \"\",\n  \"isbn\": \"\",\n  \"totalCopies\": 1,\n  \"availableCopies\": 1,\n  \"language\": \"English\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/books/{{testBookId}}", "host": ["{{baseUrl}}"], "path": ["api", "books", "{{testBookId}}"] }
+				}},
+				{ "name": "Search Books - By Query", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/books/search?q=", "host": ["{{baseUrl}}"], "path": ["api", "books", "search"], "query": [{ "key": "q", "value": "" }] } } },
+				{ "name": "Search Books - By Author", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/books/search?author=", "host": ["{{baseUrl}}"], "path": ["api", "books", "search"], "query": [{ "key": "author", "value": "" }] } } },
+				{ "name": "Search Books - Available Only", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/books/search?availability=available", "host": ["{{baseUrl}}"], "path": ["api", "books", "search"], "query": [{ "key": "availability", "value": "available" }] } } }
+			]
+		},
+		{
+			"name": "Book Copies",
+			"item": [
+				{ "name": "Create Book Copy (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"book\": {\"id\": {{testBookId}}},\n  \"barcode\": \"\",\n  \"condition\": \"NEW\",\n  \"notes\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/book-copies", "host": ["{{baseUrl}}"], "path": ["api", "book-copies"] }
+				}},
+				{ "name": "Get All Book Copies (Librarian)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/book-copies", "host": ["{{baseUrl}}"], "path": ["api", "book-copies"] } } },
+				{ "name": "Lookup Copy by Barcode", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/book-copies/barcode/", "host": ["{{baseUrl}}"], "path": ["api", "book-copies", "barcode", ""] } } }
 			]
 		},
 		{
 			"name": "Borrow Records",
 			"item": [
-				{
-					"name": "Get All Borrow Records (Librarian)",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/borrow-records",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "borrow-records"]
-						}
-					}
-				},
-				{
-					"name": "Create Borrow Record (Librarian)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"book\": {\"id\": 1},\n  \"user\": {\"id\": 1},\n  \"status\": \"BORROWED\",\n  \"dueDate\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/borrow-records",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "borrow-records"]
-						}
-					}
-				},
-				{
-					"name": "Get User Borrow Records",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/borrow-records/user/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "borrow-records", "user", "{{testUserId}}"]
-						}
-					}
-				}
+				{ "name": "Create Borrow Record (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"user\": {\"id\": {{testUserId}}},\n  \"book\": {\"id\": {{testBookId}}},\n  \"status\": \"BORROWED\",\n  \"dueDate\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/borrow-records", "host": ["{{baseUrl}}"], "path": ["api", "borrow-records"] }
+				}},
+				{ "name": "Get All Borrow Records (Librarian)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/borrow-records", "host": ["{{baseUrl}}"], "path": ["api", "borrow-records"] } } },
+				{ "name": "Get User Borrow Records", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/borrow-records/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "borrow-records", "user", "{{testUserId}}"] } } },
+				{ "name": "Get Current Borrows for User", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/borrow-records/user/{{testUserId}}/current", "host": ["{{baseUrl}}"], "path": ["api", "borrow-records", "user", "{{testUserId}}", "current"] } } }
 			]
 		},
 		{
-			"name": "Circulation",
+			"name": "Circulation (QR Scan)",
 			"item": [
-				{
-					"name": "Scan Book (Librarian)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"barcode\": \"\",\n  \"action\": \"CHECK_OUT\",\n  \"userId\": 1\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/circulation/scan",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "circulation", "scan"]
-						}
-					}
-				}
+				{ "name": "Scan - CHECK OUT (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"barcode\": \"\",\n  \"action\": \"CHECK_OUT\",\n  \"userId\": {{testUserId}}\n}" },
+					"url": { "raw": "{{baseUrl}}/api/circulation/scan", "host": ["{{baseUrl}}"], "path": ["api", "circulation", "scan"] }
+				}},
+				{ "name": "Scan - CHECK IN (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"barcode\": \"\",\n  \"action\": \"CHECK_IN\",\n  \"userId\": {{testUserId}}\n}" },
+					"url": { "raw": "{{baseUrl}}/api/circulation/scan", "host": ["{{baseUrl}}"], "path": ["api", "circulation", "scan"] }
+				}}
+			]
+		},
+		{
+			"name": "Reservations",
+			"item": [
+				{ "name": "Create Reservation", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"book\": {\"id\": {{testBookId}}},\n  \"status\": \"PENDING\",\n  \"notes\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/reservations", "host": ["{{baseUrl}}"], "path": ["api", "reservations"] }
+				}},
+				{ "name": "Get All Reservations (Librarian)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/reservations", "host": ["{{baseUrl}}"], "path": ["api", "reservations"] } } },
+				{ "name": "Update Reservation Status (Librarian)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"status\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/reservations/1", "host": ["{{baseUrl}}"], "path": ["api", "reservations", "1"] }
+				}},
+				{ "name": "Cancel Reservation", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/reservations/1/cancel", "host": ["{{baseUrl}}"], "path": ["api", "reservations", "1", "cancel"] } } }
+			]
+		},
+		{
+			"name": "Fines",
+			"item": [
+				{ "name": "Issue Fine (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"borrowId\": 1,\n  \"amount\": 0,\n  \"status\": \"PENDING\",\n  \"reason\": \"\",\n  \"dueDate\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/fines", "host": ["{{baseUrl}}"], "path": ["api", "fines"] }
+				}},
+				{ "name": "Get User Fines", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/fines/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "fines", "user", "{{testUserId}}"] } } }
+			]
+		},
+		{
+			"name": "Fine Payments",
+			"item": [
+				{ "name": "Process Fine Payment (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"fineId\": 1,\n  \"userId\": {{testUserId}},\n  \"amount\": 0,\n  \"amountPaid\": 0,\n  \"paymentMethod\": \"\",\n  \"transactionRef\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/fine-payments", "host": ["{{baseUrl}}"], "path": ["api", "fine-payments"] }
+				}}
 			]
 		},
 		{
 			"name": "Notifications",
 			"item": [
-				{
-					"name": "Create Notification (Librarian)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"userId\": 1,\n  \"type\": \"GENERAL\",\n  \"title\": \"\",\n  \"message\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/notifications",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "notifications"]
-						}
-					}
-				},
-				{
-					"name": "Get User Notifications",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{studentToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/notifications/user/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "notifications", "user", "{{testUserId}}"]
-						}
-					}
-				}
+				{ "name": "Create Notification (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"type\": \"GENERAL\",\n  \"title\": \"\",\n  \"message\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/notifications", "host": ["{{baseUrl}}"], "path": ["api", "notifications"] }
+				}},
+				{ "name": "Get All Notifications (Librarian)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/notifications", "host": ["{{baseUrl}}"], "path": ["api", "notifications"] } } },
+				{ "name": "Get User Notifications", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/notifications/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "user", "{{testUserId}}"] } } },
+				{ "name": "Mark Notification as Read", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/notifications/1/read", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "1", "read"] } } },
+				{ "name": "Mark All Notifications as Read", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/notifications/user/{{testUserId}}/read-all", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "user", "{{testUserId}}", "read-all"] } } }
 			]
 		},
 		{
-			"name": "Metadata",
+			"name": "Roles",
 			"item": [
-				{
-					"name": "Get All Authors",
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/api/authors",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "authors"]
-						}
-					}
-				},
-				{
-					"name": "Get All Publishers",
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/api/publishers",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "publishers"]
-						}
-					}
-				},
-				{
-					"name": "Get All Categories",
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/api/categories",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "categories"]
-						}
-					}
-				},
-				{
-					"name": "Get All Institutions",
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/api/institutions",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "institutions"]
-						}
-					}
-				},
-				{
-					"name": "Get Courses by Institution",
-					"request": {
-						"method": "GET",
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/institutions/{{testInstitutionId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "courses", "institutions", "{{testInstitutionId}}"]
-						}
-					}
-				}
+				{ "name": "Create Role", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"name\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/roles", "host": ["{{baseUrl}}"], "path": ["api", "roles"] }
+				}}
+			]
+		},
+		{
+			"name": "Courses",
+			"item": [
+				{ "name": "Create Course (Lecturer)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"institution\": {\"institutionId\": {{testInstitutionId}}},\n  \"name\": \"\",\n  \"code\": \"\",\n  \"description\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/courses", "host": ["{{baseUrl}}"], "path": ["api", "courses"] }
+				}},
+				{ "name": "Get Courses by Institution", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/courses/institutions/{{testInstitutionId}}", "host": ["{{baseUrl}}"], "path": ["api", "courses", "institutions", "{{testInstitutionId}}"] } } },
+				{ "name": "Add Books to Course (Lecturer)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"bookIds\": [{{testBookId}}]\n}" },
+					"url": { "raw": "{{baseUrl}}/api/courses/1/books", "host": ["{{baseUrl}}"], "path": ["api", "courses", "1", "books"] }
+				}},
+				{ "name": "Remove Book from Course (Lecturer)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{lecturerToken}}" }], "url": { "raw": "{{baseUrl}}/api/courses/1/books/{{testBookId}}", "host": ["{{baseUrl}}"], "path": ["api", "courses", "1", "books", "{{testBookId}}"] } } }
+			]
+		},
+		{
+			"name": "Reading Lists",
+			"item": [
+				{ "name": "Create Reading List (Lecturer)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"courseId\": 1,\n  \"createdBy\": {{testUserId}},\n  \"title\": \"\",\n  \"description\": \"\",\n  \"semester\": \"\",\n  \"academicYear\": \"\",\n  \"isPublished\": true\n}" },
+					"url": { "raw": "{{baseUrl}}/api/reading-lists", "host": ["{{baseUrl}}"], "path": ["api", "reading-lists"] }
+				}},
+				{ "name": "Get Reading Lists by Course", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/reading-lists/course/1", "host": ["{{baseUrl}}"], "path": ["api", "reading-lists", "course", "1"] } } },
+				{ "name": "Add Item to Reading List (Lecturer)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"readingListId\": 1,\n  \"bookId\": {{testBookId}},\n  \"notes\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/reading_list_items", "host": ["{{baseUrl}}"], "path": ["api", "reading_list_items"] }
+				}}
+			]
+		},
+		{
+			"name": "Pickup Slots",
+			"item": [
+				{ "name": "Schedule Pickup Slot", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"reservationId\": 1,\n  \"scheduledAt\": \"\",\n  \"slotStart\": \"\",\n  \"slotEnd\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/pickup-slots", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots"] }
+				}},
+				{ "name": "Scan Pickup QR (Librarian)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/scan?qrCode=&librarianId={{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "scan"], "query": [{ "key": "qrCode", "value": "" }, { "key": "librarianId", "value": "{{testUserId}}" }] } } },
+				{ "name": "Get User Pickup Slots", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "user", "{{testUserId}}"] } } },
+				{ "name": "Get Scheduled Slots (Librarian)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/scheduled", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "scheduled"] } } }
+			]
+		},
+		{
+			"name": "Audio (Text-to-Speech)",
+			"item": [
+				{ "name": "Convert Text to Audio", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"voiceName\": \"\",\n  \"languageCode\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/audio/convert", "host": ["{{baseUrl}}"], "path": ["api", "audio", "convert"] }
+				}},
+				{ "name": "Get Audio Track by ID", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/1", "host": ["{{baseUrl}}"], "path": ["api", "audio", "1"] } } },
+				{ "name": "Get User Audio Tracks", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "audio", "user", "{{testUserId}}"] } } },
+				{ "name": "Get Book Audio Tracks", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/book/{{testBookId}}", "host": ["{{baseUrl}}"], "path": ["api", "audio", "book", "{{testBookId}}"] } } },
+				{ "name": "Stream Audio Track", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/1/stream", "host": ["{{baseUrl}}"], "path": ["api", "audio", "1", "stream"] } } },
+				{ "name": "Delete Audio Track", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/1", "host": ["{{baseUrl}}"], "path": ["api", "audio", "1"] } } }
+			]
+		},
+		{
+			"name": "AI Exam Mode",
+			"item": [
+				{ "name": "Generate Study Summary", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"summaryType\": \"BRIEF\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/exam/summary", "host": ["{{baseUrl}}"], "path": ["api", "exam", "summary"] }
+				}},
+				{ "name": "Get Summary by ID", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/summary/1", "host": ["{{baseUrl}}"], "path": ["api", "exam", "summary", "1"] } } },
+				{ "name": "Get User Summaries", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/summaries/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "exam", "summaries", "user", "{{testUserId}}"] } } },
+				{ "name": "Generate Exam Questions", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"count\": 5,\n  \"difficulty\": \"MEDIUM\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/exam/questions/generate", "host": ["{{baseUrl}}"], "path": ["api", "exam", "questions", "generate"] }
+				}},
+				{ "name": "Submit Answer to Question", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"answer\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/exam/questions/1/answer", "host": ["{{baseUrl}}"], "path": ["api", "exam", "questions", "1", "answer"] }
+				}},
+				{ "name": "Complete Study Session", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/sessions/1/complete", "host": ["{{baseUrl}}"], "path": ["api", "exam", "sessions", "1", "complete"] } } },
+				{ "name": "Get Session Questions", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/sessions/1/questions", "host": ["{{baseUrl}}"], "path": ["api", "exam", "sessions", "1", "questions"] } } },
+				{ "name": "Get User Study Sessions", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/sessions/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "exam", "sessions", "user", "{{testUserId}}"] } } }
+			]
+		},
+		{
+			"name": "Voice Interaction",
+			"item": [
+				{ "name": "Process Voice Command - Search", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"text\": \"\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/voice/process", "host": ["{{baseUrl}}"], "path": ["api", "voice", "process"] }
+				}},
+				{ "name": "Process Voice Command - Help", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"text\": \"help\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/voice/process", "host": ["{{baseUrl}}"], "path": ["api", "voice", "process"] }
+				}},
+				{ "name": "Get Voice Command History", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/voice/history/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "voice", "history", "user", "{{testUserId}}"] } } }
+			]
+		},
+		{
+			"name": "Reading Progress",
+			"item": [
+				{ "name": "Update Reading Progress", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/reading-progress?studentId={{testUserId}}&itemId=1&status=COMPLETED", "host": ["{{baseUrl}}"], "path": ["api", "reading-progress"], "query": [{ "key": "studentId", "value": "{{testUserId}}" }, { "key": "itemId", "value": "1" }, { "key": "status", "value": "COMPLETED" }] } } }
+			]
+		},
+		{
+			"name": "Book Views",
+			"item": [
+				{ "name": "Log Book View", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"user\": {\"id\": {{testUserId}}},\n  \"book\": {\"id\": {{testBookId}}}\n}" },
+					"url": { "raw": "{{baseUrl}}/api/book-views", "host": ["{{baseUrl}}"], "path": ["api", "book-views"] }
+				}}
+			]
+		},
+		{
+			"name": "Analytics",
+			"item": [
+				{ "name": "Log Search Query", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"query\": \"\",\n  \"resultsCount\": 0,\n  \"searchType\": \"TEXT\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/analytics/search-logs", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "search-logs"] }
+				}},
+				{ "name": "Get User Search Logs", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/analytics/search-logs/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "search-logs", "user", "{{testUserId}}"] } } },
+				{ "name": "Get Search Logs by Type", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/analytics/search-logs/type/TEXT", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "search-logs", "type", "TEXT"] } } },
+				{ "name": "Get Search Logs by Date Range", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/analytics/search-logs/date-range?from=2026-01-01T00:00:00&to=2026-12-31T23:59:59", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "search-logs", "date-range"], "query": [{ "key": "from", "value": "2026-01-01T00:00:00" }, { "key": "to", "value": "2026-12-31T23:59:59" }] } } }
+			]
+		},
+		{
+			"name": "Audit Logs",
+			"item": [
+				{ "name": "Log Audit Event", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"action\": \"\",\n  \"entityType\": \"\",\n  \"entityId\": {{testUserId}},\n  \"details\": \"\",\n  \"ipAddress\": \"127.0.0.1\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/audit-logs", "host": ["{{baseUrl}}"], "path": ["api", "audit-logs"] }
+				}},
+				{ "name": "Get User Audit Logs", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audit-logs/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "audit-logs", "user", "{{testUserId}}"] } } },
+				{ "name": "Get Audit Logs by Entity", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audit-logs/entity/USER/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "audit-logs", "entity", "USER", "{{testUserId}}"] } } },
+				{ "name": "Get Audit Logs by Action", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audit-logs/action/LOGIN", "host": ["{{baseUrl}}"], "path": ["api", "audit-logs", "action", "LOGIN"] } } }
+			]
+		},
+		{
+			"name": "Health & Smoke Tests",
+			"item": [
+				{ "name": "Ping - Public Endpoint", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/authors", "host": ["{{baseUrl}}"], "path": ["api", "authors"] } } },
+				{ "name": "Non-existent Resource (404)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/users/99999", "host": ["{{baseUrl}}"], "path": ["api", "users", "99999"] } } }
 			]
 		}
 	]
