@@ -119,4 +119,36 @@ class AuthControllerTest extends BaseApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.roles", hasItem("ADMIN")));
     }
+
+    @Test
+    void registerLibrarian_asAdmin_createsWithLibrarianRole() throws Exception {
+        String adminToken = getAdminToken();
+
+        mockMvc.perform(post("/api/auth/register-librarian")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(adminToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "firstName", "Lib",
+                                        "lastName", "Staff",
+                                        "email", "lib.staff@test.com",
+                                        "password", "pass1234"
+                                ))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.roles", hasItem("LIBRARIAN")));
+    }
+
+    @Test
+    void registerLibrarian_withoutAuth_returns403() throws Exception {
+        mockMvc.perform(post("/api/auth/register-librarian")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "firstName", "No",
+                                        "lastName", "Auth",
+                                        "email", "noauth@test.com",
+                                        "password", "pass1234"
+                                ))))
+                .andExpect(status().isForbidden());
+    }
 }

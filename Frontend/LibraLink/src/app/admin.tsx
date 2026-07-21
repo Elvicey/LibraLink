@@ -400,6 +400,17 @@ export default function Admin() {
               <Text style={[styles.actionCardTitle, { color: colors.text }]}>Add New Book</Text>
               <Text style={[styles.actionCardSubtitle, { color: colors.textMuted }]}>Register Item</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionCard, isDark && styles.cardDark]}
+              onPress={() => router.push("/librarian-signup" as any)}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: colors.warningLight }]}>
+                <Ionicons name="person-add" size={20} color={colors.warning} />
+              </View>
+              <Text style={[styles.actionCardTitle, { color: colors.text }]}>Add Librarian</Text>
+              <Text style={[styles.actionCardSubtitle, { color: colors.textMuted }]}>New Staff Account</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Weekly Circulation Traffic chart */}
