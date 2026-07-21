@@ -1,4 +1,3 @@
-import { API_BASE_URL } from "../config/api";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -6,42 +5,37 @@ import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { theme, lightColors } from "../constants/theme";
-import { authService } from "../services/auth";
+import { Ionicons } from "@expo/vector-icons";
 
-export default function SignUp() {
+export default function ForgotPassword() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  const handleSignUp = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      setError("Please fill in all student credentials.");
+  const handleResetRequest = async () => {
+    if (!email.trim()) {
+      setError("Please enter your student email address.");
       return;
     }
     
+    // Simple email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
     try {
-      const nameParts = name.trim().split(" ");
-      const firstName = nameParts[0] || "";
-      const lastName = nameParts.slice(1).join(" ") || "Student";
-
-      await authService.register({
-        firstName,
-        lastName,
-        email: email.trim(),
-        passwordHash: password, // maps directly to backend DB password validation
-        institutionId: 1, // KNUST Main Campus (default basic tier)
-      });
-
-      // Automatically routes to dashboard home screen upon successful registration
-      router.replace("/home" as any);
+      // Simulate API call for password reset link dispatch
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setSuccess(true);
     } catch (err: any) {
-      setError(err.message || "Registration failed. Please check network connections.");
+      setError(err.message || "Failed to request password reset. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -71,65 +65,67 @@ export default function SignUp() {
         <View style={[styles.circle, styles.circleYellowRing, { top: "25%", right: "15%" }]} />
       </View>
 
-      {/* Glassmorphic Form Card */}
       <View style={styles.glassCard}>
+        {/* Back navigation Row */}
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.back()}
+          disabled={loading}
+        >
+          <Ionicons name="chevron-back" size={20} color={lightColors.primary} />
+          <Text style={styles.backText}>Back to Sign In</Text>
+        </Pressable>
+
         <View style={styles.header}>
-          <Text style={styles.title}>Create an account</Text>
+          <Text style={styles.title}>Reset password</Text>
           <Text style={styles.subtitle}>
-            Register your student profile to start borrowing books
+            Enter your KNUST student email and we'll send you a password recovery link
           </Text>
         </View>
 
-        {/* Error warning banner */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+        {success ? (
+          <View style={styles.successContainer}>
+            <View style={styles.successIconWrapper}>
+              <Ionicons name="mail-open-outline" size={42} color="#10b981" />
+            </View>
+            <Text style={styles.successTitle}>Check your inbox</Text>
+            <Text style={styles.successText}>
+              We have sent password reset instructions to{"\n"}
+              <Text style={{ fontWeight: "700", color: lightColors.text }}>{email.trim()}</Text>
+            </Text>
+            <Button
+              title="Return to Sign In"
+              onPress={() => router.replace("/signin" as any)}
+              style={styles.successButton}
+            />
           </View>
+        ) : (
+          <>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <Input
+              label="Student Email"
+              placeholder="you@knust.edu.gh"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              editable={!loading}
+            />
+
+            <Button
+              title="Send recovery link"
+              onPress={handleResetRequest}
+              loading={loading}
+              style={[styles.submitButton, { backgroundColor: lightColors.primary }]}
+              textStyle={styles.submitButtonText}
+            />
+          </>
         )}
-
-        <Input
-          label="Full Name"
-          placeholder="Esther Asamoah"
-          value={name}
-          onChangeText={setName}
-          editable={!loading}
-        />
-        <Input
-          label="Student Email"
-          placeholder="you@knust.edu.gh"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-          editable={!loading}
-        />
-        <Input
-          label="Password"
-          placeholder="••••••••"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          editable={!loading}
-        />
-
-        <Button
-          title="Sign up"
-          onPress={handleSignUp}
-          loading={loading}
-          style={[styles.submitButton, { backgroundColor: lightColors.primary }]}
-          textStyle={styles.submitButtonText}
-        />
-
-        <Pressable
-          style={styles.bottomLink}
-          onPress={() => router.replace("/signin" as any)}
-          disabled={loading}
-        >
-          <Text style={styles.bottomText}>
-            Already have an account?{" "}
-            <Text style={styles.bottomLinkText}>Sign in</Text>
-          </Text>
-        </Pressable>
       </View>
     </ScreenWrapper>
   );
@@ -157,6 +153,18 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 5,
   },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: theme.spacing.xl,
+    marginLeft: -4,
+  },
+  backText: {
+    color: lightColors.primary,
+    fontWeight: "700",
+    fontSize: 14,
+    marginLeft: 2,
+  },
   header: {
     marginBottom: theme.spacing.xl,
   },
@@ -169,6 +177,7 @@ const styles = StyleSheet.create({
   subtitle: {
     color: lightColors.textMuted,
     fontSize: theme.typography.bodyLarge.fontSize,
+    lineHeight: 20,
   },
   errorContainer: {
     backgroundColor: "rgba(239, 68, 68, 0.12)",
@@ -189,7 +198,6 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     borderRadius: theme.borderRadius.xl,
     marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -200,15 +208,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  bottomLink: {
-    alignSelf: "center",
+  successContainer: {
+    alignItems: "center",
+    paddingVertical: theme.spacing.md,
   },
-  bottomText: {
+  successIconWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: theme.spacing.md,
+  },
+  successTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: lightColors.text,
+    marginBottom: theme.spacing.xs,
+  },
+  successText: {
     color: lightColors.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: theme.spacing.xl,
   },
-  bottomLinkText: {
-    color: lightColors.primary,
-    fontWeight: "700",
+  successButton: {
+    width: "100%",
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.borderRadius.xl,
   },
   backgroundCirclesContainer: {
     ...StyleSheet.absoluteFill,
@@ -251,4 +280,3 @@ const styles = StyleSheet.create({
     borderColor: "rgba(245, 186, 19, 0.5)",
   },
 });
-
