@@ -7,11 +7,7 @@ import Card from "../components/common/Card";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { useTheme } from "../constants/theme";
 
-const INITIAL_DEVICES = [
-  { id: "1", name: "Esther's iPhone 14 Pro", location: "Accra, Ghana (Active Now)", isPhone: true },
-  { id: "2", name: "Chrome on macOS", location: "KNUST Campus Net", isPhone: false },
-  { id: "3", name: "TECNO Camon 20", location: "Kumasi, Ghana", isPhone: true },
-];
+const INITIAL_DEVICES: { id: string; name: string; location: string; isPhone: boolean }[] = [];
 
 export default function Security() {
   const router = useRouter();

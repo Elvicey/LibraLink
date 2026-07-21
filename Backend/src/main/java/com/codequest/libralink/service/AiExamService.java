@@ -129,7 +129,7 @@ public class AiExamService {
                                                         String difficulty, Integer bookId,
                                                         Integer userId, Integer sessionId) {
         if (aiApiKey == null || aiApiKey.isBlank()) {
-            return generateFallbackQuestions(bookContent, count, bookId, userId, sessionId);
+            throw new RuntimeException("AI API key not configured. Question generation is unavailable.");
         }
 
         try {
@@ -138,38 +138,9 @@ public class AiExamService {
             return parseQuestionsFromAi(aiResponse, bookId, userId, sessionId);
 
         } catch (Exception e) {
-            log.error("AI question generation failed, using fallback: {}", e.getMessage());
-            return generateFallbackQuestions(bookContent, count, bookId, userId, sessionId);
+            log.error("AI question generation failed: {}", e.getMessage());
+            throw new RuntimeException("AI exam generation is unavailable. Please try again later.", e);
         }
-    }
-
-    private List<ExamQuestion> generateFallbackQuestions(String content, int count,
-                                                          Integer bookId, Integer userId,
-                                                          Integer sessionId) {
-        List<ExamQuestion> questions = new ArrayList<>();
-        String[] sentences = content.split("[.!?]+");
-        int questionsToGenerate = Math.min(count, sentences.length);
-
-        for (int i = 0; i < questionsToGenerate; i++) {
-            ExamQuestion q = new ExamQuestion();
-            q.setBookId(bookId);
-            q.setUserId(userId);
-            q.setSessionId(sessionId);
-            q.setQuestion("Based on the text, what is the key concept discussed in this passage: \""
-                    + sentences[i].trim().substring(0, Math.min(100, sentences[i].trim().length()))
-                    + "\"?");
-            q.setCorrectAnswer("The key concept relates to the main topic discussed in the passage.");
-            q.setOptionA("A specific technical detail");
-            q.setOptionB("The main topic discussed in the passage");
-            q.setOptionC("An unrelated historical event");
-            q.setOptionD("A mathematical formula");
-            q.setQuestionType("MULTIPLE_CHOICE");
-            q.setDifficulty("MEDIUM");
-            q.setExplanation("The correct answer is derived directly from the context of the passage.");
-            questions.add(examQuestionRepository.save(q));
-        }
-
-        return questions;
     }
 
     private String callAiApi(String prompt) throws Exception {

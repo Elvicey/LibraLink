@@ -46,124 +46,9 @@ interface InventoryItem {
   location: string;
 }
 
-const INITIAL_TRANSACTIONS: Transaction[] = [
-  {
-    id: "TXN-101",
-    user: "Esther Ama Mensah",
-    studentId: "20849201",
-    book: "Introductory Calculus & Analytical Geometry",
-    isbn: "978-0134674766",
-    status: "Overdue",
-    date: "2h ago",
-    dueDate: "Yesterday, 5:00 PM",
-    fineAmount: "GH₵ 15.00",
-    isDanger: true,
-  },
-  {
-    id: "TXN-102",
-    user: "Kwame Boateng",
-    studentId: "20783912",
-    book: "African Economics & Sustainable Development",
-    isbn: "978-0198812345",
-    status: "Returned",
-    date: "4h ago",
-    dueDate: "Today, 10:00 AM",
-    isSuccess: true,
-  },
-  {
-    id: "TXN-103",
-    user: "Abena Osei Darko",
-    studentId: "20912480",
-    book: "Data Structures & Algorithms in C++",
-    isbn: "978-0134444321",
-    status: "Borrowed",
-    date: "1d ago",
-    dueDate: "Jul 25, 2026",
-    isPrimary: true,
-  },
-  {
-    id: "TXN-104",
-    user: "Yaw Dankwa",
-    studentId: "20654321",
-    book: "Things Fall Apart - Student Edition",
-    isbn: "978-0385474542",
-    status: "Ready",
-    date: "1d ago",
-    dueDate: "Jul 22, 2026",
-    isInfo: true,
-  },
-  {
-    id: "TXN-105",
-    user: "Kofi Appiah",
-    studentId: "20876543",
-    book: "Principles of Modern Operating Systems",
-    isbn: "978-1118804926",
-    status: "Overdue",
-    date: "2d ago",
-    dueDate: "Jul 18, 2026",
-    fineAmount: "GH₵ 30.00",
-    isDanger: true,
-  },
-  {
-    id: "TXN-106",
-    user: "Esi Koomson",
-    studentId: "20998877",
-    book: "Organic Chemistry: Structure and Function",
-    isbn: "978-1319079451",
-    status: "Borrowed",
-    date: "3d ago",
-    dueDate: "Jul 28, 2026",
-    isPrimary: true,
-  },
-];
+const INITIAL_TRANSACTIONS: Transaction[] = [];
 
-const INITIAL_INVENTORY: InventoryItem[] = [
-  {
-    id: "B-001",
-    title: "Data Structures & Algorithms in C++",
-    author: "Adam Drozdek",
-    category: "Computer Science",
-    totalCopies: 45,
-    availableCopies: 12,
-    location: "Main Library - Floor 2, Shelf CS-04",
-  },
-  {
-    id: "B-002",
-    title: "Introductory Calculus & Analytical Geometry",
-    author: "George B. Thomas",
-    category: "Mathematics",
-    totalCopies: 60,
-    availableCopies: 8,
-    location: "Science Library - Floor 1, Shelf MATH-02",
-  },
-  {
-    id: "B-003",
-    title: "African Economics & Sustainable Development",
-    author: "K. Y. Amoako",
-    category: "Economics",
-    totalCopies: 30,
-    availableCopies: 19,
-    location: "Social Science Library - Shelf ECON-09",
-  },
-  {
-    id: "B-004",
-    title: "Principles of Modern Operating Systems",
-    author: "Abraham Silberschatz",
-    category: "Computer Science",
-    totalCopies: 25,
-    availableCopies: 4,
-    location: "Main Library - Floor 2, Shelf CS-11",
-  },
-  {
-    id: "B-005",
-    title: "Things Fall Apart - Student Edition",
-    author: "Chinua Achebe",
-    category: "Literature",
-    totalCopies: 80,
-    availableCopies: 34,
-    location: "Arts Library - Floor 1, Shelf LIT-01",
-  },
-];
+const INITIAL_INVENTORY: InventoryItem[] = [];
 
 export default function Admin() {
   const router = useRouter();
@@ -212,22 +97,10 @@ export default function Admin() {
   };
 
   // Chart Data
-  const CHART_DATA = [
-    { day: "Mon", count: 120, height: 50, color: colors.primary },
-    { day: "Tue", count: 180, height: 75, color: colors.primary },
-    { day: "Wed", count: 240, height: 100, color: colors.success, isPeak: true },
-    { day: "Thu", count: 150, height: 62, color: colors.primary },
-    { day: "Fri", count: 210, height: 88, color: colors.primary },
-    { day: "Sat", count: 90, height: 38, color: colors.warning },
-  ];
+  const CHART_DATA = [];
 
   // Category Breakdown Data
-  const CATEGORY_STATS = [
-    { category: "Computer Science", count: 524, percentage: 42, color: colors.primary },
-    { category: "Economics & Business", count: 350, percentage: 28, color: colors.info },
-    { category: "Engineering & Math", count: 224, percentage: 18, color: colors.warning },
-    { category: "Literature & Arts", count: 150, percentage: 12, color: colors.success },
-  ];
+  const CATEGORY_STATS = [];
 
   // Transaction Helpers
   const getTxnColor = (status: TransactionStatus) => {
@@ -813,12 +686,7 @@ export default function Admin() {
           {/* System Health Logs */}
           <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: spacing.md }]}>System Status & Audit Log</Text>
           <Card style={[styles.cardBg, isDark && styles.cardDark, { paddingHorizontal: spacing.md, marginBottom: spacing.lg }]}>
-            {[
-              { icon: "cloud-done-outline", text: "Database backup completed successfully.", time: "08:00 AM", color: colors.success },
-              { icon: "hardware-chip-outline", text: "RFID Gateways at Main Entrance: Synchronized.", time: "07:30 AM", color: colors.primary },
-              { icon: "mail-outline", text: "24 automated overdue emails dispatched.", time: "07:00 AM", color: colors.warning },
-              { icon: "refresh-circle-outline", text: "System daily maintenance auto-routine complete.", time: "05:00 AM", color: colors.info },
-            ].map((log, idx) => (
+            {[].map((log, idx) => (
               <View
                 key={idx}
                 style={[

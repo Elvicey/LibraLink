@@ -4,21 +4,28 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 interface AuthState {
   userId: number | null;
   token: string | null;
+  roles: string[];
   loading: boolean;
 }
 
-const AuthContext = createContext<AuthState>({ userId: null, token: null, loading: true });
+const AuthContext = createContext<AuthState>({ userId: null, token: null, roles: [], loading: true });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({ userId: null, token: null, loading: true });
+  const [state, setState] = useState<AuthState>({ userId: null, token: null, roles: [], loading: true });
 
   useEffect(() => {
     (async () => {
-      const [token, userId] = await Promise.all([
+      const [token, userId, roles] = await Promise.all([
         AsyncStorage.getItem("authToken"),
         AsyncStorage.getItem("userId"),
+        AsyncStorage.getItem("userRoles"),
       ]);
-      setState({ token, userId: userId ? Number(userId) : null, loading: false });
+      setState({
+        token,
+        userId: userId ? Number(userId) : null,
+        roles: roles ? JSON.parse(roles) : [],
+        loading: false,
+      });
     })();
   }, []);
 

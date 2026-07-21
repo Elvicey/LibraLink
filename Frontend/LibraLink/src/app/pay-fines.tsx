@@ -2,7 +2,6 @@ import { API_BASE_URL } from "../config/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../components/common/Button";
 import Card from "../components/common/Card";
@@ -14,7 +13,7 @@ export default function PayFines() {
   const router = useRouter();
   const [selectedMethod, setSelectedMethod] = useState<"momo" | "card" | null>("momo");
   const [momoProvider, setMomoProvider] = useState<"mtn" | "telecel" | "at">("mtn");
-  const [phone, setPhone] = useState("0241234567");
+  const [phone, setPhone] = useState("");
   const [status, setStatus] = useState<"idle" | "processing" | "success">("idle");
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
 

@@ -15,11 +15,7 @@ interface QueueItem {
   status: "ready" | "processing";
 }
 
-const INITIAL_QUEUE: QueueItem[] = [
-  { id: "1", student: "Esther Asamoah", book: "Introduction to Calculus", time: "11:00 AM", status: "ready" },
-  { id: "2", student: "Kwame B. Boateng", book: "African Economics", time: "11:30 AM", status: "ready" },
-  { id: "3", student: "Abena Osei", book: "Data Structures in Practice", time: "12:15 PM", status: "processing" },
-];
+const INITIAL_QUEUE: QueueItem[] = [];
 
 export default function BookPickup() {
   const router = useRouter();

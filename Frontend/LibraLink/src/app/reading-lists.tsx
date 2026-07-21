@@ -6,29 +6,7 @@ import Card from "../components/common/Card";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { useTheme } from "../constants/theme";
 
-const LISTS = [
-  {
-    id: "1",
-    label: "Semester Reading List",
-    detail: "17 books saved for current courses",
-    badge: "Active",
-    icon: "📚",
-  },
-  {
-    id: "2",
-    label: "Research References",
-    detail: "7 books saved for final project work",
-    badge: "Project",
-    icon: "🎓",
-  },
-  {
-    id: "3",
-    label: "Exam Prep Core Guides",
-    detail: "5 study guides reviewed for midterms",
-    badge: "Review",
-    icon: "📝",
-  },
-];
+const LISTS: { id: string; label: string; detail: string; badge: string; icon: string }[] = [];
 
 export default function ReadingLists() {
   const router = useRouter();
