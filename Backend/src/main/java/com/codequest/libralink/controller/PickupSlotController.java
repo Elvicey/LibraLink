@@ -27,7 +27,7 @@ public class PickupSlotController {
         }
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping("/scan")
     public ResponseEntity<PickupSlot> scanQr(@RequestParam String qrCode, @RequestParam Integer librarianId) {
         return ResponseEntity.ok(pickupSlotService.collectBookViaQr(qrCode, librarianId));
@@ -38,7 +38,7 @@ public class PickupSlotController {
         return ResponseEntity.ok(pickupSlotService.getSlotsByUser(userId));
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @GetMapping("/scheduled")
     public ResponseEntity<List<PickupSlot>> getScheduledSlots() {
         return ResponseEntity.ok(pickupSlotService.getAllScheduledSlots());

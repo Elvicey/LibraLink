@@ -17,13 +17,13 @@ public class BookController {
     @Autowired
     private BookService bookService;
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
     public Book createBook(@RequestBody BookRequest request) {
         return bookService.addBook(request);
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<Book> updateBook(@PathVariable Integer id,
                                            @RequestBody BookRequest request) {

@@ -19,13 +19,13 @@ public class NotificationController {
         this.notificationService = notificationService;
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
     public ResponseEntity<Notification> create(@RequestBody Notification notification) {
         return ResponseEntity.ok(notificationService.createNotification(notification));
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @GetMapping
     public ResponseEntity<List<Notification>> getAll() {
         return ResponseEntity.ok(notificationService.getAllNotifications());

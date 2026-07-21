@@ -35,7 +35,7 @@ public class CirculationController {
         this.userRepository = userRepository;
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping("/scan")
     public ResponseEntity<?> scanBook(@RequestBody Map<String, Object> body) {
         String barcode = (String) body.get("barcode");

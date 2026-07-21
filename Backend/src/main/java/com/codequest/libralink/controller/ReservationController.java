@@ -24,7 +24,7 @@ public class ReservationController {
         return reservationService.createReservation(reservation);
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @GetMapping
     public List<Reservation> getAllReservations() {
         return reservationService.getAllReservations();
@@ -40,7 +40,7 @@ public class ReservationController {
         }
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<?> updateReservationStatus(@PathVariable Integer id,
                                                       @RequestBody Map<String, String> body) {

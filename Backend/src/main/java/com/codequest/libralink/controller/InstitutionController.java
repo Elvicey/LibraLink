@@ -14,7 +14,7 @@ public class InstitutionController {
     @Autowired
     private InstitutionService institutionService;
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
     public Institution createInstitution(@RequestBody Institution institution) {
         return institutionService.createInstitution(institution);
