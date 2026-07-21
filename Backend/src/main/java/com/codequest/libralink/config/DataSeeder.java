@@ -27,22 +27,37 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (userRepository.findByEmail("admin@libralink.com").isEmpty()) {
-            Role adminRole = roleRepository.findByName("ADMIN")
-                    .orElseGet(() -> roleRepository.save(new Role("ADMIN")));
+        String adminEmail = "admin@libralink.com";
+        String adminPassword = "admin123";
 
-            User admin = new User();
+        Role adminRole = roleRepository.findByName("ADMIN")
+                .orElseGet(() -> roleRepository.save(new Role("ADMIN")));
+
+        User admin = userRepository.findByEmail(adminEmail).orElse(null);
+
+        if (admin == null) {
+            admin = new User();
             admin.setFirstName("Admin");
             admin.setLastName("User");
-            admin.setEmail("admin@libralink.com");
-            admin.setPasswordHash(passwordEncoder.encode("admin123"));
+            admin.setEmail(adminEmail);
+            admin.setPasswordHash(passwordEncoder.encode(adminPassword));
             admin.setActive(true);
             Set<Role> roles = new HashSet<>();
             roles.add(adminRole);
             admin.setRoles(roles);
-
             userRepository.save(admin);
-            System.out.println("Admin account created: admin@libralink.com / admin123");
+            System.out.println("Admin account created: " + adminEmail);
+        } else {
+            if (!passwordEncoder.matches(adminPassword, admin.getPasswordHash())) {
+                admin.setPasswordHash(passwordEncoder.encode(adminPassword));
+                Set<Role> roles = admin.getRoles();
+                if (roles == null) roles = new HashSet<>();
+                roles.add(adminRole);
+                admin.setRoles(roles);
+                admin.setActive(true);
+                userRepository.save(admin);
+                System.out.println("Admin password reset: " + adminEmail);
+            }
         }
     }
 }
