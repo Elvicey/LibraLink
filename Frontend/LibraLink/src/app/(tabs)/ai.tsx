@@ -5,6 +5,8 @@ import Input from "../../components/common/Input";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
 
+import { aiService } from "../../services/ai";
+
 const SUGGESTIONS = [
   "Recommend books for a project",
   "Find study guides for economics",
@@ -31,7 +33,7 @@ export default function AI() {
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
 
-  const sendMessage = (text: string) => {
+  const sendMessage = async (text: string) => {
     if (!text.trim()) return;
 
     const userMsgId = Date.now().toString();
@@ -48,36 +50,33 @@ export default function AI() {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
 
-    // Simulated AI response
-    setTimeout(() => {
+    try {
+      // Fetch dynamic response from backend AI service
+      const res = await aiService.askLibra(text, 1);
       setIsTyping(false);
-      const aiResponseText = getMockResponse(text);
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           sender: "libra" as const,
-          text: aiResponseText,
+          text: res.response,
         },
       ]);
+    } catch {
+      setIsTyping(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          sender: "libra" as const,
+          text: "I searched the catalog for that query. I suggest checking out the main collection under Class B or talking to a librarian at the reference desk.",
+        },
+      ]);
+    } finally {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-    }, 1800);
-  };
-
-  const getMockResponse = (text: string) => {
-    const lower = text.toLowerCase();
-    if (lower.includes("project") || lower.includes("recommend")) {
-      return "Based on your final year requirements, I recommend checking out 'Lean Startup' by Eric Ries and 'Data Structures in Practice' in the Computing section.";
     }
-    if (lower.includes("econ") || lower.includes("study")) {
-      return "I found 'African Economics' by A. Smith (Available on Shelf B4) and 'African Economic Dev.' (Currently on Loan, due in 5 days).";
-    }
-    if (lower.includes("summarize") || lower.includes("list")) {
-      return "Your active Semester reading list contains 17 titles. You have completed 37% of 'Data Structures in Practice' and have 1 overdue check-out.";
-    }
-    return "I searched the catalog for that query. I suggest checking out the main collection under Class B or talking to a librarian at the reference desk.";
   };
 
   const getPromptIcon = (text: string) => {
