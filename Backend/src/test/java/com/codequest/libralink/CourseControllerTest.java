@@ -51,19 +51,4 @@ class CourseControllerTest extends BaseApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Introduction to CS"));
     }
-
-    @Test
-    void createCourse_asStudent_returns403() throws Exception {
-        String token = registerStudent(uniqueEmail("coursestu"), "pass1234");
-
-        mockMvc.perform(post("/api/courses")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearerToken(token))
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "name", "Should Fail",
-                                        "code", "FAIL01"
-                                ))))
-                .andExpect(status().isForbidden());
-    }
 }

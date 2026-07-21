@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../config/api";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
@@ -32,11 +32,6 @@ export default function SignIn() {
       }
 
       const roles: string[] = data.roles || [];
-      const isStudent = roles.includes("STUDENT") || roles.length === 0;
-
-      if (!isStudent) {
-        throw new Error("This is a student login. Librarians should use the Librarian Portal.");
-      }
 
       await AsyncStorage.setItem("authToken", data.token);
       await AsyncStorage.setItem("userId", String(data.userId));
@@ -141,10 +136,10 @@ export default function SignIn() {
 
         <Pressable
           style={styles.librarianLink}
-          onPress={() => router.push("/librarian-signin" as any)}
+          onPress={() => router.replace("/")}
         >
           <Text style={styles.librarianLinkText}>
-            Librarian? <Text style={styles.librarianLinkHighlight}>Sign in to staff portal</Text>
+            <Text style={styles.librarianLinkHighlight}>← Back to role selection</Text>
           </Text>
         </Pressable>
       </View>

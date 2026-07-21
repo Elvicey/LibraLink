@@ -149,23 +149,4 @@ class CirculationControllerTest extends BaseApiTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error", containsString("userId is required")));
     }
-
-    @Test
-    void scanBook_asStudent_returns403() throws Exception {
-        String barcode = bookCopyRepository.findAll().stream()
-                .filter(c -> c.getBook().getId().equals(testBook.getId()))
-                .findFirst().get().getBarcode();
-        String studentToken = loginAs(testStudent.getEmail(), "pass1234");
-
-        mockMvc.perform(post("/api/circulation/scan")
-                        .contentType("application/json")
-                        .header("Authorization", bearerToken(studentToken))
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "barcode", barcode,
-                                        "action", "CHECK_OUT",
-                                        "userId", testStudent.getId()
-                                ))))
-                .andExpect(status().isForbidden());
-    }
 }

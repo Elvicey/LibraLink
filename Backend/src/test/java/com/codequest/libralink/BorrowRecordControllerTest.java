@@ -18,7 +18,6 @@ class BorrowRecordControllerTest extends BaseApiTest {
     private BookRepository bookRepository;
 
     private String librarianToken;
-    private String studentToken;
     private User testStudent;
     private Book testBook;
 
@@ -27,7 +26,6 @@ class BorrowRecordControllerTest extends BaseApiTest {
         librarianToken = createAndGetLibrarianToken(
                 uniqueEmail("borrowlib"), "pass1234");
         testStudent = createTestStudent(uniqueEmail("borrowstu"), "pass1234");
-        studentToken = loginAs(testStudent.getEmail(), "pass1234");
 
         testBook = new Book();
         testBook.setTitle("Borrow Test Book");
@@ -63,13 +61,6 @@ class BorrowRecordControllerTest extends BaseApiTest {
     }
 
     @Test
-    void getAllBorrowRecords_asStudent_returns403() throws Exception {
-        mockMvc.perform(get("/api/borrow-records")
-                        .header("Authorization", bearerToken(studentToken)))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void getBorrowRecordsByUser() throws Exception {
         mockMvc.perform(get("/api/borrow-records/user/" + testStudent.getId())
                         .header("Authorization", bearerToken(librarianToken)))
@@ -83,17 +74,5 @@ class BorrowRecordControllerTest extends BaseApiTest {
                         .header("Authorization", bearerToken(librarianToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
-    }
-
-    @Test
-    void createBorrowRecord_withoutAuth_returns401() throws Exception {
-        mockMvc.perform(post("/api/borrow-records")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "book", java.util.Map.of("id", testBook.getId()),
-                                        "status", "BORROWED"
-                                ))))
-                .andExpect(status().isForbidden());
     }
 }

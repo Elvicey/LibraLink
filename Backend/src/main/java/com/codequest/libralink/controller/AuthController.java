@@ -51,4 +51,15 @@ public class AuthController {
             return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
         }
     }
+
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PostMapping("/register-lecturer")
+    public ResponseEntity<?> registerLecturer(@Valid @RequestBody RegisterRequest request) {
+        try {
+            AuthResponse response = authService.registerLecturer(request);
+            return ResponseEntity.status(201).body(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+        }
+    }
 }

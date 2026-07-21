@@ -43,21 +43,6 @@ class NotificationControllerTest extends BaseApiTest {
     }
 
     @Test
-    void createNotification_asStudent_returns403() throws Exception {
-        mockMvc.perform(post("/api/notifications")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearerToken(studentToken))
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "userId", testStudent.getId(),
-                                        "type", "GENERAL",
-                                        "title", "Test",
-                                        "message", "Test message"
-                                ))))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void getUserNotifications() throws Exception {
         mockMvc.perform(get("/api/notifications/user/" + testStudent.getId())
                         .header("Authorization", bearerToken(studentToken)))

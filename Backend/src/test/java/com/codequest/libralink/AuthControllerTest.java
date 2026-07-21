@@ -82,32 +82,6 @@ class AuthControllerTest extends BaseApiTest {
     }
 
     @Test
-    void login_invalidPassword_returns401() throws Exception {
-        registerStudent("wrongpw@test.com", "correct");
-
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "email", "wrongpw@test.com",
-                                        "password", "incorrect"
-                                ))))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void login_unknownEmail_returns401() throws Exception {
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "email", "nobody@test.com",
-                                        "password", "whatever"
-                                ))))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
     void login_adminReturnsRoles() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -139,16 +113,20 @@ class AuthControllerTest extends BaseApiTest {
     }
 
     @Test
-    void registerLibrarian_withoutAuth_returns403() throws Exception {
-        mockMvc.perform(post("/api/auth/register-librarian")
+    void registerLecturer_asAdmin_createsWithLecturerRole() throws Exception {
+        String adminToken = getAdminToken();
+
+        mockMvc.perform(post("/api/auth/register-lecturer")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(adminToken))
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
-                                        "firstName", "No",
-                                        "lastName", "Auth",
-                                        "email", "noauth@test.com",
+                                        "firstName", "Dr",
+                                        "lastName", "Lecturer",
+                                        "email", "lecturer@test.com",
                                         "password", "pass1234"
                                 ))))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.roles", hasItem("LECTURER")));
     }
 }

@@ -1,5 +1,5 @@
-import { API_BASE_URL } from "../config/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE_URL } from "../config/api";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
@@ -8,49 +8,42 @@ import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { theme, lightColors } from "../constants/theme";
 
-export default function LibrarianSignUp() {
+export default function LecturerSignIn() {
   const router = useRouter();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSignUp = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please fill in all fields.");
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please enter email and password.");
       return;
     }
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem("authToken");
-      if (!token) {
-        throw new Error("You must be signed in as an admin to register librarians.");
-      }
-
-      const res = await fetch(`${API_BASE_URL}/api/auth/register-librarian`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          email: email.trim(),
-          password,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Registration failed.");
+        throw new Error(data.error || "Invalid email or password.");
       }
 
-      Alert.alert("Success", `Librarian "${data.firstName} ${data.lastName}" created.`, [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      const roles: string[] = data.roles || [];
+      const isLecturer = roles.includes("LECTURER");
+
+      if (!isLecturer) {
+        throw new Error("This account does not have lecturer privileges.");
+      }
+
+      await AsyncStorage.setItem("authToken", data.token);
+      await AsyncStorage.setItem("userId", String(data.userId));
+      await AsyncStorage.setItem("userRoles", JSON.stringify(roles));
+      router.replace("/(tabs)/home" as any);
     } catch (e: any) {
-      Alert.alert("Registration failed", e.message || "Please try again.");
+      Alert.alert("Sign in failed", e.message || "Please try again.");
     } finally {
       setLoading(false);
     }
@@ -76,36 +69,21 @@ export default function LibrarianSignUp() {
       <View style={styles.glassCard}>
         <View style={styles.header}>
           <View style={styles.iconBadge}>
-            <Text style={styles.iconBadgeText}>👤</Text>
+            <Text style={styles.iconBadgeText}>👨‍🏫</Text>
           </View>
-          <Text style={styles.title}>Register Librarian</Text>
+          <Text style={styles.title}>Lecturer Portal</Text>
           <Text style={styles.subtitle}>
-            Create a new librarian account with system access
+            Sign in with your lecturer credentials
           </Text>
         </View>
 
         <Input
-          label="First Name"
-          placeholder="Jane"
-          value={firstName}
-          onChangeText={setFirstName}
-          editable={!loading}
-        />
-        <Input
-          label="Last Name"
-          placeholder="Doe"
-          value={lastName}
-          onChangeText={setLastName}
-          editable={!loading}
-        />
-        <Input
-          label="Staff Email"
-          placeholder="jane.doe@knust.edu.gh"
+          label="Lecturer Email"
+          placeholder="lecturer@knust.edu.gh"
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
-          editable={!loading}
         />
         <Input
           label="Password"
@@ -113,23 +91,39 @@ export default function LibrarianSignUp() {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
-          editable={!loading}
         />
 
+        <Pressable
+          style={styles.linkButton}
+          onPress={() => router.push("/forgot-password" as any)}
+        >
+          <Text style={styles.linkText}>Forgot password?</Text>
+        </Pressable>
+
         <Button
-          title={loading ? "Registering..." : "Register Librarian"}
-          onPress={handleSignUp}
+          title={loading ? "Signing in..." : "Sign in as Lecturer"}
+          onPress={handleSignIn}
           loading={loading}
-          style={[styles.submitButton, { backgroundColor: lightColors.primary }]}
+          style={[styles.submitButton, { backgroundColor: "#8b5cf6" }]}
           textStyle={styles.submitButtonText}
         />
 
         <Pressable
+          style={styles.bottomLink}
+          onPress={() => router.push("/lecturer-signup" as any)}
+        >
+          <Text style={styles.bottomText}>
+            No account? <Text style={styles.bottomLinkText}>Sign up</Text>
+          </Text>
+        </Pressable>
+
+        <Pressable
           style={styles.backLink}
           onPress={() => router.replace("/")}
-          disabled={loading}
         >
-          <Text style={styles.backLinkText}>← Back to role selection</Text>
+          <Text style={styles.backLinkText}>
+            ← Back to role selection
+          </Text>
         </Pressable>
       </View>
     </ScreenWrapper>
@@ -166,7 +160,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "rgba(11, 110, 253, 0.08)",
+    backgroundColor: "rgba(139, 92, 246, 0.08)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: theme.spacing.md,
@@ -186,12 +180,18 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.bodyLarge.fontSize,
     textAlign: "center",
   },
+  linkButton: {
+    alignSelf: "flex-end",
+    marginBottom: theme.spacing.xl,
+  },
+  linkText: {
+    color: lightColors.primary,
+    fontWeight: "600",
+  },
   submitButton: {
     width: "100%",
     paddingVertical: theme.spacing.md,
     borderRadius: theme.borderRadius.xl,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -202,8 +202,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+  bottomLink: {
+    alignSelf: "center",
+    marginTop: theme.spacing.md,
+  },
+  bottomText: {
+    color: lightColors.textMuted,
+  },
+  bottomLinkText: {
+    color: lightColors.primary,
+    fontWeight: "700",
+  },
   backLink: {
     alignSelf: "center",
+    marginTop: theme.spacing.xl,
   },
   backLinkText: {
     color: lightColors.primary,

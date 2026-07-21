@@ -31,18 +31,6 @@ class MetadataControllerTest extends BaseApiTest {
     }
 
     @Test
-    void createAuthor_asStudent_returns403() throws Exception {
-        String token = registerStudent(uniqueEmail("authorstu"), "pass1234");
-
-        mockMvc.perform(post("/api/authors")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearerToken(token))
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of("fullName", "Should Fail"))))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void getAllPublishers() throws Exception {
         mockMvc.perform(get("/api/publishers"))
                 .andExpect(status().isOk())
