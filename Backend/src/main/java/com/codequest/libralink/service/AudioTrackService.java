@@ -98,8 +98,7 @@ public class AudioTrackService {
 
     private String callTtsApi(AudioTrack track) throws Exception {
         if (ttsApiKey == null || ttsApiKey.isBlank()) {
-            log.warn("TTS API key not configured. Generating mock audio URL.");
-            return storageBaseUrl + "/audio/" + track.getId() + "." + track.getAudioFormat();
+            throw new RuntimeException("TTS API key not configured. Audio generation is unavailable.");
         }
 
         Map<String, Object> requestBody = new HashMap<>();

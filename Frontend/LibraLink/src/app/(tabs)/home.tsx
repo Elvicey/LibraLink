@@ -8,29 +8,8 @@ import Card from "../../components/common/Card";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
 
-const RECOMMENDED = [
-  {
-    id: "1",
-    title: "Library Science Essentials",
-    author: "KNUST Collection",
-    tag: "Recommended",
-    emoji: "📚",
-  },
-  {
-    id: "2",
-    title: "Exam Strategies 2026",
-    author: "O. Asiedu",
-    tag: "Top pick",
-    emoji: "📝",
-  },
-  {
-    id: "3",
-    title: "Introduction to Calculus",
-    author: "J. Stewart",
-    tag: "Science",
-    emoji: "📐",
-  },
-];
+// TODO: Fetch recommended books from API
+const RECOMMENDED: { id: string; title: string; author: string; tag: string; emoji: string }[] = [];
 
 export default function Home() {
   const router = useRouter();
@@ -44,24 +23,8 @@ export default function Home() {
     return "Good evening";
   };
 
-  const highlightsList = [
-    {
-      title: "Next due",
-      value: "Calculus in 3 days",
-      icon: "calendar-outline",
-      bg: isDark ? "rgba(245, 158, 11, 0.12)" : "#fffbeb",
-      border: isDark ? "rgba(245, 158, 11, 0.25)" : "rgba(245, 158, 11, 0.15)",
-      color: isDark ? "#fbbf24" : colors.warning,
-    },
-    {
-      title: "Suggested",
-      value: "AI for Education",
-      icon: "bulb-outline",
-      bg: isDark ? "rgba(34, 197, 94, 0.12)" : "#eefbf2",
-      border: isDark ? "rgba(34, 197, 94, 0.25)" : "rgba(34, 197, 94, 0.15)",
-      color: isDark ? "#4ade80" : colors.success,
-    },
-  ];
+  // TODO: Fetch highlights from API
+  const highlightsList: { title: string; value: string; icon: string; bg: string; border: string; color: string }[] = [];
 
   return (
     <ScreenWrapper scrollable style={styles.screen} contentContainerStyle={styles.container}>
@@ -93,7 +56,7 @@ export default function Home() {
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.greetingText}>{getGreeting()},</Text>
-          <Text style={styles.userName}>Esther Asamoah</Text>
+          <Text style={styles.userName}>Student</Text>
         </View>
         <Pressable
           style={styles.bellButton}
@@ -127,17 +90,17 @@ export default function Home() {
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Ionicons name="book-outline" size={20} color={colors.primary} style={{ marginBottom: spacing.xs }} />
-          <Text style={styles.statValue}>2</Text>
+          <Text style={styles.statValue}>0</Text>
           <Text style={styles.statLabel}>Borrowed</Text>
         </View>
         <View style={styles.statCard}>
           <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={{ marginBottom: spacing.xs }} />
-          <Text style={[styles.statValue, { color: colors.danger }]}>1</Text>
+          <Text style={[styles.statValue, { color: colors.danger }]}>0</Text>
           <Text style={styles.statLabel}>Overdue</Text>
         </View>
         <View style={styles.statCard}>
           <Ionicons name="bookmark-outline" size={20} color={colors.warning} style={{ marginBottom: spacing.xs }} />
-          <Text style={styles.statValue}>3</Text>
+          <Text style={styles.statValue}>0</Text>
           <Text style={styles.statLabel}>Holds</Text>
         </View>
       </View>

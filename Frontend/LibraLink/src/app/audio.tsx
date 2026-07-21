@@ -51,8 +51,8 @@ export default function AudioBookPlayer() {
 
       {/* Audio Metadata */}
       <View style={styles.metadataSection}>
-        <Text style={[styles.audioTitle, { color: colors.text }]}>Data Structures: Linked Lists</Text>
-        <Text style={[styles.audioAuthor, { color: colors.textMuted }]}>CS 301 - Dr. O. Asiedu</Text>
+        <Text style={[styles.audioTitle, { color: colors.text }]}>No track loaded</Text>
+        <Text style={[styles.audioAuthor, { color: colors.textMuted }]}>Select a track to begin</Text>
       </View>
 
       {/* Progress slider bar mock */}
@@ -62,8 +62,8 @@ export default function AudioBookPlayer() {
           <View style={[styles.trackThumb, { backgroundColor: colors.primary, left: "35%" }]} />
         </View>
         <View style={styles.timeRow}>
-          <Text style={[styles.timeText, { color: colors.textMuted }]}>08:35</Text>
-          <Text style={[styles.timeText, { color: colors.textMuted }]}>24:10</Text>
+          <Text style={[styles.timeText, { color: colors.textMuted }]}>00:00</Text>
+          <Text style={[styles.timeText, { color: colors.textMuted }]}>00:00</Text>
         </View>
       </View>
 

@@ -7,32 +7,7 @@ import Card from "../components/common/Card";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { useTheme } from "../constants/theme";
 
-const ALERTS = [
-  {
-    id: "1",
-    title: "Overdue Book Alert",
-    message: "Your 'Calculus' loan is overdue by 2 days. Return immediately to avoid additional fines.",
-    type: "danger",
-    time: "2h ago",
-    icon: "⚠️",
-  },
-  {
-    id: "2",
-    title: "Book Recommendation",
-    message: "New 'AI study guide for economics' is now available in your suggested shelf.",
-    type: "info",
-    time: "1d ago",
-    icon: "📕",
-  },
-  {
-    id: "3",
-    title: "Account Fine Reminder",
-    message: "You have a pending fine balance of GHS 1.00 for an overdue return last week.",
-    type: "warning",
-    time: "3d ago",
-    icon: "🔔",
-  },
-];
+const ALERTS: { id: string; title: string; message: string; type: string; time: string; icon: string }[] = [];
 
 export default function Notifications() {
   const router = useRouter();

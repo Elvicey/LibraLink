@@ -7,18 +7,13 @@ import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
 import Card from "../../components/common/Card";
 
-// Expanded sample data containing matching categories
-const SAMPLE_BOOKS = [
-  { id: "1", title: "Things Fall Apart", author: "Chinua Achebe", available: true, tag: "Classic" },
-  { id: "2", title: "Introduction to Calculus", author: "J. Stewart", available: false, tag: "Exam prep" },
-  { id: "3", title: "African Economics", author: "A. Smith", available: true, tag: "Policy" },
-  { id: "4", title: "African Economic Dev.", author: "Aryeetey & Fosu", available: false, tag: "Policy" },
-  { id: "5", title: "Data Structures in Practice", author: "Mark Allen Weiss", available: true, tag: "Computing" },
-];
+// TODO: Fetch books from API
+const SAMPLE_BOOKS: { id: string; title: string; author: string; available: boolean; tag: string }[] = [];
 
-const SUBJECT_OPTIONS = ["All", "Classic", "Exam prep", "Policy", "Computing"];
-const AUTHOR_OPTIONS = ["All", "Chinua Achebe", "J. Stewart", "A. Smith", "Aryeetey & Fosu", "Mark Allen Weiss"];
-const AVAILABILITY_OPTIONS = ["All", "Available", "On Loan"];
+// TODO: Fetch filter options from API
+const SUBJECT_OPTIONS = ["All"];
+const AUTHOR_OPTIONS = ["All"];
+const AVAILABILITY_OPTIONS = ["All"];
 
 const CATEGORIES = [
   { label: "Science", emoji: "🧬", query: "Calculus", tint: "rgba(11, 110, 253, 0.08)" },

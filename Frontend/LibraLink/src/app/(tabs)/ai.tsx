@@ -5,11 +5,8 @@ import Input from "../../components/common/Input";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
 
-const SUGGESTIONS = [
-  "Recommend books for a project",
-  "Find study guides for economics",
-  "Summarize my reading list",
-];
+// TODO: Fetch suggestions from API
+const SUGGESTIONS: string[] = [];
 
 interface ChatMessage {
   id: string;
@@ -23,7 +20,7 @@ export default function AI() {
     {
       id: "1",
       sender: "libra",
-      text: "Hello Esther! I am Libra, your library assistant. Ask me to find books, compile lists, or suggest study guides in plain English.",
+      text: "Hello! I am Libra, your library assistant. Ask me to find books, compile lists, or suggest study guides in plain English.",
     },
   ]);
   const [isTyping, setIsTyping] = useState(false);
@@ -66,19 +63,8 @@ export default function AI() {
     }, 1800);
   };
 
-  const getMockResponse = (text: string) => {
-    const lower = text.toLowerCase();
-    if (lower.includes("project") || lower.includes("recommend")) {
-      return "Based on your final year requirements, I recommend checking out 'Lean Startup' by Eric Ries and 'Data Structures in Practice' in the Computing section.";
-    }
-    if (lower.includes("econ") || lower.includes("study")) {
-      return "I found 'African Economics' by A. Smith (Available on Shelf B4) and 'African Economic Dev.' (Currently on Loan, due in 5 days).";
-    }
-    if (lower.includes("summarize") || lower.includes("list")) {
-      return "Your active Semester reading list contains 17 titles. You have completed 37% of 'Data Structures in Practice' and have 1 overdue check-out.";
-    }
-    return "I searched the catalog for that query. I suggest checking out the main collection under Class B or talking to a librarian at the reference desk.";
-  };
+  // TODO: Replace with actual API call to AI assistant
+  const getMockResponse = (_text: string) => "I searched the catalog for that query. Please try rephrasing or ask a librarian for assistance.";
 
   const getPromptIcon = (text: string) => {
     if (text.includes("Recommend")) return "bulb-outline";

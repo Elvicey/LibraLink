@@ -8,7 +8,7 @@ import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { theme, lightColors } from "../constants/theme";
 
-export default function SignIn() {
+export default function LibrarianSignIn() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,16 +32,18 @@ export default function SignIn() {
       }
 
       const roles: string[] = data.roles || [];
-      const isStudent = roles.includes("STUDENT") || roles.length === 0;
+      const isLibrarian = roles.some(
+        (r) => r === "LIBRARIAN" || r === "ADMIN"
+      );
 
-      if (!isStudent) {
-        throw new Error("This is a student login. Librarians should use the Librarian Portal.");
+      if (!isLibrarian) {
+        throw new Error("This account does not have librarian privileges.");
       }
 
       await AsyncStorage.setItem("authToken", data.token);
       await AsyncStorage.setItem("userId", String(data.userId));
       await AsyncStorage.setItem("userRoles", JSON.stringify(roles));
-      router.replace("/(tabs)/home" as any);
+      router.replace("/admin" as any);
     } catch (e: any) {
       Alert.alert("Sign in failed", e.message || "Please try again.");
     } finally {
@@ -70,15 +72,18 @@ export default function SignIn() {
       {/* Glassmorphic Form Card */}
       <View style={styles.glassCard}>
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome back</Text>
+          <View style={styles.iconBadge}>
+            <Text style={styles.iconBadgeText}>📚</Text>
+          </View>
+          <Text style={styles.title}>Librarian Portal</Text>
           <Text style={styles.subtitle}>
-            Sign in to access your library account
+            Sign in with your staff credentials
           </Text>
         </View>
 
         <Input
-          label="Student Email"
-          placeholder="you@knust.edu.gh"
+          label="Staff Email"
+          placeholder="admin@knust.edu.gh"
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -100,51 +105,19 @@ export default function SignIn() {
         </Pressable>
 
         <Button
-          title="Sign in"
+          title={loading ? "Signing in..." : "Sign in as Librarian"}
           onPress={handleSignIn}
           loading={loading}
           style={[styles.submitButton, { backgroundColor: lightColors.primary }]}
           textStyle={styles.submitButtonText}
         />
 
-        <View style={styles.dividerRow}>
-          <View style={styles.divider} />
-          <Text style={styles.dividerText}>or continue with</Text>
-          <View style={styles.divider} />
-        </View>
-
-        <View style={styles.socialRow}>
-          <Button
-            title="Google"
-            variant="outline"
-            onPress={() => {}}
-            style={styles.socialButton}
-            textStyle={styles.socialText}
-          />
-          <Button
-            title="Student ID"
-            variant="outline"
-            onPress={() => {}}
-            style={styles.socialButton}
-            textStyle={styles.socialText}
-          />
-        </View>
-
         <Pressable
-          style={styles.bottomLink}
-          onPress={() => router.push("/signup" as any)}
+          style={styles.studentLink}
+          onPress={() => router.replace("/signin" as any)}
         >
-          <Text style={styles.bottomText}>
-            No account? <Text style={styles.bottomLinkText}>Sign up</Text>
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.librarianLink}
-          onPress={() => router.push("/librarian-signin" as any)}
-        >
-          <Text style={styles.librarianLinkText}>
-            Librarian? <Text style={styles.librarianLinkHighlight}>Sign in to staff portal</Text>
+          <Text style={styles.studentLinkText}>
+            Are you a student? <Text style={styles.studentLinkHighlight}>Sign in here</Text>
           </Text>
         </Pressable>
       </View>
@@ -176,16 +149,31 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: theme.spacing.xl,
+    alignItems: "center",
+  },
+  iconBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(11, 110, 253, 0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: theme.spacing.md,
+  },
+  iconBadgeText: {
+    fontSize: 32,
   },
   title: {
     fontSize: 28,
     fontWeight: "800",
     color: lightColors.text,
     marginBottom: theme.spacing.xs,
+    textAlign: "center",
   },
   subtitle: {
     color: lightColors.textMuted,
     fontSize: theme.typography.bodyLarge.fontSize,
+    textAlign: "center",
   },
   linkButton: {
     alignSelf: "flex-end",
@@ -209,60 +197,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: theme.spacing.xl,
+  studentLink: {
+    alignSelf: "center",
+    marginTop: theme.spacing.xl,
   },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "rgba(13, 37, 63, 0.1)",
-  },
-  dividerText: {
+  studentLinkText: {
     color: lightColors.textMuted,
-    marginHorizontal: theme.spacing.md,
     fontSize: 14,
   },
-  socialRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
-  },
-  socialButton: {
-    flex: 1,
-    borderColor: "rgba(13, 37, 63, 0.1)",
-    backgroundColor: "rgba(13, 37, 63, 0.02)",
-    borderRadius: theme.borderRadius.lg,
-    paddingVertical: theme.spacing.md,
-    borderWidth: 1.5,
-  },
-  socialText: {
-    color: lightColors.text,
-    fontWeight: "600",
-  },
-  bottomLink: {
-    alignSelf: "center",
-    marginTop: theme.spacing.xs,
-  },
-  bottomText: {
-    color: lightColors.textMuted,
-  },
-  bottomLinkText: {
-    color: lightColors.primary,
-    fontWeight: "700",
-  },
-  librarianLink: {
-    alignSelf: "center",
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xs,
-  },
-  librarianLinkText: {
-    color: lightColors.textMuted,
-    fontSize: 13,
-  },
-  librarianLinkHighlight: {
+  studentLinkHighlight: {
     color: lightColors.primary,
     fontWeight: "700",
   },

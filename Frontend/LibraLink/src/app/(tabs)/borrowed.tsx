@@ -5,31 +5,8 @@ import Button from "../../components/common/Button";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
 
-const BORROWED = [
-  {
-    id: "2",
-    title: "Introduction to Calculus",
-    author: "J. Stewart",
-    due: "Due 30 Jun 2026",
-    status: "active",
-    progress: "3 days left",
-  },
-  {
-    id: "4",
-    title: "African Economic Dev.",
-    author: "Aryeetey & Fosu",
-    due: "Overdue",
-    status: "overdue",
-    fine: "GHS 1.00",
-  },
-  {
-    id: "5",
-    title: "Data Structures in Practice",
-    author: "Mark Allen Weiss",
-    due: "Pick-up 2:00 PM today",
-    status: "ready",
-  },
-];
+// TODO: Fetch borrowed books from API
+const BORROWED: { id: string; title: string; author: string; due: string; status: string; progress?: string; fine?: string }[] = [];
 
 function getLoanStatusColor(status: string, colors: any) {
   return status === "overdue"

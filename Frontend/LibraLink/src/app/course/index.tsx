@@ -23,36 +23,7 @@ interface Course {
   books: Textbook[];
 }
 
-const INITIAL_COURSES: Course[] = [
-  {
-    id: "cs301",
-    code: "CS 301",
-    name: "Data Structures & Algorithms",
-    lecturer: "Dr. O. Asiedu",
-    books: [
-      { id: "101", title: "Data Structures in Practice", author: "KNUST Collection", available: true },
-      { id: "102", title: "Introduction to Algorithms", author: "Cormen et al.", available: false },
-    ],
-  },
-  {
-    id: "math201",
-    code: "MATH 201",
-    name: "Linear Algebra & Calculus",
-    lecturer: "Prof. J. Stewart",
-    books: [
-      { id: "201", title: "Introduction to Calculus", author: "J. Stewart", available: true },
-    ],
-  },
-  {
-    id: "econ402",
-    code: "ECON 402",
-    name: "Applied African Economics",
-    lecturer: "Dr. A. Smith",
-    books: [
-      { id: "301", title: "African Economics", author: "A. Smith", available: true },
-    ],
-  },
-];
+const INITIAL_COURSES: Course[] = [];
 
 export default function CourseReadingLists() {
   const router = useRouter();

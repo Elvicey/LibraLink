@@ -34,11 +34,11 @@ export default function Profile() {
         {/* Profile Info Header overlapping the banner */}
         <View style={styles.headerRow}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarInitial}>E</Text>
+            <Text style={styles.avatarInitial}>S</Text>
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.title}>Esther Asamoah</Text>
-            <Text style={styles.email}>esther@knust.edu.gh</Text>
+            <Text style={styles.title}>Student</Text>
+            <Text style={styles.email}></Text>
             <Text style={styles.statusBadge}>Student member</Text>
           </View>
         </View>
@@ -47,17 +47,17 @@ export default function Profile() {
         <View style={styles.summaryRow}>
           <Card style={styles.summaryCard}>
             <Ionicons name="book" size={22} color={colors.primary} style={{ marginBottom: spacing.xs }} />
-            <Text style={styles.summaryValue}>14</Text>
+            <Text style={styles.summaryValue}>0</Text>
             <Text style={styles.summaryLabel}>Borrowed this semester</Text>
           </Card>
           <Card style={styles.summaryCard}>
             <Ionicons name="trending-up" size={22} color={colors.success} style={{ marginBottom: spacing.xs }} />
-            <Text style={styles.summaryValue}>96%</Text>
+            <Text style={styles.summaryValue}>0%</Text>
             <Text style={styles.summaryLabel}>On-time return rate</Text>
           </Card>
           <Card style={styles.summaryCard}>
             <Ionicons name="bookmark" size={22} color={colors.warning} style={{ marginBottom: spacing.xs }} />
-            <Text style={styles.summaryValue}>3</Text>
+            <Text style={styles.summaryValue}>0</Text>
             <Text style={styles.summaryLabel}>Active holds</Text>
           </Card>
         </View>

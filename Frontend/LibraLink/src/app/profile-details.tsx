@@ -12,9 +12,9 @@ import { useTheme } from "../constants/theme";
 
 export default function ProfileDetails() {
   const router = useRouter();
-  const [name, setName] = useState("Esther Asamoah");
-  const [email, setEmail] = useState("esther@knust.edu.gh");
-  const [campus, setCampus] = useState("KNUST Main Library");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [campus, setCampus] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [msg, setMsg] = useState("");
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
