@@ -30,19 +30,12 @@ public class DataSeeder implements CommandLineRunner {
         String adminEmail = "admin@libralink.com";
         String adminPassword = "admin123";
 
-        System.out.println("[DATASEEDER] Running DataSeeder...");
-
         Role adminRole = roleRepository.findByName("ADMIN")
-                .orElseGet(() -> {
-                    System.out.println("[DATASEEDER] ADMIN role not found, creating it");
-                    return roleRepository.save(new Role("ADMIN"));
-                });
-        System.out.println("[DATASEEDER] ADMIN role id=" + adminRole.getId());
+                .orElseGet(() -> roleRepository.save(new Role("ADMIN")));
 
         User admin = userRepository.findByEmail(adminEmail).orElse(null);
 
         if (admin == null) {
-            System.out.println("[DATASEEDER] Admin user NOT found — creating new admin");
             admin = new User();
             admin.setFirstName("Admin");
             admin.setLastName("User");
@@ -52,13 +45,9 @@ public class DataSeeder implements CommandLineRunner {
             Set<Role> roles = new HashSet<>();
             roles.add(adminRole);
             admin.setRoles(roles);
-            User saved = userRepository.save(admin);
-            System.out.println("[DATASEEDER] Admin CREATED with id=" + saved.getId() + " email=" + saved.getEmail());
+            userRepository.save(admin);
         } else {
-            System.out.println("[DATASEEDER] Admin user found with id=" + admin.getId() + " email=" + admin.getEmail());
-            boolean matches = passwordEncoder.matches(adminPassword, admin.getPasswordHash());
-            System.out.println("[DATASEEDER] passwordEncoder.matches('admin123', storedHash) = " + matches);
-            if (!matches) {
+            if (!passwordEncoder.matches(adminPassword, admin.getPasswordHash())) {
                 admin.setPasswordHash(passwordEncoder.encode(adminPassword));
                 Set<Role> roles = admin.getRoles();
                 if (roles == null) roles = new HashSet<>();
@@ -66,13 +55,7 @@ public class DataSeeder implements CommandLineRunner {
                 admin.setRoles(roles);
                 admin.setActive(true);
                 userRepository.save(admin);
-                System.out.println("[DATASEEDER] Admin password RESET for " + adminEmail);
-            } else {
-                System.out.println("[DATASEEDER] Admin password already correct — no change needed");
             }
         }
-
-        long userCount = userRepository.count();
-        System.out.println("[DATASEEDER] Total users in database: " + userCount);
     }
 }
