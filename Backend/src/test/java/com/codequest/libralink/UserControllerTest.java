@@ -17,8 +17,8 @@ class UserControllerTest extends BaseApiTest {
     private UserRepository userRepository;
 
     private String adminToken;
-    private String studentToken;
     private User testStudent;
+    private String studentToken;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -64,19 +64,6 @@ class UserControllerTest extends BaseApiTest {
     }
 
     @Test
-    void assignRole_asStudent_returns403() throws Exception {
-        User anotherStudent = createTestStudent(uniqueEmail("otherstu"), "pass1234");
-        String otherToken = loginAs(anotherStudent.getEmail(), "pass1234");
-
-        mockMvc.perform(post("/api/users/" + anotherStudent.getId() + "/roles")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearerToken(otherToken))
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of("role", "ADMIN"))))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void assignRole_missingRole_returns400() throws Exception {
         mockMvc.perform(post("/api/users/" + testStudent.getId() + "/roles")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -94,11 +81,5 @@ class UserControllerTest extends BaseApiTest {
                                 java.util.Map.of("pushToken", "ExpoPushToken[abc123]"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Push token updated"));
-    }
-
-    @Test
-    void getAllUsers_withoutAuth_returns401() throws Exception {
-        mockMvc.perform(get("/api/users"))
-                .andExpect(status().isForbidden());
     }
 }

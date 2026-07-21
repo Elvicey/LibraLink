@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../config/api";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
@@ -114,10 +114,10 @@ export default function LibrarianSignIn() {
 
         <Pressable
           style={styles.studentLink}
-          onPress={() => router.replace("/signin" as any)}
+          onPress={() => router.replace("/")}
         >
           <Text style={styles.studentLinkText}>
-            Are you a student? <Text style={styles.studentLinkHighlight}>Sign in here</Text>
+            <Text style={styles.studentLinkHighlight}>← Back to role selection</Text>
           </Text>
         </Pressable>
       </View>

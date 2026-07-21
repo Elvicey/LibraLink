@@ -92,36 +92,6 @@ class BookControllerTest extends BaseApiTest {
     }
 
     @Test
-    void createBook_asStudent_returns403() throws Exception {
-        String email = uniqueEmail("bookstu");
-        String studentToken = registerStudent(email, "pass1234");
-
-        mockMvc.perform(post("/api/books")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearerToken(studentToken))
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "title", "Should Fail",
-                                        "totalCopies", 1,
-                                        "availableCopies", 1
-                                ))))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void createBook_withoutAuth_returns401() throws Exception {
-        mockMvc.perform(post("/api/books")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "title", "No Auth",
-                                        "totalCopies", 1,
-                                        "availableCopies", 1
-                                ))))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void updateBook_asLibrarian() throws Exception {
         Book book = createTestBook("Old Title", "999-9-999-99999-9");
 

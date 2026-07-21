@@ -1,5 +1,4 @@
 import { API_BASE_URL } from "../config/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
@@ -8,7 +7,7 @@ import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { theme, lightColors } from "../constants/theme";
 
-export default function LibrarianSignUp() {
+export default function LecturerSignUp() {
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -23,17 +22,9 @@ export default function LibrarianSignUp() {
     }
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem("authToken");
-      if (!token) {
-        throw new Error("You must be signed in as an admin to register librarians.");
-      }
-
-      const res = await fetch(`${API_BASE_URL}/api/auth/register-librarian`, {
+      const res = await fetch(`${API_BASE_URL}/api/auth/register-lecturer`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
@@ -46,8 +37,8 @@ export default function LibrarianSignUp() {
         throw new Error(data.error || "Registration failed.");
       }
 
-      Alert.alert("Success", `Librarian "${data.firstName} ${data.lastName}" created.`, [
-        { text: "OK", onPress: () => router.back() },
+      Alert.alert("Success", `Lecturer account "${data.firstName} ${data.lastName}" created.`, [
+        { text: "OK", onPress: () => router.replace("/lecturer-signin" as any) },
       ]);
     } catch (e: any) {
       Alert.alert("Registration failed", e.message || "Please try again.");
@@ -76,17 +67,17 @@ export default function LibrarianSignUp() {
       <View style={styles.glassCard}>
         <View style={styles.header}>
           <View style={styles.iconBadge}>
-            <Text style={styles.iconBadgeText}>👤</Text>
+            <Text style={styles.iconBadgeText}>👨‍🏫</Text>
           </View>
-          <Text style={styles.title}>Register Librarian</Text>
+          <Text style={styles.title}>Lecturer Registration</Text>
           <Text style={styles.subtitle}>
-            Create a new librarian account with system access
+            Create your lecturer account
           </Text>
         </View>
 
         <Input
           label="First Name"
-          placeholder="Jane"
+          placeholder="John"
           value={firstName}
           onChangeText={setFirstName}
           editable={!loading}
@@ -99,8 +90,8 @@ export default function LibrarianSignUp() {
           editable={!loading}
         />
         <Input
-          label="Staff Email"
-          placeholder="jane.doe@knust.edu.gh"
+          label="Lecturer Email"
+          placeholder="john.doe@knust.edu.gh"
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -117,19 +108,30 @@ export default function LibrarianSignUp() {
         />
 
         <Button
-          title={loading ? "Registering..." : "Register Librarian"}
+          title={loading ? "Registering..." : "Register as Lecturer"}
           onPress={handleSignUp}
           loading={loading}
-          style={[styles.submitButton, { backgroundColor: lightColors.primary }]}
+          style={[styles.submitButton, { backgroundColor: "#8b5cf6" }]}
           textStyle={styles.submitButtonText}
         />
 
         <Pressable
-          style={styles.backLink}
-          onPress={() => router.replace("/")}
+          style={styles.bottomLink}
+          onPress={() => router.replace("/lecturer-signin" as any)}
           disabled={loading}
         >
-          <Text style={styles.backLinkText}>← Back to role selection</Text>
+          <Text style={styles.bottomText}>
+            Already have an account? <Text style={styles.bottomLinkText}>Sign in</Text>
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.backLink}
+          onPress={() => router.replace("/")}
+        >
+          <Text style={styles.backLinkText}>
+            ← Back to role selection
+          </Text>
         </Pressable>
       </View>
     </ScreenWrapper>
@@ -166,7 +168,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "rgba(11, 110, 253, 0.08)",
+    backgroundColor: "rgba(139, 92, 246, 0.08)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: theme.spacing.md,
@@ -191,7 +193,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     borderRadius: theme.borderRadius.xl,
     marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -202,8 +204,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+  bottomLink: {
+    alignSelf: "center",
+  },
+  bottomText: {
+    color: lightColors.textMuted,
+  },
+  bottomLinkText: {
+    color: lightColors.primary,
+    fontWeight: "700",
+  },
   backLink: {
     alignSelf: "center",
+    marginTop: theme.spacing.xl,
   },
   backLinkText: {
     color: lightColors.primary,

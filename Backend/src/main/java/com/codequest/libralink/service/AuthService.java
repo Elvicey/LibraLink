@@ -78,6 +78,35 @@ public class AuthService {
                 saved.getFirstName(), saved.getLastName(), roleNames, instId);
     }
 
+    public AuthResponse registerLecturer(RegisterRequest request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("An account with this email already exists");
+        }
+
+        User user = new User();
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+
+        Role role = roleRepository.findByName("LECTURER")
+                .orElseGet(() -> roleRepository.save(new Role("LECTURER")));
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+        user.setRoles(roles);
+
+        User saved = userRepository.save(user);
+
+        List<String> roleNames = saved.getRoles().stream()
+                .map(Role::getName)
+                .collect(Collectors.toList());
+        String token = jwtUtil.generateToken(saved.getId(), saved.getEmail(), roleNames);
+        Integer instId = saved.getInstitution() != null ? saved.getInstitution().getInstitutionId() : null;
+
+        return new AuthResponse(token, saved.getId(), saved.getEmail(),
+                saved.getFirstName(), saved.getLastName(), roleNames, instId);
+    }
+
     public AuthResponse registerLibrarian(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("An account with this email already exists");

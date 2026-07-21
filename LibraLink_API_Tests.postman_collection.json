@@ -1,7 +1,7 @@
 {
 	"info": {
 		"name": "LibraLink API Tests",
-		"description": "Complete API test collection for LibraLink Backend - All 79 endpoints with test scripts.\n\nSETUP:\n1. Import this collection into Postman\n2. Set the 'baseUrl' variable to your backend URL (default: http://localhost:8080)\n3. Run the 'Auth > Register' or 'Auth > Login' request first to get a JWT token\n4. The token is auto-saved to the collection variable 'authToken'\n5. All authenticated requests use this token automatically",
+		"description": "API test collection for LibraLink Backend - Authentication endpoints for all roles.\n\nSETUP:\n1. Import this collection into Postman\n2. Set the 'baseUrl' variable to your backend URL (default: http://localhost:8080)\n3. Use the Auth endpoints to login/register for each role\n4. Tokens are auto-saved to role-specific variables\n5. All authenticated requests use the appropriate token variable",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
@@ -11,7 +11,7 @@
 			"type": "string"
 		},
 		{
-			"key": "authToken",
+			"key": "adminToken",
 			"value": "",
 			"type": "string"
 		},
@@ -32,32 +32,32 @@
 		},
 		{
 			"key": "testUserId",
-			"value": "1",
+			"value": "",
 			"type": "string"
 		},
 		{
 			"key": "testBookId",
-			"value": "1",
+			"value": "",
 			"type": "string"
 		},
 		{
 			"key": "testInstitutionId",
-			"value": "1",
+			"value": "",
 			"type": "string"
 		},
 		{
 			"key": "testCategoryId",
-			"value": "1",
+			"value": "",
 			"type": "string"
 		},
 		{
 			"key": "testPublisherId",
-			"value": "1",
+			"value": "",
 			"type": "string"
 		},
 		{
 			"key": "testAuthorId",
-			"value": "1",
+			"value": "",
 			"type": "string"
 		}
 	],
@@ -66,29 +66,63 @@
 			"name": "Auth",
 			"item": [
 				{
+					"name": "Login - Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"    pm.expect(pm.response.code).to.equal(200);",
+									"});",
+									"",
+									"pm.test('Response has token and ADMIN role', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('token');",
+									"    pm.expect(json.roles).to.include('ADMIN');",
+									"    pm.collectionVariables.set('adminToken', json.token);",
+									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
 					"name": "Register - Student",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"pm.test('Status is 201', function () {",
+									"    pm.expect(pm.response.code).to.equal(201);",
 									"});",
 									"",
-									"pm.test('Response has token', function () {",
+									"pm.test('Response has token and STUDENT role', function () {",
 									"    var json = pm.response.json();",
 									"    pm.expect(json).to.have.property('token');",
-									"    pm.expect(json.token).to.be.a('string');",
-									"    pm.collectionVariables.set('authToken', json.token);",
+									"    pm.expect(json.roles).to.include('STUDENT');",
 									"    pm.collectionVariables.set('studentToken', json.token);",
 									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
-									"});",
-									"",
-									"pm.test('Response has roles', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('roles');",
-									"    pm.expect(json.roles).to.be.an('array');",
 									"});"
 								]
 							}
@@ -104,89 +138,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"Student\",\n  \"email\": \"test.student@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"STUDENT\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/register",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "register"]
-						}
-					}
-				},
-				{
-					"name": "Register - Librarian",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Response has token and roles', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('token');",
-									"    pm.expect(json.roles).to.include('LIBRARIAN');",
-									"    pm.collectionVariables.set('librarianToken', json.token);",
-									"    pm.collectionVariables.set('authToken', json.token);",
-									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"Librarian\",\n  \"email\": \"test.librarian@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"LIBRARIAN\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/register",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "register"]
-						}
-					}
-				},
-				{
-					"name": "Register - Lecturer",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Response has token and LECTURER role', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('token');",
-									"    pm.expect(json.roles).to.include('LECTURER');",
-									"    pm.collectionVariables.set('lecturerToken', json.token);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"Lecturer\",\n  \"email\": \"test.lecturer@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"LECTURER\"\n}"
+							"raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"password\": \"\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/register",
@@ -212,8 +164,6 @@
 									"    pm.expect(json).to.have.property('userId');",
 									"    pm.expect(json).to.have.property('email');",
 									"    pm.expect(json).to.have.property('roles');",
-									"    pm.expect(json).to.have.property('institutionId');",
-									"    pm.collectionVariables.set('authToken', json.token);",
 									"    pm.collectionVariables.set('studentToken', json.token);",
 									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
 									"});"
@@ -231,12 +181,57 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"test.student@example.com\",\n  \"password\": \"password123\"\n}"
+							"raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/login",
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Register - Librarian (Admin only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 201', function () {",
+									"    pm.expect(pm.response.code).to.equal(201);",
+									"});",
+									"",
+									"pm.test('Response has token and LIBRARIAN role', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('token');",
+									"    pm.expect(json.roles).to.include('LIBRARIAN');",
+									"    pm.collectionVariables.set('librarianToken', json.token);",
+									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"password\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register-librarian",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register-librarian"]
 						}
 					}
 				},
@@ -256,7 +251,7 @@
 									"    pm.expect(json).to.have.property('token');",
 									"    pm.expect(json.roles).to.include('LIBRARIAN');",
 									"    pm.collectionVariables.set('librarianToken', json.token);",
-									"    pm.collectionVariables.set('authToken', json.token);",
+									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
 									"});"
 								]
 							}
@@ -272,7 +267,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"test.librarian@example.com\",\n  \"password\": \"password123\"\n}"
+							"raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/login",
@@ -282,14 +277,22 @@
 					}
 				},
 				{
-					"name": "Login - Wrong Password (400)",
+					"name": "Register - Lecturer",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test('Status is 400', function () {",
-									"    pm.expect(pm.response.code).to.equal(400);",
+									"pm.test('Status is 201', function () {",
+									"    pm.expect(pm.response.code).to.equal(201);",
+									"});",
+									"",
+									"pm.test('Response has token and LECTURER role', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('token');",
+									"    pm.expect(json.roles).to.include('LECTURER');",
+									"    pm.collectionVariables.set('lecturerToken', json.token);",
+									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
 									"});"
 								]
 							}
@@ -305,7 +308,48 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"test.student@example.com\",\n  \"password\": \"wrongpassword\"\n}"
+							"raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"password\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register-lecturer",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register-lecturer"]
+						}
+					}
+				},
+				{
+					"name": "Login - Lecturer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status is 200', function () {",
+									"    pm.expect(pm.response.code).to.equal(200);",
+									"});",
+									"",
+									"pm.test('Response has token and LECTURER role', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('token');",
+									"    pm.expect(json.roles).to.include('LECTURER');",
+									"    pm.collectionVariables.set('lecturerToken', json.token);",
+									"    if (json.userId) pm.collectionVariables.set('testUserId', json.userId);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/login",
@@ -317,33 +361,85 @@
 			]
 		},
 		{
+			"name": "Books",
+			"item": [
+				{
+					"name": "Get All Books",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/books",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "books"]
+						}
+					}
+				},
+				{
+					"name": "Get Book by ID",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/books/{{testBookId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "books", "{{testBookId}}"]
+						}
+					}
+				},
+				{
+					"name": "Search Books",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/books/search?q=",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "books", "search"],
+							"query": [
+								{
+									"key": "q",
+									"value": ""
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Book (Librarian)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{librarianToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"\",\n  \"isbn\": \"\",\n  \"totalCopies\": 1,\n  \"availableCopies\": 1,\n  \"language\": \"English\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/books",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "books"]
+						}
+					}
+				}
+			]
+		},
+		{
 			"name": "Users",
 			"item": [
 				{
-					"name": "Get All Users",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response is an array', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.be.an('array');",
-									"});"
-								]
-							}
-						}
-					],
+					"name": "Get All Users (Admin)",
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
+								"value": "Bearer {{adminToken}}"
 							}
 						],
 						"url": {
@@ -355,32 +451,12 @@
 				},
 				{
 					"name": "Get User by ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('User has expected fields', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('email');",
-									"    pm.expect(json).to.have.property('firstName');",
-									"    pm.expect(json).to.have.property('lastName');",
-									"});"
-								]
-							}
-						}
-					],
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
+								"value": "Bearer {{adminToken}}"
 							}
 						],
 						"url": {
@@ -391,67 +467,7 @@
 					}
 				},
 				{
-					"name": "Update Push Token",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"pushToken\": \"ExponentPushToken[test123]\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/users/{{testUserId}}/push-token",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "users", "{{testUserId}}", "push-token"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Institutions",
-			"item": [
-				{
-					"name": "Create Institution (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Institution has id', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('institutionId');",
-									"    pm.collectionVariables.set('testInstitutionId', json.institutionId);",
-									"});"
-								]
-							}
-						}
-					],
+					"name": "Assign Role (Admin)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -461,775 +477,17 @@
 							},
 							{
 								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
+								"value": "Bearer {{adminToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Test University\",\n  \"shortName\": \"TU\",\n  \"tier\": \"PLATINUM\",\n  \"city\": \"Nairobi\",\n  \"country\": \"Kenya\",\n  \"email\": \"admin@testuni.ac.ke\",\n  \"phone\": \"+254700000000\",\n  \"isActive\": true\n}"
+							"raw": "{\n  \"role\": \"\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/institutions",
+							"raw": "{{baseUrl}}/api/users/{{testUserId}}/roles",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "institutions"]
-						}
-					}
-				},
-				{
-					"name": "Get All Institutions",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response is an array', function () {",
-									"    pm.expect(pm.response.json()).to.be.an('array');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/institutions",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "institutions"]
-						}
-					}
-				},
-				{
-					"name": "Create Institution - No Auth (403)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 403 (Forbidden)', function () {",
-									"    pm.expect(pm.response.code).to.equal(403);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{studentToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Should Fail University\",\n  \"shortName\": \"SFU\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/institutions",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "institutions"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Categories",
-			"item": [
-				{
-					"name": "Create Category (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Category has id', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.collectionVariables.set('testCategoryId', json.id);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Computer Science\",\n  \"description\": \"Books related to computer science and software engineering\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/categories",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "categories"]
-						}
-					}
-				},
-				{
-					"name": "Get All Categories",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response is an array', function () {",
-									"    pm.expect(pm.response.json()).to.be.an('array');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/categories",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "categories"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Publishers",
-			"item": [
-				{
-					"name": "Create Publisher (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Publisher has id', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.collectionVariables.set('testPublisherId', json.id);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"O'Reilly Media\",\n  \"country\": \"USA\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/publishers",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "publishers"]
-						}
-					}
-				},
-				{
-					"name": "Get All Publishers",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/publishers",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "publishers"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Authors",
-			"item": [
-				{
-					"name": "Create Author (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Author has id', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.collectionVariables.set('testAuthorId', json.id);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"fullName\": \"Robert C. Martin\",\n  \"bio\": \"Author of Clean Code and other software engineering books\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/authors",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "authors"]
-						}
-					}
-				},
-				{
-					"name": "Get All Authors",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/authors",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "authors"]
-						}
-					}
-				},
-				{
-					"name": "Get Author by ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Author has expected fields', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('fullName');",
-									"    pm.expect(json).to.have.property('id');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/authors/{{testAuthorId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "authors", "{{testAuthorId}}"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Books",
-			"item": [
-				{
-					"name": "Create Book (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Book has id', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.collectionVariables.set('testBookId', json.id);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"title\": \"Clean Code\",\n  \"subtitle\": \"A Handbook of Agile Software Craftsmanship\",\n  \"isbn\": \"9780132350884\",\n  \"isbn13\": \"9780132350884\",\n  \"institutionId\": {{testInstitutionId}},\n  \"categoryId\": {{testCategoryId}},\n  \"publisherId\": {{testPublisherId}},\n  \"publicationYear\": 2008,\n  \"edition\": \"1st\",\n  \"language\": \"English\",\n  \"description\": \"A handbook of agile software craftsmanship\",\n  \"totalCopies\": 3,\n  \"availableCopies\": 3,\n  \"locationCode\": \"CS-001\",\n  \"deweyDecimal\": \"005.1\",\n  \"isDigitalOnly\": false,\n  \"isActive\": true,\n  \"authorIds\": [{{testAuthorId}}]\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/books",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books"]
-						}
-					}
-				},
-				{
-					"name": "Get All Books",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response is an array', function () {",
-									"    pm.expect(pm.response.json()).to.be.an('array');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/books",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books"]
-						}
-					}
-				},
-				{
-					"name": "Get Book by ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Book has expected fields', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('title');",
-									"    pm.expect(json).to.have.property('isbn');",
-									"    pm.expect(json).to.have.property('totalCopies');",
-									"    pm.expect(json).to.have.property('availableCopies');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/books/{{testBookId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books", "{{testBookId}}"]
-						}
-					}
-				},
-				{
-					"name": "Update Book (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Book updated successfully', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json.title).to.equal('Clean Code - Updated');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"title\": \"Clean Code - Updated\",\n  \"subtitle\": \"A Handbook of Agile Software Craftsmanship\",\n  \"isbn\": \"9780132350884\",\n  \"institutionId\": {{testInstitutionId}},\n  \"categoryId\": {{testCategoryId}},\n  \"publicationYear\": 2008,\n  \"totalCopies\": 5,\n  \"availableCopies\": 5,\n  \"authorIds\": [{{testAuthorId}}]\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/books/{{testBookId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books", "{{testBookId}}"]
-						}
-					}
-				},
-				{
-					"name": "Search Books - By Query",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response is an array', function () {",
-									"    pm.expect(pm.response.json()).to.be.an('array');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/books/search?q=clean+code",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books", "search"],
-							"query": [
-								{
-									"key": "q",
-									"value": "clean code"
-								}
-							]
-						}
-					}
-				},
-				{
-					"name": "Search Books - By Author",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/books/search?author=Robert",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books", "search"],
-							"query": [
-								{
-									"key": "author",
-									"value": "Robert"
-								}
-							]
-						}
-					}
-				},
-				{
-					"name": "Search Books - Available Only",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/books/search?availability=available",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books", "search"],
-							"query": [
-								{
-									"key": "availability",
-									"value": "available"
-								}
-							]
-						}
-					}
-				},
-				{
-					"name": "Create Book - No Auth (403)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 403 (Forbidden)', function () {",
-									"    pm.expect(pm.response.code).to.equal(403);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{studentToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"title\": \"Should Fail\",\n  \"institutionId\": {{testInstitutionId}}\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/books",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "books"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Book Copies",
-			"item": [
-				{
-					"name": "Create Book Copy (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Copy has id and barcode', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('barcode');",
-									"    pm.expect(json.isAvailable).to.be.true;",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"book\": { \"id\": {{testBookId}} },\n  \"barcode\": \"LIB-CC-001\",\n  \"condition\": \"NEW\",\n  \"notes\": \"First copy\",\n  \"acquiredAt\": \"2026-01-15T00:00:00\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/book-copies",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "book-copies"]
-						}
-					}
-				},
-				{
-					"name": "Get All Book Copies (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/book-copies",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "book-copies"]
-						}
-					}
-				},
-				{
-					"name": "Lookup Copy by Barcode",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Copy has barcode', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('barcode');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/book-copies/barcode/LIB-CC-001",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "book-copies", "barcode", "LIB-CC-001"]
+							"path": ["api", "users", "{{testUserId}}", "roles"]
 						}
 					}
 				}
@@ -1239,26 +497,24 @@
 			"name": "Borrow Records",
 			"item": [
 				{
-					"name": "Create Borrow Record (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Borrow record has id', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('status');",
-									"    pm.expect(json).to.have.property('dueDate');",
-									"});"
-								]
+					"name": "Get All Borrow Records (Librarian)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{librarianToken}}"
 							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/borrow-records",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "borrow-records"]
 						}
-					],
+					}
+				},
+				{
+					"name": "Create Borrow Record (Librarian)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1273,41 +529,8 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"user\": { \"id\": {{testUserId}} },\n  \"book\": { \"id\": {{testBookId}} },\n  \"status\": \"BORROWED\",\n  \"dueDate\": \"2026-08-15T23:59:59\",\n  \"notes\": \"Test borrow\"\n}"
+							"raw": "{\n  \"book\": {\"id\": 1},\n  \"user\": {\"id\": 1},\n  \"status\": \"BORROWED\",\n  \"dueDate\": \"\"\n}"
 						},
-						"url": {
-							"raw": "{{baseUrl}}/api/borrow-records",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "borrow-records"]
-						}
-					}
-				},
-				{
-					"name": "Get All Borrow Records (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response is an array', function () {",
-									"    pm.expect(pm.response.json()).to.be.an('array');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
 						"url": {
 							"raw": "{{baseUrl}}/api/borrow-records",
 							"host": ["{{baseUrl}}"],
@@ -1317,24 +540,12 @@
 				},
 				{
 					"name": "Get User Borrow Records",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
+								"value": "Bearer {{librarianToken}}"
 							}
 						],
 						"url": {
@@ -1343,66 +554,14 @@
 							"path": ["api", "borrow-records", "user", "{{testUserId}}"]
 						}
 					}
-				},
-				{
-					"name": "Get Current (Active) Borrows for User",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response is an array', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.be.an('array');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/borrow-records/user/{{testUserId}}/current",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "borrow-records", "user", "{{testUserId}}", "current"]
-						}
-					}
 				}
 			]
 		},
 		{
-			"name": "Circulation (QR Scan)",
+			"name": "Circulation",
 			"item": [
 				{
-					"name": "Scan - CHECK OUT (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Check-out successful', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('message');",
-									"    pm.expect(json.message).to.include('checked out');",
-									"});"
-								]
-							}
-						}
-					],
+					"name": "Scan Book (Librarian)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1417,408 +576,12 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"barcode\": \"LIB-CC-001\",\n  \"action\": \"CHECK_OUT\",\n  \"userId\": {{testUserId}}\n}"
+							"raw": "{\n  \"barcode\": \"\",\n  \"action\": \"CHECK_OUT\",\n  \"userId\": 1\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/circulation/scan",
 							"host": ["{{baseUrl}}"],
 							"path": ["api", "circulation", "scan"]
-						}
-					}
-				},
-				{
-					"name": "Scan - CHECK IN (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Check-in successful', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('message');",
-									"    pm.expect(json.message).to.include('checked in');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"barcode\": \"LIB-CC-001\",\n  \"action\": \"CHECK_IN\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/circulation/scan",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "circulation", "scan"]
-						}
-					}
-				},
-				{
-					"name": "Scan - Student Trying to Checkout (403)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 403', function () {",
-									"    pm.expect(pm.response.code).to.equal(403);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{studentToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"barcode\": \"LIB-CC-001\",\n  \"action\": \"CHECK_OUT\",\n  \"userId\": {{testUserId}}\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/circulation/scan",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "circulation", "scan"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Reservations",
-			"item": [
-				{
-					"name": "Create Reservation",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Reservation created with status', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('status');",
-									"    pm.expect(['PENDING', 'READY']).to.include(json.status);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"userId\": {{testUserId}},\n  \"book\": { \"id\": {{testBookId}} },\n  \"status\": \"PENDING\",\n  \"notes\": \"Reserving for exam prep\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/reservations",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "reservations"]
-						}
-					}
-				},
-				{
-					"name": "Get All Reservations (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/reservations",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "reservations"]
-						}
-					}
-				},
-				{
-					"name": "Update Reservation Status (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Status updated to READY', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json.status).to.equal('READY');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"status\": \"READY\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/reservations/1",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "reservations", "1"]
-						}
-					}
-				},
-				{
-					"name": "Cancel Reservation",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Reservation cancelled', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json.status).to.equal('CANCELLED');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/reservations/1/cancel",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "reservations", "1", "cancel"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Fines",
-			"item": [
-				{
-					"name": "Issue Fine (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Fine has id and amount', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('amount');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"userId\": {{testUserId}},\n  \"borrowId\": 1,\n  \"amount\": 50.00,\n  \"status\": \"PENDING\",\n  \"reason\": \"Late return\",\n  \"dueDate\": \"2026-07-20T23:59:59\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/fines",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "fines"]
-						}
-					}
-				},
-				{
-					"name": "Get User Fines",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/fines/user/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "fines", "user", "{{testUserId}}"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Fine Payments",
-			"item": [
-				{
-					"name": "Process Fine Payment (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Payment has id', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('amountPaid');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"fineId\": 1,\n  \"userId\": {{testUserId}},\n  \"amount\": 50.00,\n  \"amountPaid\": 50.00,\n  \"paymentMethod\": \"CASH\",\n  \"transactionRef\": \"PAY-2026-001\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/fine-payments",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "fine-payments"]
-						}
-					}
-				},
-				{
-					"name": "Process Payment - Student (403)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 403', function () {",
-									"    pm.expect(pm.response.code).to.equal(403);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{studentToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"fineId\": 1,\n  \"userId\": {{testUserId}},\n  \"amount\": 50.00,\n  \"amountPaid\": 50.00,\n  \"paymentMethod\": \"CASH\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/fine-payments",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "fine-payments"]
 						}
 					}
 				}
@@ -1829,24 +592,6 @@
 			"item": [
 				{
 					"name": "Create Notification (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Notification has id', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('title');",
-									"});"
-								]
-							}
-						}
-					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1861,37 +606,8 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"userId\": {{testUserId}},\n  \"type\": \"SYSTEM\",\n  \"title\": \"Welcome to LibraLink\",\n  \"message\": \"Your account has been created successfully.\",\n  \"channel\": \"PUSH\",\n  \"referenceType\": \"SYSTEM\"\n}"
+							"raw": "{\n  \"userId\": 1,\n  \"type\": \"GENERAL\",\n  \"title\": \"\",\n  \"message\": \"\"\n}"
 						},
-						"url": {
-							"raw": "{{baseUrl}}/api/notifications",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "notifications"]
-						}
-					}
-				},
-				{
-					"name": "Get All Notifications (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
 						"url": {
 							"raw": "{{baseUrl}}/api/notifications",
 							"host": ["{{baseUrl}}"],
@@ -1901,28 +617,12 @@
 				},
 				{
 					"name": "Get User Notifications",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response is an array', function () {",
-									"    pm.expect(pm.response.json()).to.be.an('array');",
-									"});"
-								]
-							}
-						}
-					],
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
+								"value": "Bearer {{studentToken}}"
 							}
 						],
 						"url": {
@@ -1931,1552 +631,14 @@
 							"path": ["api", "notifications", "user", "{{testUserId}}"]
 						}
 					}
-				},
-				{
-					"name": "Mark Notification as Read",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Notification marked as read', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json.isRead).to.be.true;",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/notifications/1/read",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "notifications", "1", "read"]
-						}
-					}
-				},
-				{
-					"name": "Mark All Notifications as Read",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Returns marked count', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('marked');",
-									"    pm.expect(json.marked).to.be.a('number');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/notifications/user/{{testUserId}}/read-all",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "notifications", "user", "{{testUserId}}", "read-all"]
-						}
-					}
 				}
 			]
 		},
 		{
-			"name": "Roles",
+			"name": "Metadata",
 			"item": [
 				{
-					"name": "Create Role (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Role has id and name', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('name');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"ADMIN\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/roles",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "roles"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Courses",
-			"item": [
-				{
-					"name": "Create Course (Lecturer)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Course has id', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('name');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{lecturerToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"institution\": { \"institutionId\": {{testInstitutionId}} },\n  \"name\": \"Software Engineering\",\n  \"code\": \"CS301\",\n  \"description\": \"Introduction to software engineering principles\",\n  \"status\": \"ACTIVE\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/courses",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "courses"]
-						}
-					}
-				},
-				{
-					"name": "Get Courses by Institution",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response is an array', function () {",
-									"    pm.expect(pm.response.json()).to.be.an('array');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/institutions/{{testInstitutionId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "courses", "institutions", "{{testInstitutionId}}"]
-						}
-					}
-				},
-				{
-					"name": "Add Books to Course (Lecturer)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{lecturerToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"bookIds\": [{{testBookId}}]\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/1/books",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "courses", "1", "books"]
-						}
-					}
-				},
-				{
-					"name": "Remove Book from Course (Lecturer)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{lecturerToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/1/books/{{testBookId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "courses", "1", "books", "{{testBookId}}"]
-						}
-					}
-				},
-				{
-					"name": "Create Course - Student (403)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 403', function () {",
-									"    pm.expect(pm.response.code).to.equal(403);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{studentToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"institution\": { \"institutionId\": {{testInstitutionId}} },\n  \"name\": \"Should Fail\",\n  \"code\": \"FAIL001\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/courses",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "courses"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Reading Lists",
-			"item": [
-				{
-					"name": "Create Reading List (Lecturer)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Reading list has id', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('title');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{lecturerToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"courseId\": 1,\n  \"createdBy\": {{testUserId}},\n  \"title\": \"Week 1-4 Readings\",\n  \"description\": \"Essential readings for the first month\",\n  \"semester\": \"FALL\",\n  \"academicYear\": \"2026\",\n  \"isPublished\": true\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/reading-lists",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "reading-lists"]
-						}
-					}
-				},
-				{
-					"name": "Get Reading Lists by Course",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/reading-lists/course/1",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "reading-lists", "course", "1"]
-						}
-					}
-				},
-				{
-					"name": "Add Item to Reading List (Lecturer)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{lecturerToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"readingListId\": 1,\n  \"bookId\": {{testBookId}},\n  \"notes\": \"Read chapters 1-3\",\n  \"requiredBy\": \"2026-08-01T00:00:00\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/reading_list_items",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "reading_list_items"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Pickup Slots",
-			"item": [
-				{
-					"name": "Schedule Pickup Slot",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Pickup slot has qrCode', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('qrCode');",
-									"    pm.expect(json).to.have.property('status');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"userId\": {{testUserId}},\n  \"reservationId\": 1,\n  \"scheduledAt\": \"2026-07-20T10:00:00\",\n  \"slotStart\": \"2026-07-20T09:00:00\",\n  \"slotEnd\": \"2026-07-20T12:00:00\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/pickup-slots",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "pickup-slots"]
-						}
-					}
-				},
-				{
-					"name": "Scan Pickup QR (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/pickup-slots/scan?qrCode=PICKUP-QR-001&librarianId={{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "pickup-slots", "scan"],
-							"query": [
-								{
-									"key": "qrCode",
-									"value": "PICKUP-QR-001"
-								},
-								{
-									"key": "librarianId",
-									"value": "{{testUserId}}"
-								}
-							]
-						}
-					}
-				},
-				{
-					"name": "Get User Pickup Slots",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/pickup-slots/user/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "pickup-slots", "user", "{{testUserId}}"]
-						}
-					}
-				},
-				{
-					"name": "Get Scheduled Slots (Librarian)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{librarianToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/pickup-slots/scheduled",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "pickup-slots", "scheduled"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Audio (Text-to-Speech)",
-			"item": [
-				{
-					"name": "Convert Text to Audio",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Audio track created', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('status');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"voiceName\": \"en-US-Standard-A\",\n  \"languageCode\": \"en-US\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/audio/convert",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "audio", "convert"]
-						}
-					}
-				},
-				{
-					"name": "Get Audio Track by ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/audio/1",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "audio", "1"]
-						}
-					}
-				},
-				{
-					"name": "Get User Audio Tracks",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/audio/user/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "audio", "user", "{{testUserId}}"]
-						}
-					}
-				},
-				{
-					"name": "Get Book Audio Tracks",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/audio/book/{{testBookId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "audio", "book", "{{testBookId}}"]
-						}
-					}
-				},
-				{
-					"name": "Stream Audio Track",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 206', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 206]);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/audio/1/stream",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "audio", "1", "stream"]
-						}
-					}
-				},
-				{
-					"name": "Delete Audio Track",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 204', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/audio/1",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "audio", "1"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "AI Exam Mode",
-			"item": [
-				{
-					"name": "Generate Study Summary",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Summary created', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('id');",
-									"    pm.expect(json).to.have.property('summaryText');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"summaryType\": \"BRIEF\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/exam/summary",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "exam", "summary"]
-						}
-					}
-				},
-				{
-					"name": "Get Summary by ID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/exam/summary/1",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "exam", "summary", "1"]
-						}
-					}
-				},
-				{
-					"name": "Get User Summaries",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response is an array', function () {",
-									"    pm.expect(pm.response.json()).to.be.an('array');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/exam/summaries/user/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "exam", "summaries", "user", "{{testUserId}}"]
-						}
-					}
-				},
-				{
-					"name": "Generate Exam Questions",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test('Questions generated', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.be.an('array');",
-									"    if (json.length > 0) {",
-									"        pm.expect(json[0]).to.have.property('question');",
-									"        pm.expect(json[0]).to.have.property('optionA');",
-									"        pm.expect(json[0]).to.have.property('correctAnswer');",
-									"    }",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"count\": 5,\n  \"difficulty\": \"MEDIUM\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/exam/questions/generate",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "exam", "questions", "generate"]
-						}
-					}
-				},
-				{
-					"name": "Submit Answer to Question",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Answer recorded', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('isCorrect');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"answer\": \"A\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/exam/questions/1/answer",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "exam", "questions", "1", "answer"]
-						}
-					}
-				},
-				{
-					"name": "Complete Study Session",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/exam/sessions/1/complete",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "exam", "sessions", "1", "complete"]
-						}
-					}
-				},
-				{
-					"name": "Get Session Questions",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/exam/sessions/1/questions",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "exam", "sessions", "1", "questions"]
-						}
-					}
-				},
-				{
-					"name": "Get User Study Sessions",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/exam/sessions/user/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "exam", "sessions", "user", "{{testUserId}}"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Voice Interaction",
-			"item": [
-				{
-					"name": "Process Voice Command - Search",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response has intent and response', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json).to.have.property('detectedIntent');",
-									"    pm.expect(json).to.have.property('responseText');",
-									"    pm.expect(json.detectedIntent).to.equal('SEARCH');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"userId\": {{testUserId}},\n  \"text\": \"Search for books about clean code\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/voice/process",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "voice", "process"]
-						}
-					}
-				},
-				{
-					"name": "Process Voice Command - Help",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Help intent detected', function () {",
-									"    var json = pm.response.json();",
-									"    pm.expect(json.detectedIntent).to.equal('HELP');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"userId\": {{testUserId}},\n  \"text\": \"help\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/voice/process",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "voice", "process"]
-						}
-					}
-				},
-				{
-					"name": "Get Voice Command History",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});",
-									"",
-									"pm.test('Response is an array', function () {",
-									"    pm.expect(pm.response.json()).to.be.an('array');",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/voice/history/user/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "voice", "history", "user", "{{testUserId}}"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Reading Progress",
-			"item": [
-				{
-					"name": "Update Reading Progress",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/reading-progress?studentId={{testUserId}}&itemId=1&status=COMPLETED",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "reading-progress"],
-							"query": [
-								{
-									"key": "studentId",
-									"value": "{{testUserId}}"
-								},
-								{
-									"key": "itemId",
-									"value": "1"
-								},
-								{
-									"key": "status",
-									"value": "COMPLETED"
-								}
-							]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Book Views",
-			"item": [
-				{
-					"name": "Log Book View",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"user\": { \"id\": {{testUserId}} },\n  \"book\": { \"id\": {{testBookId}} }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/book-views",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "book-views"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Analytics",
-			"item": [
-				{
-					"name": "Log Search Query",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"userId\": {{testUserId}},\n  \"query\": \"clean code\",\n  \"resultsCount\": 3,\n  \"searchType\": \"TEXT\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/analytics/search-logs",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "analytics", "search-logs"]
-						}
-					}
-				},
-				{
-					"name": "Get User Search Logs",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/analytics/search-logs/user/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "analytics", "search-logs", "user", "{{testUserId}}"]
-						}
-					}
-				},
-				{
-					"name": "Get Search Logs by Type",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/analytics/search-logs/type/TEXT",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "analytics", "search-logs", "type", "TEXT"]
-						}
-					}
-				},
-				{
-					"name": "Get Search Logs by Date Range",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/analytics/search-logs/date-range?from=2026-01-01T00:00:00&to=2026-12-31T23:59:59",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "analytics", "search-logs", "date-range"],
-							"query": [
-								{
-									"key": "from",
-									"value": "2026-01-01T00:00:00"
-								},
-								{
-									"key": "to",
-									"value": "2026-12-31T23:59:59"
-								}
-							]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Audit Logs",
-			"item": [
-				{
-					"name": "Log Audit Event",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200 or 201', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"userId\": {{testUserId}},\n  \"action\": \"LOGIN\",\n  \"entityType\": \"USER\",\n  \"entityId\": {{testUserId}},\n  \"details\": \"User logged in successfully\",\n  \"ipAddress\": \"127.0.0.1\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/audit-logs",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "audit-logs"]
-						}
-					}
-				},
-				{
-					"name": "Get User Audit Logs",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/audit-logs/user/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "audit-logs", "user", "{{testUserId}}"]
-						}
-					}
-				},
-				{
-					"name": "Get Audit Logs by Entity",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/audit-logs/entity/USER/{{testUserId}}",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "audit-logs", "entity", "USER", "{{testUserId}}"]
-						}
-					}
-				},
-				{
-					"name": "Get Audit Logs by Action",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/audit-logs/action/LOGIN",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "audit-logs", "action", "LOGIN"]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "Health & Smoke Tests",
-			"item": [
-				{
-					"name": "Ping - No Auth Required",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 200', function () {",
-									"    pm.expect(pm.response.code).to.equal(200);",
-									"});"
-								]
-							}
-						}
-					],
+					"name": "Get All Authors",
 					"request": {
 						"method": "GET",
 						"url": {
@@ -3487,120 +649,46 @@
 					}
 				},
 				{
-					"name": "Access Without Token (401 or 302)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 401 or 302 (Unauthorized or Redirect)', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([401, 302]);",
-									"});"
-								]
-							}
-						}
-					],
+					"name": "Get All Publishers",
 					"request": {
 						"method": "GET",
 						"url": {
-							"raw": "{{baseUrl}}/api/users",
+							"raw": "{{baseUrl}}/api/publishers",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "users"]
+							"path": ["api", "publishers"]
 						}
 					}
 				},
 				{
-					"name": "Duplicate Registration (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 400 (Bad Request)', function () {",
-									"    pm.expect(pm.response.code).to.equal(400);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"Duplicate\",\n  \"email\": \"test.student@example.com\",\n  \"password\": \"password123\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/register",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "register"]
-						}
-					}
-				},
-				{
-					"name": "Missing Required Fields (400)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 400 (Bad Request)', function () {",
-									"    pm.expect(pm.response.code).to.equal(400);",
-									"});"
-								]
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"invalid-email\",\n  \"password\": \"\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/register",
-							"host": ["{{baseUrl}}"],
-							"path": ["api", "auth", "register"]
-						}
-					}
-				},
-				{
-					"name": "Non-existent Resource (404 or 500)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test('Status is 404 or 500 (Not Found or Error)', function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([404, 500]);",
-									"});"
-								]
-							}
-						}
-					],
+					"name": "Get All Categories",
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}"
-							}
-						],
 						"url": {
-							"raw": "{{baseUrl}}/api/users/99999",
+							"raw": "{{baseUrl}}/api/categories",
 							"host": ["{{baseUrl}}"],
-							"path": ["api", "users", "99999"]
+							"path": ["api", "categories"]
+						}
+					}
+				},
+				{
+					"name": "Get All Institutions",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/institutions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "institutions"]
+						}
+					}
+				},
+				{
+					"name": "Get Courses by Institution",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{baseUrl}}/api/courses/institutions/{{testInstitutionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "courses", "institutions", "{{testInstitutionId}}"]
 						}
 					}
 				}

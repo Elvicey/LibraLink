@@ -39,7 +39,7 @@ export default function SignUp() {
       });
 
       // Automatically routes to dashboard home screen upon successful registration
-      router.replace("/home" as any);
+      router.replace("/(tabs)/home" as any);
     } catch (err: any) {
       setError(err.message || "Registration failed. Please check network connections.");
     } finally {
