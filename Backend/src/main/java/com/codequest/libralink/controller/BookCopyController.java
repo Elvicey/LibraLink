@@ -16,13 +16,13 @@ public class BookCopyController {
     @Autowired
     private BookCopyService bookCopyService;
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
     public BookCopy createCopy(@RequestBody BookCopy copy) {
         return bookCopyService.registerBookCopy(copy);
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @GetMapping
     public List<BookCopy> getAllCopies() {
         return bookCopyService.getAllCopies();

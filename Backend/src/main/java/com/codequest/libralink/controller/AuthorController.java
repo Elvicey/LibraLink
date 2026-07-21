@@ -15,7 +15,7 @@ public class AuthorController {
     @Autowired
     private AuthorService authorService;
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
     public Author createAuthor(@RequestBody Author author) {
         return authorService.addAuthor(author);

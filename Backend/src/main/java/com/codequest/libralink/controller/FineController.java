@@ -18,7 +18,7 @@ public class FineController {
         this.fineService = fineService;
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
     public ResponseEntity<Fine> issueFine(@RequestBody Fine fine) {
         return ResponseEntity.ok(fineService.createFine(fine));

@@ -14,7 +14,7 @@ public class PublisherController {
     @Autowired
     private PublisherService publisherService;
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
     public Publisher createPublisher(@RequestBody Publisher publisher) {
         return publisherService.addPublisher(publisher);
