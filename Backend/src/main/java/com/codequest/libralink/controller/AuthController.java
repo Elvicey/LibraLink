@@ -3,6 +3,8 @@ package com.codequest.libralink.controller;
 import com.codequest.libralink.dto.AuthResponse;
 import com.codequest.libralink.dto.LoginRequest;
 import com.codequest.libralink.dto.RegisterRequest;
+import com.codequest.libralink.repository.UserRepository;
+import com.codequest.libralink.repository.RoleRepository;
 import com.codequest.libralink.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -16,13 +18,33 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, UserRepository userRepository, RoleRepository roleRepository) {
         this.authService = authService;
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+    }
+
+    @GetMapping("/debug/db-status")
+    public ResponseEntity<?> debugDbStatus() {
+        long userCount = userRepository.count();
+        var adminUser = userRepository.findByEmail("admin@libralink.com");
+        var allRoles = roleRepository.findAll();
+        return ResponseEntity.ok(Map.of(
+            "totalUsers", userCount,
+            "adminExists", adminUser.isPresent(),
+            "adminEmail", adminUser.map(u -> u.getEmail()).orElse("NOT FOUND"),
+            "adminId", adminUser.map(u -> u.getId()).orElse(null),
+            "adminActive", adminUser.map(u -> u.isActive()).orElse(false),
+            "adminRoles", adminUser.map(u -> u.getRoles().stream().map(r -> r.getName()).toList()).orElse(java.util.List.of()),
+            "allRoles", allRoles.stream().map(r -> r.getName()).toList()
+        ));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
             AuthResponse response = authService.login(request.getEmail(), request.getPassword());
             return ResponseEntity.ok(response);

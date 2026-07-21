@@ -32,10 +32,25 @@ public class AuthService {
     }
 
     public AuthResponse login(String email, String password) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+        String trimmedEmail = email != null ? email.trim().toLowerCase() : "";
+        System.out.println("[AUTH-LOGIN] Attempting login for email='" + trimmedEmail + "' (original='" + email + "')");
 
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+        User user = userRepository.findByEmail(trimmedEmail).orElse(null);
+
+        if (user == null) {
+            System.out.println("[AUTH-LOGIN] No user found with email='" + trimmedEmail + "'");
+            long count = userRepository.count();
+            System.out.println("[AUTH-LOGIN] Total users in DB: " + count);
+            throw new IllegalArgumentException("Invalid email or password");
+        }
+
+        System.out.println("[AUTH-LOGIN] User found: id=" + user.getId() + " email=" + user.getEmail() + " active=" + user.isActive());
+        System.out.println("[AUTH-LOGIN] Stored hash (first 20 chars): " + user.getPasswordHash().substring(0, Math.min(20, user.getPasswordHash().length())));
+
+        boolean matches = passwordEncoder.matches(password, user.getPasswordHash());
+        System.out.println("[AUTH-LOGIN] passwordEncoder.matches-result: " + matches);
+
+        if (!matches) {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
