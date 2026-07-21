@@ -47,6 +47,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/institutions").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/books/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/audio/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/borrow-records").hasRole("LIBRARIAN")
+                .requestMatchers(HttpMethod.GET, "/api/borrow-records").hasRole("LIBRARIAN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
