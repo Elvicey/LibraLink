@@ -2,7 +2,6 @@ import { API_BASE_URL } from "../config/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../components/common/Button";
