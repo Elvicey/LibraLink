@@ -24,7 +24,8 @@
 		{ "key": "testCourseId", "value": "", "type": "string" },
 		{ "key": "testReadingListId", "value": "", "type": "string" },
 		{ "key": "testPickupQrCode", "value": "", "type": "string" },
-		{ "key": "testAudioTrackId", "value": "", "type": "string" }
+		{ "key": "testAudioTrackId", "value": "", "type": "string" },
+		{ "key": "testSummaryId", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -445,13 +446,19 @@
 			"name": "AI Exam Mode",
 			"item": [
 				{ "name": "Generate Study Summary", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"summaryType\": \"BRIEF\"\n}" },
+					"body": { "mode": "raw", "raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"summaryType\": \"BRIEF\",\n  \"content\": \"Things Fall Apart tells the story of Okonkwo, a respected leader in an Igbo community, as colonial change arrives in Nigeria.\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/exam/summary", "host": ["{{baseUrl}}"], "path": ["api", "exam", "summary"] }
 				}},
-				{ "name": "Get Summary by ID", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/summary/1", "host": ["{{baseUrl}}"], "path": ["api", "exam", "summary", "1"] } } },
-				{ "name": "Get User Summaries", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/summaries/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "exam", "summaries", "user", "{{testUserId}}"] } } },
+				{ "name": "Get Summary by ID", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/summary/{{testSummaryId}}", "host": ["{{baseUrl}}"], "path": ["api", "exam", "summary", "{{testSummaryId}}"] } } },
+				{ "name": "Get User Summaries",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var list = pm.response.json();",
+						"if (Array.isArray(list) && list.length > 0) { pm.collectionVariables.set('testSummaryId', String(list[0].id)); }"
+					]}}],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/summaries/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "exam", "summaries", "user", "{{testUserId}}"] } }
+				},
 				{ "name": "Generate Exam Questions", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"count\": 5,\n  \"difficulty\": \"MEDIUM\"\n}" },
+					"body": { "mode": "raw", "raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"count\": 5,\n  \"difficulty\": \"MEDIUM\",\n  \"content\": \"Things Fall Apart tells the story of Okonkwo, a respected leader in an Igbo community, as colonial change arrives in Nigeria.\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/exam/questions/generate", "host": ["{{baseUrl}}"], "path": ["api", "exam", "questions", "generate"] }
 				}},
 				{ "name": "Submit Answer to Question", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
