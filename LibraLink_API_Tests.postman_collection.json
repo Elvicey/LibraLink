@@ -21,7 +21,8 @@
 		{ "key": "testReservationId", "value": "", "type": "string" },
 		{ "key": "testFineId", "value": "", "type": "string" },
 		{ "key": "testNotificationId", "value": "", "type": "string" },
-		{ "key": "testCourseId", "value": "", "type": "string" }
+		{ "key": "testCourseId", "value": "", "type": "string" },
+		{ "key": "testReadingListId", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -364,13 +365,19 @@
 		{
 			"name": "Reading Lists",
 			"item": [
-				{ "name": "Create Reading List (Lecturer)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"courseId\": 1,\n  \"createdBy\": {{testUserId}},\n  \"title\": \"\",\n  \"description\": \"\",\n  \"semester\": \"\",\n  \"academicYear\": \"\",\n  \"isPublished\": true\n}" },
+				{ "name": "Create Reading List (Lecturer)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"var j = pm.response.json();",
+						"if (j.id) { pm.collectionVariables.set('testReadingListId', String(j.id)); }"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"courseId\": {{testCourseId}},\n  \"createdBy\": {{testUserId}},\n  \"title\": \"CS281 Required Readings\",\n  \"description\": \"Core texts for the semester\",\n  \"semester\": \"First\",\n  \"academicYear\": \"2025/2026\",\n  \"isPublished\": true\n}" },
 					"url": { "raw": "{{baseUrl}}/api/reading-lists", "host": ["{{baseUrl}}"], "path": ["api", "reading-lists"] }
 				}},
-				{ "name": "Get Reading Lists by Course", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/reading-lists/course/1", "host": ["{{baseUrl}}"], "path": ["api", "reading-lists", "course", "1"] } } },
+				{ "name": "Get Reading Lists by Course", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/reading-lists/course/{{testCourseId}}", "host": ["{{baseUrl}}"], "path": ["api", "reading-lists", "course", "{{testCourseId}}"] } } },
 				{ "name": "Add Item to Reading List (Lecturer)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"readingListId\": 1,\n  \"bookId\": {{testBookId}},\n  \"notes\": \"\"\n}" },
+					"body": { "mode": "raw", "raw": "{\n  \"readingListId\": {{testReadingListId}},\n  \"bookId\": {{testBookId}},\n  \"notes\": \"Required reading\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/reading_list_items", "host": ["{{baseUrl}}"], "path": ["api", "reading_list_items"] }
 				}}
 			]
