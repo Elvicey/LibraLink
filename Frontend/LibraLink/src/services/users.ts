@@ -7,6 +7,7 @@ export interface AppUser {
   email?: string;
   active?: boolean;
   institutionId?: number | null;
+  institution?: { institutionId?: number; name?: string } | null;
 }
 
 export interface NotificationItem {
@@ -19,8 +20,17 @@ export interface NotificationItem {
   createdAt?: string;
 }
 
+function normalizeUser(user: AppUser): AppUser {
+  return {
+    ...user,
+    institutionId:
+      user.institutionId ?? user.institution?.institutionId ?? null,
+  };
+}
+
 export const usersService = {
-  getById: (id: number): Promise<AppUser> => api.get<AppUser>(`/api/users/${id}`),
+  getById: async (id: number): Promise<AppUser> =>
+    normalizeUser(await api.get<AppUser>(`/api/users/${id}`)),
 };
 
 export const notificationsService = {

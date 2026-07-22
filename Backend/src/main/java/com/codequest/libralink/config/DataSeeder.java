@@ -1,5 +1,6 @@
 package com.codequest.libralink.config;
 
+import com.codequest.libralink.entity.AudioBookTrack;
 import com.codequest.libralink.entity.Author;
 import com.codequest.libralink.entity.Book;
 import com.codequest.libralink.entity.BorrowRecord;
@@ -11,6 +12,7 @@ import com.codequest.libralink.entity.ReadingList;
 import com.codequest.libralink.entity.ReadingListItem;
 import com.codequest.libralink.entity.Role;
 import com.codequest.libralink.entity.User;
+import com.codequest.libralink.repository.AudioBookTrackRepository;
 import com.codequest.libralink.repository.AuthorRepository;
 import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.BorrowRecordRepository;
@@ -70,6 +72,7 @@ public class DataSeeder implements CommandLineRunner {
     private final CourseRepository courseRepository;
     private final ReadingListRepository readingListRepository;
     private final ReadingListItemRepository readingListItemRepository;
+    private final AudioBookTrackRepository audioBookTrackRepository;
 
     public DataSeeder(UserRepository userRepository, RoleRepository roleRepository,
                       PasswordEncoder passwordEncoder,
@@ -81,7 +84,8 @@ public class DataSeeder implements CommandLineRunner {
                       InstitutionRepository institutionRepository,
                       CourseRepository courseRepository,
                       ReadingListRepository readingListRepository,
-                      ReadingListItemRepository readingListItemRepository) {
+                      ReadingListItemRepository readingListItemRepository,
+                      AudioBookTrackRepository audioBookTrackRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -94,6 +98,7 @@ public class DataSeeder implements CommandLineRunner {
         this.courseRepository = courseRepository;
         this.readingListRepository = readingListRepository;
         this.readingListItemRepository = readingListItemRepository;
+        this.audioBookTrackRepository = audioBookTrackRepository;
     }
 
     @Override
@@ -107,6 +112,7 @@ public class DataSeeder implements CommandLineRunner {
         seedPodcasts();
         upgradePlaceholderPodcastAudio();
         seedLectureCourses(knust);
+        seedAudioBookTracks();
     }
 
     private void seedAdmin() {
@@ -486,5 +492,28 @@ public class DataSeeder implements CommandLineRunner {
             item.setNotes("RECOMMENDED");
             readingListItemRepository.save(item);
         }
+    }
+
+    private void seedAudioBookTracks() {
+        if (!audioBookTrackRepository.findAll().isEmpty()) {
+            return;
+        }
+        Book linked = bookRepository.findAll().stream()
+                .filter(b -> b.getDescription() != null && b.getDescription().toLowerCase().contains("computing"))
+                .findFirst()
+                .orElse(bookRepository.findAll().stream().findFirst().orElse(null));
+
+        AudioBookTrack track = new AudioBookTrack(
+                "Data Structures: Linked Lists",
+                "CS 301 - Dr. O. Asiedu",
+                "COE 252",
+                "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+                1450,
+                18.4
+        );
+        if (linked != null) {
+            track.setBook(linked);
+        }
+        audioBookTrackRepository.save(track);
     }
 }

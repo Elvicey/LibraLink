@@ -16,7 +16,7 @@ public class FinePaymentController {
         this.finePaymentService = finePaymentService;
     }
 
-    @PreAuthorize("hasAnyRole('STUDENT', 'LIBRARIAN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER', 'LIBRARIAN', 'ADMIN')")
     @PostMapping
     public ResponseEntity<FinePayment> payFine(@RequestBody FinePayment payment) {
         return ResponseEntity.ok(finePaymentService.processPayment(payment));

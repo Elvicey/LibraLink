@@ -8,6 +8,7 @@ interface AuthState {
   firstName: string | null;
   lastName: string | null;
   email: string | null;
+  institutionId: number | null;
   loading: boolean;
   refresh: () => Promise<void>;
   setSession: (data: {
@@ -17,6 +18,7 @@ interface AuthState {
     firstName?: string;
     lastName?: string;
     email?: string;
+    institutionId?: number | null;
   }) => Promise<void>;
   clearSession: () => Promise<void>;
 }
@@ -28,6 +30,7 @@ const AuthContext = createContext<AuthState>({
   firstName: null,
   lastName: null,
   email: null,
+  institutionId: null,
   loading: true,
   refresh: async () => {},
   setSession: async () => {},
@@ -42,17 +45,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     firstName: null as string | null,
     lastName: null as string | null,
     email: null as string | null,
+    institutionId: null as number | null,
     loading: true,
   });
 
   const refresh = useCallback(async () => {
-    const [token, userId, roles, firstName, lastName, email] = await Promise.all([
+    const [token, userId, roles, firstName, lastName, email, institutionId] = await Promise.all([
       AsyncStorage.getItem("authToken"),
       AsyncStorage.getItem("userId"),
       AsyncStorage.getItem("userRoles"),
       AsyncStorage.getItem("firstName"),
       AsyncStorage.getItem("lastName"),
       AsyncStorage.getItem("email"),
+      AsyncStorage.getItem("institutionId"),
     ]);
     setState({
       token,
@@ -61,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       firstName,
       lastName,
       email,
+      institutionId: institutionId ? Number(institutionId) : null,
       loading: false,
     });
   }, []);
@@ -72,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     firstName?: string;
     lastName?: string;
     email?: string;
+    institutionId?: number | null;
   }) => {
     await AsyncStorage.multiSet([
       ["authToken", data.token],
@@ -80,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ["firstName", data.firstName || ""],
       ["lastName", data.lastName || ""],
       ["email", data.email || ""],
+      ["institutionId", data.institutionId != null ? String(data.institutionId) : ""],
     ]);
     setState({
       token: data.token,
@@ -88,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       firstName: data.firstName || null,
       lastName: data.lastName || null,
       email: data.email || null,
+      institutionId: data.institutionId ?? null,
       loading: false,
     });
   }, []);
@@ -100,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       "firstName",
       "lastName",
       "email",
+      "institutionId",
     ]);
     setState({
       userId: null,
@@ -108,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       firstName: null,
       lastName: null,
       email: null,
+      institutionId: null,
       loading: false,
     });
   }, []);
