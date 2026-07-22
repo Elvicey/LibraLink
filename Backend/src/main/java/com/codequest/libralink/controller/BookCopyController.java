@@ -28,6 +28,7 @@ public class BookCopyController {
         return bookCopyService.getAllCopies();
     }
 
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @GetMapping("/barcode/{barcode}")
     public ResponseEntity<BookCopy> getCopyByBarcode(@PathVariable String barcode) {
         return bookCopyService.getCopyByBarcode(barcode)
