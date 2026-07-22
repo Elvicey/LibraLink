@@ -23,7 +23,8 @@
 		{ "key": "testNotificationId", "value": "", "type": "string" },
 		{ "key": "testCourseId", "value": "", "type": "string" },
 		{ "key": "testReadingListId", "value": "", "type": "string" },
-		{ "key": "testPickupQrCode", "value": "", "type": "string" }
+		{ "key": "testPickupQrCode", "value": "", "type": "string" },
+		{ "key": "testAudioTrackId", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -421,11 +422,23 @@
 					"body": { "mode": "raw", "raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"voiceName\": \"en-US-Standard-A\",\n  \"languageCode\": \"en-US\",\n  \"content\": \"Things Fall Apart tells the story of Okonkwo, a respected leader in an Igbo community, as colonial change arrives in Nigeria.\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/audio/convert", "host": ["{{baseUrl}}"], "path": ["api", "audio", "convert"] }
 				}},
-				{ "name": "Get Audio Track by ID", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/1", "host": ["{{baseUrl}}"], "path": ["api", "audio", "1"] } } },
-				{ "name": "Get User Audio Tracks", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "audio", "user", "{{testUserId}}"] } } },
+				{ "name": "Get Audio Track by ID",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var j = pm.response.json();",
+						"if (j.id) { pm.collectionVariables.set('testAudioTrackId', String(j.id)); }"
+					]}}],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/{{testAudioTrackId}}", "host": ["{{baseUrl}}"], "path": ["api", "audio", "{{testAudioTrackId}}"] } }
+				},
+				{ "name": "Get User Audio Tracks",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var list = pm.response.json();",
+						"if (Array.isArray(list) && list.length > 0) { pm.collectionVariables.set('testAudioTrackId', String(list[0].id)); }"
+					]}}],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "audio", "user", "{{testUserId}}"] } }
+				},
 				{ "name": "Get Book Audio Tracks", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/book/{{testBookId}}", "host": ["{{baseUrl}}"], "path": ["api", "audio", "book", "{{testBookId}}"] } } },
-				{ "name": "Stream Audio Track", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/1/stream", "host": ["{{baseUrl}}"], "path": ["api", "audio", "1", "stream"] } } },
-				{ "name": "Delete Audio Track", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/1", "host": ["{{baseUrl}}"], "path": ["api", "audio", "1"] } } }
+				{ "name": "Stream Audio Track", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/{{testAudioTrackId}}/stream", "host": ["{{baseUrl}}"], "path": ["api", "audio", "{{testAudioTrackId}}", "stream"] } } },
+				{ "name": "Delete Audio Track", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/{{testAudioTrackId}}", "host": ["{{baseUrl}}"], "path": ["api", "audio", "{{testAudioTrackId}}"] } } }
 			]
 		},
 		{
