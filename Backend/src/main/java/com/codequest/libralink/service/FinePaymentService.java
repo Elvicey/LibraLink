@@ -21,10 +21,40 @@ public class FinePaymentService {
 
     @Transactional
     public FinePayment processPayment(FinePayment payment) {
+        if (payment.getFineId() == null) {
+            throw new IllegalArgumentException("fineId is required");
+        }
+        if (payment.getUserId() == null) {
+            throw new IllegalArgumentException("userId is required");
+        }
+        if (payment.getAmount() == null && payment.getAmountPaid() == null) {
+            throw new IllegalArgumentException("amount or amountPaid is required");
+        }
+
         Fine fine = fineService.getFineById(payment.getFineId());
+        if (!fine.getUserId().equals(payment.getUserId())) {
+            throw new IllegalArgumentException("Fine does not belong to this user");
+        }
+        if ("PAID".equalsIgnoreCase(fine.getStatus())) {
+            throw new IllegalArgumentException("Fine is already paid");
+        }
+
+        if (payment.getAmount() == null) {
+            payment.setAmount(payment.getAmountPaid());
+        }
+        if (payment.getAmountPaid() == null) {
+            payment.setAmountPaid(payment.getAmount());
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (payment.getPaidAt() == null) {
+            payment.setPaidAt(now);
+        }
+        if (payment.getCreatedAt() == null) {
+            payment.setCreatedAt(now);
+        }
 
         fine.setStatus("PAID");
-        fine.setUpdatedAt(LocalDateTime.now());
+        fine.setUpdatedAt(now);
         fineService.saveFine(fine);
 
         return finePaymentRepository.save(payment);

@@ -18,12 +18,21 @@ public class FineService {
     }
 
     public Fine createFine(Fine fine) {
+        if (fine.getCreatedAt() == null) {
+            fine.setCreatedAt(java.time.LocalDateTime.now());
+        }
+        if (fine.getUpdatedAt() == null) {
+            fine.setUpdatedAt(java.time.LocalDateTime.now());
+        }
+        if (fine.getStatus() == null || fine.getStatus().isBlank()) {
+            fine.setStatus("PENDING");
+        }
         return fineRepository.save(fine);
     }
 
     public Fine getFineById(Integer fineId) {
         return fineRepository.findById(fineId)
-                .orElseThrow(() -> new RuntimeException("Fine system mapping record missing"));
+                .orElseThrow(() -> new IllegalArgumentException("Fine not found with id: " + fineId));
     }
 
     public Fine saveFine(Fine fine) {

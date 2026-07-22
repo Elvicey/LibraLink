@@ -1,84 +1,73 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../../components/common/Button";
 import Card from "../../components/common/Card";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
-
-const ALL_BOOKS: Record<string, { title: string; author: string; tag: string; available: boolean; pages: number; desc: string }> = {
-  "1": {
-    title: "Things Fall Apart",
-    author: "Chinua Achebe",
-    tag: "Classic",
-    available: true,
-    pages: 209,
-    desc: "A classic novel written by Nigerian author Chinua Achebe. It is seen as the archetypal modern African novel in English, and one of the first to receive global critical acclaim.",
-  },
-  "2": {
-    title: "Introduction to Calculus",
-    author: "J. Stewart",
-    tag: "Exam prep",
-    available: false,
-    pages: 450,
-    desc: "Provides a clear and concise introduction to the concepts and methods of calculus. Ideal for KNUST engineering and science undergraduates preparing for semester exams.",
-  },
-  "3": {
-    title: "African Economics",
-    author: "A. Smith",
-    tag: "Policy",
-    available: true,
-    pages: 312,
-    desc: "An in-depth look at emerging economies in Sub-Saharan Africa, examining fiscal policies, trade relationships, and sustainable growth paradigms.",
-  },
-  "4": {
-    title: "African Economic Dev.",
-    author: "Aryeetey & Fosu",
-    tag: "Policy",
-    available: false,
-    pages: 288,
-    desc: "Analyzes the strategic policy choices and development opportunities for modern African nations. Widely referenced in economics coursework across West Africa.",
-  },
-  "5": {
-    title: "Data Structures in Practice",
-    author: "Mark Allen Weiss",
-    tag: "Computing",
-    available: true,
-    pages: 580,
-    desc: "A comprehensive guide to understanding and implementing core data structures and algorithms in programming, focusing on efficiency and real-world implementation.",
-  },
-};
+import { useAuth } from "../../contexts/AuthContext";
+import { bookAuthorName, booksService, Book, isBookAvailable } from "../../services/books";
+import { reservationsService, slotWindowFromLabel } from "../../services/reservations";
 
 export default function BookDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { id } = params as { id: string };
+  const { userId, token } = useAuth();
   const { colors, spacing, borderRadius, typography } = useTheme();
 
-  // Bottom sheets modals toggle visibility states
   const [reserveVisible, setReserveVisible] = useState(false);
   const [listVisible, setListVisible] = useState(false);
-
-  // States for pickup choices
+  const [reserving, setReserving] = useState(false);
   const [pickupDate, setPickupDate] = useState("Tomorrow");
   const [pickupTime, setPickupTime] = useState("10:00 AM - 12:00 PM");
   const [pickupCampus, setPickupCampus] = useState("KNUST Main Library");
-  const [reservedPass, setReservedPass] = useState<{ date: string; time: string; campus: string } | null>(null);
-
-  // States for folders selections
+  const [reservedPass, setReservedPass] = useState<{ date: string; time: string; campus: string; qr?: string } | null>(null);
   const [folders, setFolders] = useState({
     semester: false,
     research: false,
     exam: false,
   });
 
-  const book = ALL_BOOKS[id] || {
-    title: `Sample Book #${id}`,
-    author: "Unknown Author",
-    tag: "General",
-    available: true,
-    pages: 300,
-    desc: "No book description is available for this title. Please contact the KNUST library administrator for cataloging updates.",
+  const [apiBook, setApiBook] = useState<Book | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId)) {
+      setError("Invalid book id.");
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      setApiBook(await booksService.getById(numericId));
+    } catch (e: any) {
+      setError(e?.message || "Could not load book.");
+      setApiBook(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const book = {
+    title: apiBook?.title || `Book #${id}`,
+    author: apiBook ? bookAuthorName(apiBook) : "Unknown Author",
+    tag: apiBook?.language || "General",
+    available: apiBook ? isBookAvailable(apiBook) : false,
+    pages: "—",
+    desc:
+      apiBook?.description ||
+      "No book description is available for this title yet.",
+    copies: apiBook
+      ? `${apiBook.availableCopies ?? 0} / ${apiBook.totalCopies ?? 0} available`
+      : "—",
   };
 
   const getCheckbox = (checked: boolean) => (
@@ -93,6 +82,13 @@ export default function BookDetail() {
         <Text style={[styles.backText, { color: colors.primary }]}>← Back</Text>
       </Pressable>
 
+      {loading && <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.xl }} />}
+      {!!error && !loading && (
+        <Text style={{ color: colors.danger, marginBottom: spacing.lg }}>{error}</Text>
+      )}
+
+      {!loading && !error && (
+        <>
       <View style={[styles.coverSection, { marginVertical: spacing.lg }]}>
         <View style={[styles.coverPlaceholder, { backgroundColor: colors.surface, borderRadius: borderRadius.lg, borderColor: colors.border }]}>
           <Text style={styles.coverEmoji}>📖</Text>
@@ -120,8 +116,8 @@ export default function BookDetail() {
           </Text>
         </Card>
         <Card style={[styles.statCard, { padding: spacing.md }]}>
-          <Text style={[styles.statLabel, { color: colors.textMuted, marginBottom: spacing.xs }]}>Pages</Text>
-          <Text style={[styles.statValue, { color: colors.text }]}>{book.pages}</Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted, marginBottom: spacing.xs }]}>Copies</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{book.copies}</Text>
         </Card>
       </View>
 
@@ -129,6 +125,8 @@ export default function BookDetail() {
         <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: spacing.sm }]}>Summary</Text>
         <Text style={[styles.descText, { color: colors.textMuted }]}>{book.desc}</Text>
       </View>
+        </>
+      )}
 
       {/* Ticket Pass Output if Reserved */}
       {reservedPass ? (
@@ -266,10 +264,50 @@ export default function BookDetail() {
             </View>
 
             <Button
-              title="Confirm Reservation"
-              onPress={() => {
-                setReservedPass({ date: pickupDate, time: pickupTime, campus: pickupCampus });
-                setReserveVisible(false);
+              title={reserving ? "Confirming..." : "Confirm Reservation"}
+              loading={reserving}
+              onPress={async () => {
+                if (!userId || !token) {
+                  Alert.alert("Sign in required", "Please sign in to reserve this book.");
+                  return;
+                }
+                const bookId = Number(id);
+                if (!Number.isFinite(bookId)) {
+                  Alert.alert("Invalid book", "Could not reserve this title.");
+                  return;
+                }
+                setReserving(true);
+                try {
+                  const reservation = await reservationsService.create(
+                    userId,
+                    bookId,
+                    `Pickup at ${pickupCampus} · ${pickupDate} · ${pickupTime}`
+                  );
+                  const window = slotWindowFromLabel(pickupTime);
+                  const pickup = await reservationsService.schedulePickup({
+                    userId,
+                    reservationId: reservation.id,
+                    slotStart: window.slotStart,
+                    slotEnd: window.slotEnd,
+                  });
+                  setReservedPass({
+                    date: pickupDate,
+                    time: pickupTime,
+                    campus: pickupCampus,
+                    qr: pickup.qrCode,
+                  });
+                  setReserveVisible(false);
+                  Alert.alert(
+                    "Reservation confirmed",
+                    pickup.qrCode
+                      ? `Pickup scheduled. Show QR ${pickup.qrCode.slice(0, 8)}… at the desk.`
+                      : "Pickup scheduled. Check Pick-Up Scheduler for your slot."
+                  );
+                } catch (e: any) {
+                  Alert.alert("Reservation failed", e?.message || "Please try another slot.");
+                } finally {
+                  setReserving(false);
+                }
               }}
               style={{ paddingVertical: spacing.md, borderRadius: borderRadius.xl, marginBottom: spacing.lg }}
             />
