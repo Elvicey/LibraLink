@@ -85,9 +85,16 @@ public class AudioController {
     public ResponseEntity<?> streamAudio(@PathVariable Integer id,
                                           @RequestHeader(value = "Range", required = false) String range) {
         return audioTrackService.getTrack(id)
-                .filter(track -> "COMPLETED".equals(track.getStatus()))
-                .filter(track -> track.getAudioUrl() != null)
                 .<ResponseEntity<?>>map(track -> {
+                    if (!"COMPLETED".equals(track.getStatus()) || track.getAudioUrl() == null) {
+                        return ResponseEntity.badRequest().body(Map.of(
+                                "error", "Audio track is not ready to stream",
+                                "trackId", track.getId(),
+                                "status", track.getStatus() != null ? track.getStatus() : "UNKNOWN",
+                                "errorMessage", track.getErrorMessage() != null ? track.getErrorMessage() : ""
+                        ));
+                    }
+
                     HttpHeaders headers = new HttpHeaders();
                     headers.setContentType(MediaType.parseMediaType("audio/" + track.getAudioFormat()));
                     headers.set("Accept-Ranges", "bytes");
