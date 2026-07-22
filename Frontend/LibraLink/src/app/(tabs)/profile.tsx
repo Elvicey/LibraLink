@@ -81,9 +81,17 @@ export default function Profile() {
             <Text style={styles.avatarInitial}>{initial}</Text>
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.title}>{[firstName, lastName].filter(Boolean).join(" ") || displayName}</Text>
-            <Text style={styles.email}>{displayEmail}</Text>
-            <Text style={styles.statusBadge}>{roleLabel} member</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {[firstName, lastName].filter(Boolean).join(" ") || displayName}
+          </Text>
+          <Text style={styles.email}>{displayEmail}</Text>
+          <Text style={styles.statusBadge}>
+            {roles.includes("LIBRARIAN") || roles.includes("ADMIN")
+              ? "Staff member"
+              : roles.includes("LECTURER")
+                ? "Lecturer · academic app"
+                : "Student · academic app"}
+          </Text>
           </View>
         </View>
 
