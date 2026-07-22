@@ -33,6 +33,7 @@ public class BookService {
 
     @Transactional
     public Book addBook(BookRequest request) {
+        assertIsbnAvailable(request.getIsbn(), request.getIsbn13(), null);
         Book book = new Book();
         applyRequestFields(book, request);
         return bookRepository.save(book);
@@ -41,9 +42,30 @@ public class BookService {
     @Transactional
     public Optional<Book> updateBook(Integer id, BookRequest request) {
         return bookRepository.findById(id).map(book -> {
+            assertIsbnAvailable(request.getIsbn(), request.getIsbn13(), id);
             applyRequestFields(book, request);
             return bookRepository.save(book);
         });
+    }
+
+    private void assertIsbnAvailable(String isbn, String isbn13, Integer excludeBookId) {
+        if (isbn != null && !isbn.isBlank()) {
+            boolean taken = bookRepository.findByIsbn(isbn).stream()
+                    .anyMatch(b -> excludeBookId == null || !b.getId().equals(excludeBookId));
+            if (taken) {
+                throw new IllegalArgumentException(
+                        "ISBN '" + isbn + "' is already used by another book. "
+                                + "Use that book's id in the URL, or choose a different ISBN.");
+            }
+        }
+        if (isbn13 != null && !isbn13.isBlank()) {
+            boolean taken = bookRepository.findByIsbn13(isbn13).stream()
+                    .anyMatch(b -> excludeBookId == null || !b.getId().equals(excludeBookId));
+            if (taken) {
+                throw new IllegalArgumentException(
+                        "ISBN-13 '" + isbn13 + "' is already used by another book.");
+            }
+        }
     }
 
     public List<Book> getAllBooks() {
