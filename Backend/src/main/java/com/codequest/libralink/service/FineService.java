@@ -32,7 +32,7 @@ public class FineService {
 
     public Fine getFineById(Integer fineId) {
         return fineRepository.findById(fineId)
-                .orElseThrow(() -> new RuntimeException("Fine system mapping record missing"));
+                .orElseThrow(() -> new IllegalArgumentException("Fine not found with id: " + fineId));
     }
 
     public Fine saveFine(Fine fine) {
