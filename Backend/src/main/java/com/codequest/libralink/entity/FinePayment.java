@@ -1,11 +1,13 @@
 package com.codequest.libralink.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "fine_payments")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class FinePayment {
 
     @Id
@@ -21,8 +23,8 @@ public class FinePayment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal amount_paid;
+    @Column(name = "amount_paid", nullable = false, precision = 10, scale = 2)
+    private BigDecimal amountPaid;
 
     @Column(name = "payment_method", length = 50)
     private String paymentMethod;
@@ -31,25 +33,42 @@ public class FinePayment {
     private String transactionRef;
 
     @Column(name = "paid_at", nullable = false)
-    private LocalDateTime paidAt = LocalDateTime.now();
+    private LocalDateTime paidAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     public FinePayment() {}
 
-    public FinePayment(Integer id, Integer fineId, Integer userId, BigDecimal amount,BigDecimal amount_paid,
+    public FinePayment(Integer id, Integer fineId, Integer userId, BigDecimal amount, BigDecimal amountPaid,
                        String paymentMethod, String transactionRef,
                        LocalDateTime paidAt, LocalDateTime createdAt) {
         this.id = id;
         this.fineId = fineId;
         this.userId = userId;
         this.amount = amount;
-        this.amount_paid =amount_paid;
+        this.amountPaid = amountPaid;
         this.paymentMethod = paymentMethod;
         this.transactionRef = transactionRef;
         this.paidAt = paidAt;
         this.createdAt = createdAt;
+    }
+
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (paidAt == null) {
+            paidAt = now;
+        }
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        if (amountPaid == null && amount != null) {
+            amountPaid = amount;
+        }
+        if (amount == null && amountPaid != null) {
+            amount = amountPaid;
+        }
     }
 
     public Integer getId() { return id; }
@@ -64,9 +83,8 @@ public class FinePayment {
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
 
-    public BigDecimal getAmount_paid() { return amount_paid; }
-    public void setAmount_paid(BigDecimal amount_paid) { this.amount_paid = amount_paid; }
-
+    public BigDecimal getAmountPaid() { return amountPaid; }
+    public void setAmountPaid(BigDecimal amountPaid) { this.amountPaid = amountPaid; }
 
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
