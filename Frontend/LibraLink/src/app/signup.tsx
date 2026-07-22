@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../config/api";
+import { useAuth } from "../contexts/AuthContext";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -10,6 +11,7 @@ import { authService } from "../services/auth";
 
 export default function SignUp() {
   const router = useRouter();
+  const { setSession } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -30,15 +32,22 @@ export default function SignUp() {
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "Student";
 
-      await authService.register({
+      const data = await authService.register({
         firstName,
         lastName,
-        email: email.trim(),
-        passwordHash: password, // maps directly to backend DB password validation
-        institutionId: 1, // KNUST Main Campus (default basic tier)
+        email: email.trim().toLowerCase(),
+        passwordHash: password,
+        institutionId: 1,
       });
 
-      // Automatically routes to dashboard home screen upon successful registration
+      await setSession({
+        token: data.token,
+        userId: data.userId,
+        roles: data.roles || [],
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+      });
       router.replace("/(tabs)/home" as any);
     } catch (err: any) {
       setError(err.message || "Registration failed. Please check network connections.");

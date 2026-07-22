@@ -16,7 +16,9 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
-    if (!email || !password) {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password;
+    if (!cleanEmail || !cleanPassword) {
       Alert.alert("Error", "Please enter email and password.");
       return;
     }
@@ -25,11 +27,11 @@ export default function SignIn() {
       const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Invalid email or password.");
+        throw new Error(data.error || data.message || "Invalid email or password.");
       }
 
       await setSession({
@@ -42,7 +44,10 @@ export default function SignIn() {
       });
       router.replace("/(tabs)/home" as any);
     } catch (e: any) {
-      Alert.alert("Sign in failed", e.message || "Please try again.");
+      Alert.alert(
+        "Sign in failed",
+        e.message || "Check your email and password, then try again."
+      );
     } finally {
       setLoading(false);
     }
