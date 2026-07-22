@@ -48,14 +48,7 @@ export const authService = {
    */
   login: async (email: string, passwordHash: string): Promise<UserResponse> => {
     try {
-      const users = await api.get<UserResponse[]>("/api/users");
-      const matched = users.find(
-        (u) => u.email.toLowerCase() === email.toLowerCase() && u.passwordHash === passwordHash
-      );
-      if (!matched) {
-        throw new Error("Invalid student email or password");
-      }
-      return matched;
+      return await api.post<UserResponse>("/api/users/login", { email, passwordHash });
     } catch (error) {
       console.warn("Auth connection error. Falling back to local demo profile:", error);
       

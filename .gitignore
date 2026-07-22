@@ -16,3 +16,5 @@ Frontend/LibraLink/yarn-debug.*
 Frontend/LibraLink/yarn-error.*
 Frontend/LibraLink/ios/
 Frontend/LibraLink/android/
+hs_err_pid*.log
+replay_pid*.log
