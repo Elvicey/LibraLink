@@ -16,7 +16,8 @@
 		{ "key": "testInstitutionId", "value": "", "type": "string" },
 		{ "key": "testCategoryId", "value": "", "type": "string" },
 		{ "key": "testPublisherId", "value": "", "type": "string" },
-		{ "key": "testAuthorId", "value": "", "type": "string" }
+		{ "key": "testAuthorId", "value": "", "type": "string" },
+		{ "key": "testBarcode", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -179,7 +180,7 @@
 					"url": { "raw": "{{baseUrl}}/api/book-copies", "host": ["{{baseUrl}}"], "path": ["api", "book-copies"] }
 				}},
 				{ "name": "Get All Book Copies (Librarian)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/book-copies", "host": ["{{baseUrl}}"], "path": ["api", "book-copies"] } } },
-				{ "name": "Lookup Copy by Barcode", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/book-copies/barcode/", "host": ["{{baseUrl}}"], "path": ["api", "book-copies", "barcode", ""] } } }
+				{ "name": "Lookup Copy by Barcode", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/book-copies/barcode/{{testBarcode}}", "host": ["{{baseUrl}}"], "path": ["api", "book-copies", "barcode", "{{testBarcode}}"] } } }
 			]
 		},
 		{
