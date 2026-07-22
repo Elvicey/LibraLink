@@ -77,8 +77,20 @@ public class PickupSlotService {
 
     @Transactional
     public PickupSlot collectBookViaQr(String qrCode, Integer librarianId) {
+        if (qrCode == null || qrCode.isBlank()) {
+            throw new IllegalArgumentException("qrCode query param is required.");
+        }
+        if (librarianId == null) {
+            throw new IllegalArgumentException("librarianId query param is required.");
+        }
+
         PickupSlot slot = pickupSlotRepository.findByQrCode(qrCode)
-                .orElseThrow(() -> new RuntimeException("Invalid collection QR code target."));
+                .orElseThrow(() -> new IllegalArgumentException("No pickup slot found for qrCode: " + qrCode));
+
+        if ("COLLECTED".equalsIgnoreCase(slot.getStatus())) {
+            throw new IllegalArgumentException("This pickup slot was already collected.");
+        }
+
         slot.setStatus("COLLECTED");
         slot.setCollectedBy(librarianId);
         slot.setCollectedAt(LocalDateTime.now());

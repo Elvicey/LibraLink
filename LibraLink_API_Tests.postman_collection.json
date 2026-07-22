@@ -22,7 +22,8 @@
 		{ "key": "testFineId", "value": "", "type": "string" },
 		{ "key": "testNotificationId", "value": "", "type": "string" },
 		{ "key": "testCourseId", "value": "", "type": "string" },
-		{ "key": "testReadingListId", "value": "", "type": "string" }
+		{ "key": "testReadingListId", "value": "", "type": "string" },
+		{ "key": "testPickupQrCode", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -385,13 +386,32 @@
 		{
 			"name": "Pickup Slots",
 			"item": [
-				{ "name": "Schedule Pickup Slot", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+				{ "name": "Schedule Pickup Slot",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"var j = pm.response.json();",
+						"if (j.qrCode) { pm.collectionVariables.set('testPickupQrCode', j.qrCode); }"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
 					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"reservationId\": {{testReservationId}},\n  \"slotStart\": \"2026-07-25T10:00:00\",\n  \"slotEnd\": \"2026-07-25T10:30:00\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/pickup-slots", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots"] }
 				}},
-				{ "name": "Scan Pickup QR (Librarian)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/scan?qrCode=&librarianId={{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "scan"], "query": [{ "key": "qrCode", "value": "" }, { "key": "librarianId", "value": "{{testUserId}}" }] } } },
-				{ "name": "Get User Pickup Slots", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "user", "{{testUserId}}"] } } },
-				{ "name": "Get Scheduled Slots (Librarian)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/scheduled", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "scheduled"] } } }
+				{ "name": "Get Scheduled Slots (Librarian)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var list = pm.response.json();",
+						"if (Array.isArray(list) && list.length > 0 && list[0].qrCode) { pm.collectionVariables.set('testPickupQrCode', list[0].qrCode); }"
+					]}}],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/scheduled", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "scheduled"] } }
+				},
+				{ "name": "Scan Pickup QR (Librarian)",
+					"event": [{ "listen": "prerequest", "script": { "exec": [
+						"if (!pm.collectionVariables.get('testPickupQrCode')) {",
+						"  throw new Error('testPickupQrCode is empty. Run Schedule Pickup Slot or Get Scheduled Slots first.');",
+						"}"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/scan?qrCode={{testPickupQrCode}}&librarianId={{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "scan"], "query": [{ "key": "qrCode", "value": "{{testPickupQrCode}}" }, { "key": "librarianId", "value": "{{testUserId}}" }] } }
+				},
+				{ "name": "Get User Pickup Slots", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "user", "{{testUserId}}"] } } }
 			]
 		},
 		{

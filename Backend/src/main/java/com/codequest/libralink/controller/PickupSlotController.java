@@ -29,8 +29,13 @@ public class PickupSlotController {
 
     @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping("/scan")
-    public ResponseEntity<PickupSlot> scanQr(@RequestParam String qrCode, @RequestParam Integer librarianId) {
-        return ResponseEntity.ok(pickupSlotService.collectBookViaQr(qrCode, librarianId));
+    public ResponseEntity<?> scanQr(@RequestParam(required = false) String qrCode,
+                                    @RequestParam(required = false) Integer librarianId) {
+        try {
+            return ResponseEntity.ok(pickupSlotService.collectBookViaQr(qrCode, librarianId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/user/{userId}")
