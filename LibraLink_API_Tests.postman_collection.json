@@ -25,7 +25,9 @@
 		{ "key": "testReadingListId", "value": "", "type": "string" },
 		{ "key": "testPickupQrCode", "value": "", "type": "string" },
 		{ "key": "testAudioTrackId", "value": "", "type": "string" },
-		{ "key": "testSummaryId", "value": "", "type": "string" }
+		{ "key": "testSummaryId", "value": "", "type": "string" },
+		{ "key": "testQuestionId", "value": "", "type": "string" },
+		{ "key": "testSessionId", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -462,11 +464,17 @@
 					"url": { "raw": "{{baseUrl}}/api/exam/questions/generate", "host": ["{{baseUrl}}"], "path": ["api", "exam", "questions", "generate"] }
 				}},
 				{ "name": "Submit Answer to Question", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"answer\": \"\"\n}" },
-					"url": { "raw": "{{baseUrl}}/api/exam/questions/1/answer", "host": ["{{baseUrl}}"], "path": ["api", "exam", "questions", "1", "answer"] }
+					"body": { "mode": "raw", "raw": "{\n  \"answer\": \"Okonkwo\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/exam/questions/{{testQuestionId}}/answer", "host": ["{{baseUrl}}"], "path": ["api", "exam", "questions", "{{testQuestionId}}", "answer"] }
 				}},
-				{ "name": "Complete Study Session", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/sessions/1/complete", "host": ["{{baseUrl}}"], "path": ["api", "exam", "sessions", "1", "complete"] } } },
-				{ "name": "Get Session Questions", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/sessions/1/questions", "host": ["{{baseUrl}}"], "path": ["api", "exam", "sessions", "1", "questions"] } } },
+				{ "name": "Complete Study Session", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/sessions/{{testSessionId}}/complete", "host": ["{{baseUrl}}"], "path": ["api", "exam", "sessions", "{{testSessionId}}", "complete"] } } },
+				{ "name": "Get Session Questions",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var list = pm.response.json();",
+						"if (Array.isArray(list) && list.length > 0) { pm.collectionVariables.set('testQuestionId', String(list[0].id)); if (list[0].sessionId) { pm.collectionVariables.set('testSessionId', String(list[0].sessionId)); } }"
+					]}}],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/sessions/{{testSessionId}}/questions", "host": ["{{baseUrl}}"], "path": ["api", "exam", "sessions", "{{testSessionId}}", "questions"] } }
+				},
 				{ "name": "Get User Study Sessions", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/exam/sessions/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "exam", "sessions", "user", "{{testUserId}}"] } } }
 			]
 		},
