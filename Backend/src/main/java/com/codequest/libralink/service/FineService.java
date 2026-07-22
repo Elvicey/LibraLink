@@ -18,6 +18,15 @@ public class FineService {
     }
 
     public Fine createFine(Fine fine) {
+        if (fine.getCreatedAt() == null) {
+            fine.setCreatedAt(java.time.LocalDateTime.now());
+        }
+        if (fine.getUpdatedAt() == null) {
+            fine.setUpdatedAt(java.time.LocalDateTime.now());
+        }
+        if (fine.getStatus() == null || fine.getStatus().isBlank()) {
+            fine.setStatus("PENDING");
+        }
         return fineRepository.save(fine);
     }
 

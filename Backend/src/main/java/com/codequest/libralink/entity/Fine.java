@@ -1,11 +1,14 @@
 package com.codequest.libralink.entity;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "fines")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Fine {
 
     @Id
@@ -15,6 +18,7 @@ public class Fine {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
+    @JsonAlias("loanId")
     @Column(name = "borrow_id")
     private Integer borrowId;
 
@@ -31,7 +35,7 @@ public class Fine {
     private LocalDateTime dueDate;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
@@ -52,14 +56,31 @@ public class Fine {
         this.updatedAt = updatedAt;
     }
 
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+        if (status == null || status.isBlank()) {
+            status = "PENDING";
+        }
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
 
-    public Integer getLoanId() { return borrowId; }
-    public void setLoanId(Integer borrowId) { this.borrowId = borrowId; }
+    public Integer getBorrowId() { return borrowId; }
+    public void setBorrowId(Integer borrowId) { this.borrowId = borrowId; }
 
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
