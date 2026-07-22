@@ -23,15 +23,17 @@ public class ExamController {
     @PostMapping("/summary")
     public ResponseEntity<?> createSummary(@RequestBody Map<String, Object> body) {
         try {
-            Integer bookId = (Integer) body.get("bookId");
-            Integer userId = (Integer) body.get("userId");
-            String summaryType = (String) body.getOrDefault("summaryType", "BRIEF");
+            Integer bookId = toInteger(body.get("bookId"));
+            Integer userId = toInteger(body.get("userId"));
+            String summaryType = body.get("summaryType") != null
+                    ? String.valueOf(body.get("summaryType")) : "BRIEF";
+            String content = extractContent(body);
 
             if (bookId == null || userId == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "bookId and userId are required."));
             }
 
-            StudySummary summary = aiExamService.createSummary(bookId, userId, summaryType);
+            StudySummary summary = aiExamService.createSummary(bookId, userId, summaryType, content);
             aiExamService.processSummary(summary.getId());
 
             return ResponseEntity.accepted().body(Map.of(
@@ -59,16 +61,19 @@ public class ExamController {
     @PostMapping("/questions/generate")
     public ResponseEntity<?> generateQuestions(@RequestBody Map<String, Object> body) {
         try {
-            Integer bookId = (Integer) body.get("bookId");
-            Integer userId = (Integer) body.get("userId");
-            Integer count = (Integer) body.getOrDefault("count", 5);
-            String difficulty = (String) body.getOrDefault("difficulty", "MEDIUM");
+            Integer bookId = toInteger(body.get("bookId"));
+            Integer userId = toInteger(body.get("userId"));
+            Integer count = toInteger(body.getOrDefault("count", 5));
+            String difficulty = body.get("difficulty") != null
+                    ? String.valueOf(body.get("difficulty")) : "MEDIUM";
+            String content = extractContent(body);
 
             if (bookId == null || userId == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "bookId and userId are required."));
             }
 
-            List<ExamQuestion> questions = aiExamService.generateQuestions(bookId, userId, count, difficulty);
+            List<ExamQuestion> questions = aiExamService.generateQuestions(
+                    bookId, userId, count, difficulty, content);
             return ResponseEntity.ok(Map.of(
                     "message", "Questions generated",
                     "count", questions.size(),
@@ -76,6 +81,27 @@ public class ExamController {
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    private String extractContent(Map<String, Object> body) {
+        if (body.get("content") != null) {
+            return String.valueOf(body.get("content"));
+        }
+        if (body.get("text") != null) {
+            return String.valueOf(body.get("text"));
+        }
+        return null;
+    }
+
+    private Integer toInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer i) return i;
+        if (value instanceof Number n) return n.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
