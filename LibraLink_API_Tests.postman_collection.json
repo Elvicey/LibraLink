@@ -17,7 +17,8 @@
 		{ "key": "testCategoryId", "value": "", "type": "string" },
 		{ "key": "testPublisherId", "value": "", "type": "string" },
 		{ "key": "testAuthorId", "value": "", "type": "string" },
-		{ "key": "testBarcode", "value": "", "type": "string" }
+		{ "key": "testBarcode", "value": "", "type": "string" },
+		{ "key": "testReservationId", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -241,16 +242,22 @@
 		{
 			"name": "Reservations",
 			"item": [
-				{ "name": "Create Reservation", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
+				{ "name": "Create Reservation",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"var j = pm.response.json();",
+						"if (j.id) { pm.collectionVariables.set('testReservationId', String(j.id)); }"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
 					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"book\": {\"id\": {{testBookId}}},\n  \"status\": \"PENDING\",\n  \"notes\": \"\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/reservations", "host": ["{{baseUrl}}"], "path": ["api", "reservations"] }
 				}},
 				{ "name": "Get All Reservations (Librarian)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/reservations", "host": ["{{baseUrl}}"], "path": ["api", "reservations"] } } },
 				{ "name": "Update Reservation Status (Librarian)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"status\": \"\"\n}" },
-					"url": { "raw": "{{baseUrl}}/api/reservations/1", "host": ["{{baseUrl}}"], "path": ["api", "reservations", "1"] }
+					"body": { "mode": "raw", "raw": "{\n  \"status\": \"READY\"\n}" },
+					"url": { "raw": "{{baseUrl}}/api/reservations/{{testReservationId}}", "host": ["{{baseUrl}}"], "path": ["api", "reservations", "{{testReservationId}}"] }
 				}},
-				{ "name": "Cancel Reservation", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/reservations/1/cancel", "host": ["{{baseUrl}}"], "path": ["api", "reservations", "1", "cancel"] } } }
+				{ "name": "Cancel Reservation", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/reservations/{{testReservationId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "reservations", "{{testReservationId}}", "cancel"] } } }
 			]
 		},
 		{
