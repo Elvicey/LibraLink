@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtUtil {
@@ -69,11 +70,17 @@ public class JwtUtil {
 
     @SuppressWarnings("unchecked")
     public List<String> extractRoles(String token) {
-        return Jwts.parser()
+        Object rolesObj = Jwts.parser()
                 .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
-                .get("roles", List.class);
+                .get("roles");
+        if (rolesObj instanceof List<?> list) {
+            return list.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.toList());
+        }
+        return null;
     }
 }
