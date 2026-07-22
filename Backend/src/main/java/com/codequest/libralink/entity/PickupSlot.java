@@ -1,10 +1,12 @@
 package com.codequest.libralink.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "pickup_slots")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PickupSlot {
 
     @Id
@@ -42,12 +44,27 @@ public class PickupSlot {
     private LocalDateTime slotEnd;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public PickupSlot() {}
+
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+        if (status == null || status.isBlank()) {
+            status = "SCHEDULED";
+        }
+        if (scheduledAt == null && slotStart != null) {
+            scheduledAt = slotStart;
+        }
+    }
 
     public PickupSlot(Integer id, Integer userId, Integer loanId, String qrCode,
                       String status, Integer reservationId, LocalDateTime scheduledAt,

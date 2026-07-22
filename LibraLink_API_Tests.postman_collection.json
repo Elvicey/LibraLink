@@ -386,7 +386,7 @@
 			"name": "Pickup Slots",
 			"item": [
 				{ "name": "Schedule Pickup Slot", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"reservationId\": 1,\n  \"scheduledAt\": \"\",\n  \"slotStart\": \"\",\n  \"slotEnd\": \"\"\n}" },
+					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"reservationId\": {{testReservationId}},\n  \"slotStart\": \"2026-07-25T10:00:00\",\n  \"slotEnd\": \"2026-07-25T10:30:00\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/pickup-slots", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots"] }
 				}},
 				{ "name": "Scan Pickup QR (Librarian)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/scan?qrCode=&librarianId={{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "scan"], "query": [{ "key": "qrCode", "value": "" }, { "key": "librarianId", "value": "{{testUserId}}" }] } } },

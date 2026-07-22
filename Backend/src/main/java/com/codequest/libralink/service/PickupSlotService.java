@@ -25,8 +25,15 @@ public class PickupSlotService {
 
     @Transactional
     public PickupSlot scheduleSlot(PickupSlot slot) {
+        if (slot.getUserId() == null) {
+            throw new IllegalStateException("userId is required.");
+        }
+        if (slot.getReservationId() == null) {
+            throw new IllegalStateException("reservationId is required.");
+        }
         if (slot.getSlotStart() == null || slot.getSlotEnd() == null) {
-            throw new IllegalStateException("slotStart and slotEnd are required.");
+            throw new IllegalStateException(
+                    "slotStart and slotEnd are required (ISO-8601, e.g. 2026-07-25T10:00:00).");
         }
 
         if (slot.getSlotStart().isAfter(slot.getSlotEnd()) || slot.getSlotStart().isEqual(slot.getSlotEnd())) {
@@ -47,6 +54,12 @@ public class PickupSlotService {
 
         if (slot.getQrCode() == null || slot.getQrCode().isBlank()) {
             slot.setQrCode(UUID.randomUUID().toString());
+        }
+        if (slot.getScheduledAt() == null) {
+            slot.setScheduledAt(slot.getSlotStart());
+        }
+        if (slot.getCreatedAt() == null) {
+            slot.setCreatedAt(LocalDateTime.now());
         }
         slot.setStatus("SCHEDULED");
         PickupSlot saved = pickupSlotRepository.save(slot);
