@@ -4,10 +4,12 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { useTheme } from "../constants/theme";
+import { useAuth } from "../contexts/AuthContext";
 import { audioService, AudioBookTrackResponse } from "../services/audio";
 
 export default function AudioBookPlayer() {
   const router = useRouter();
+  const { userId } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<"1.0x" | "1.25x" | "1.5x" | "2.0x">("1.0x");
   const [isCached, setIsCached] = useState(false);
@@ -23,14 +25,15 @@ export default function AudioBookPlayer() {
       if (tracks && tracks.length > 0) {
         setCurrentTrack(tracks[0]);
         // Fetch existing playback position for demo user ID 1
-        audioService.getProgress(tracks[0].id, 1).then((progress) => {
+        const progressUserId = userId ?? 1;
+        audioService.getProgress(tracks[0].id, progressUserId).then((progress) => {
           if (progress && progress.currentPositionSeconds) {
             setCurrentPositionSeconds(progress.currentPositionSeconds);
           }
         });
       }
     });
-  }, []);
+  }, [userId]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -42,8 +45,9 @@ export default function AudioBookPlayer() {
     const nextState = !isPlaying;
     setIsPlaying(nextState);
     if (currentTrack) {
-      // Sync progress position to backend
-      audioService.saveProgress(currentTrack.id, 1, currentPositionSeconds, false).catch(() => {});
+      audioService
+        .saveProgress(currentTrack.id, userId ?? 1, currentPositionSeconds, false)
+        .catch(() => {});
     }
   };
 

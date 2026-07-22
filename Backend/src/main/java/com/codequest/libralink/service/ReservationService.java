@@ -27,10 +27,16 @@ public class ReservationService {
 
     @Transactional
     public Reservation createReservation(Reservation res) {
-        Book book = res.getBook();
-        if (book == null) {
+        if (res.getUserId() == null) {
+            throw new IllegalStateException("userId is required for reservation.");
+        }
+        if (res.getBook() == null || res.getBook().getId() == null) {
             throw new IllegalStateException("Book is required for reservation.");
         }
+        Book book = bookService.getBookById(res.getBook().getId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Book not found with id: " + res.getBook().getId()));
+        res.setBook(book);
 
         if (bookService.isBookAvailable(book.getId())) {
             res.setStatus("READY");

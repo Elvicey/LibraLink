@@ -48,23 +48,39 @@ public class AudioTrackService {
 
     @Transactional
     public AudioTrack initiateConversion(Integer bookId, Integer userId, String voiceName, String languageCode) {
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found with ID: " + bookId));
+        return initiateConversion(bookId, userId, voiceName, languageCode, null);
+    }
 
-        if (book.getDescription() == null || book.getDescription().isBlank()) {
-            throw new IllegalStateException("Book has no textual content to convert to audio.");
-        }
+    @Transactional
+    public AudioTrack initiateConversion(Integer bookId, Integer userId, String voiceName,
+                                         String languageCode, String contentOverride) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new IllegalArgumentException("Book not found with ID: " + bookId));
+
+        String content = resolveContent(book, contentOverride);
 
         AudioTrack track = new AudioTrack();
         track.setBookId(bookId);
         track.setUserId(userId);
-        track.setTitle(book.getTitle() + " - Audio Version");
-        track.setContent(book.getDescription());
-        track.setVoiceName(voiceName != null ? voiceName : "en-US-Standard-A");
-        track.setLanguageCode(languageCode != null ? languageCode : "en-US");
+        track.setTitle((book.getTitle() != null ? book.getTitle() : "Book") + " - Audio Version");
+        track.setContent(content);
+        track.setVoiceName(voiceName != null && !voiceName.isBlank() ? voiceName : "en-US-Standard-A");
+        track.setLanguageCode(languageCode != null && !languageCode.isBlank() ? languageCode : "en-US");
         track.setStatus("PENDING");
 
         return audioTrackRepository.save(track);
+    }
+
+    private String resolveContent(Book book, String contentOverride) {
+        if (contentOverride != null && !contentOverride.isBlank()) {
+            return contentOverride.trim();
+        }
+        if (book.getDescription() != null && !book.getDescription().isBlank()) {
+            return book.getDescription().trim();
+        }
+        throw new IllegalStateException(
+                "Book has no textual content to convert to audio. "
+                        + "Set the book's description, or pass a non-empty \"content\" field in the request body.");
     }
 
     @Async

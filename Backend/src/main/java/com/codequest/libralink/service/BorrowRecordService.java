@@ -68,6 +68,9 @@ public class BorrowRecordService {
     }
 
     public List<BorrowRecord> getCurrentBorrows(Integer userId) {
-        return borrowRecordRepository.findByUserIdAndStatus(userId, "BORROWED");
+        return borrowRecordRepository.findByUserIdAndStatusIn(
+                userId,
+                List.of("BORROWED", "OVERDUE", "RENEWED")
+        );
     }
 }

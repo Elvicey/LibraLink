@@ -24,4 +24,9 @@ public class StudentReadingProgressController {
             @RequestParam String status) {
         return ResponseEntity.ok(studentReadingProgressService.updateProgress(studentId, itemId, status));
     }
+
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<?> getProgressForStudent(@PathVariable Integer studentId) {
+        return ResponseEntity.ok(studentReadingProgressService.getProgressForStudent(studentId));
+    }
 }

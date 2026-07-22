@@ -28,4 +28,12 @@ public class ReadingListController {
     public ResponseEntity<List<ReadingList>> getReadingListsByCourse(@PathVariable Integer courseId) {
         return ResponseEntity.ok(readingListService.getReadingListsByCourse(courseId));
     }
+
+    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PutMapping("/{id}/publish")
+    public ResponseEntity<ReadingList> publishReadingList(
+            @PathVariable Integer id,
+            @RequestParam(defaultValue = "true") boolean publish) {
+        return ResponseEntity.ok(readingListService.publish(id, publish));
+    }
 }

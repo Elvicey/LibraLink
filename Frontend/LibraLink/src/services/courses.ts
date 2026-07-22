@@ -1,12 +1,20 @@
 import { api } from "./api";
+import { Book, booksService } from "./books";
+
+export interface Institution {
+  institutionId: number;
+  name: string;
+  shortName?: string;
+}
 
 export interface CourseResponse {
   id: number;
-  institutionId: number;
   name: string;
-  code: string;
+  code?: string;
   description?: string;
-  status: string;
+  status?: string;
+  institution?: Institution;
+  books?: Book[];
 }
 
 export interface ReadingListResponse {
@@ -18,6 +26,7 @@ export interface ReadingListResponse {
   semester?: string;
   academicYear?: string;
   isPublished: boolean;
+  publishedAt?: string;
 }
 
 export interface ReadingListItemResponse {
@@ -25,66 +34,93 @@ export interface ReadingListItemResponse {
   readingListId: number;
   bookId: number;
   notes?: string;
+  requiredBy?: string;
 }
 
-export interface BookResponse {
+export interface ReadingProgressResponse {
   id: number;
-  title: string;
-  author: string;
-  isbn?: string;
-  publishYear?: number;
-  totalCopies?: number;
-  availableCopies?: number;
+  studentId: number;
+  listItemId: number;
+  status: string;
 }
+
+export type ReadingPriority = "REQUIRED" | "RECOMMENDED" | "FURTHER";
+export type ProgressStatus = "reading" | "completed" | "saved";
 
 export const coursesService = {
-  /**
-   * Fetches all courses registered under a specific institution ID.
-   */
-  getCourses: async (institutionId: number): Promise<CourseResponse[]> => {
-    return api.get<CourseResponse[]>(`/api/courses/institutions/${institutionId}`);
-  },
+  getInstitutions: () => api.get<Institution[]>("/api/institutions", { auth: false }),
 
-  /**
-   * Fetches reading lists associated with a course.
-   */
-  getReadingLists: async (courseId: number): Promise<ReadingListResponse[]> => {
-    return api.get<ReadingListResponse[]>(`/api/reading-lists/course/${courseId}`);
-  },
+  getCourses: (institutionId: number) =>
+    api.get<CourseResponse[]>(`/api/courses/institutions/${institutionId}`, { auth: false }),
 
-  /**
-   * Fetches all library catalog books.
-   */
-  getBooks: async (): Promise<BookResponse[]> => {
-    return api.get<BookResponse[]>("/api/books");
-  },
+  getCourse: (courseId: number) =>
+    api.get<CourseResponse>(`/api/courses/${courseId}`),
 
-  /**
-   * Assigns a textbook item to a specific reading list.
-   */
-  addBookToReadingList: async (
+  createCourse: (payload: {
+    name: string;
+    code?: string;
+    description?: string;
+    institutionId: number;
+  }) =>
+    api.post<CourseResponse>("/api/courses", {
+      name: payload.name,
+      code: payload.code,
+      description: payload.description,
+      institution: { institutionId: payload.institutionId },
+    }),
+
+  linkBooksToCourse: (courseId: number, bookIds: number[]) =>
+    api.put<CourseResponse>(`/api/courses/${courseId}/books`, { bookIds }),
+
+  getReadingLists: (courseId: number) =>
+    api.get<ReadingListResponse[]>(`/api/reading-lists/course/${courseId}`),
+
+  createReadingList: (payload: {
+    courseId: number;
+    createdBy?: number;
+    title: string;
+    description?: string;
+    semester?: string;
+    academicYear?: string;
+  }) => api.post<ReadingListResponse>("/api/reading-lists", payload),
+
+  publishReadingList: (listId: number, publish = true) =>
+    api.put<ReadingListResponse>(`/api/reading-lists/${listId}/publish?publish=${publish}`),
+
+  getReadingListItems: (readingListId: number) =>
+    api.get<ReadingListItemResponse[]>(`/api/reading_list_items/list/${readingListId}`),
+
+  addBookToReadingList: (
     readingListId: number,
     bookId: number,
-    notes?: string
-  ): Promise<ReadingListItemResponse> => {
-    const body = {
+    priority: ReadingPriority = "REQUIRED",
+    requiredBy?: string
+  ) =>
+    api.post<ReadingListItemResponse>("/api/reading_list_items", {
       readingListId,
       bookId,
-      notes: notes || "Assigned reading",
-    };
-    return api.post<ReadingListItemResponse>("/api/reading_list_items", body);
-  },
+      notes: priority,
+      requiredBy: requiredBy || null,
+    }),
 
-  /**
-   * Convenience helper to create a brand new textbook catalog entry.
-   */
-  createBook: async (title: string, author: string): Promise<BookResponse> => {
-    const body = {
-      title,
-      author,
-      totalCopies: 5,
-      availableCopies: 5,
-    };
-    return api.post<BookResponse>("/api/books", body);
-  },
+  bulkAssignBooks: (
+    readingListId: number,
+    bookIds: number[],
+    priority: ReadingPriority = "REQUIRED"
+  ) =>
+    api.post<ReadingListItemResponse[]>("/api/reading_list_items/bulk", {
+      readingListId,
+      bookIds,
+      priority,
+    }),
+
+  getProgressForStudent: (studentId: number) =>
+    api.get<ReadingProgressResponse[]>(`/api/reading-progress/student/${studentId}`),
+
+  updateProgress: (studentId: number, itemId: number, status: ProgressStatus) =>
+    api.put<ReadingProgressResponse>(
+      `/api/reading-progress?studentId=${studentId}&itemId=${itemId}&status=${encodeURIComponent(status)}`
+    ),
+
+  getCatalogueBooks: () => booksService.list(),
 };

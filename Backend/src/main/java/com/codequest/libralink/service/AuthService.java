@@ -2,8 +2,10 @@ package com.codequest.libralink.service;
 
 import com.codequest.libralink.dto.AuthResponse;
 import com.codequest.libralink.dto.RegisterRequest;
+import com.codequest.libralink.entity.Institution;
 import com.codequest.libralink.entity.Role;
 import com.codequest.libralink.entity.User;
+import com.codequest.libralink.repository.InstitutionRepository;
 import com.codequest.libralink.repository.RoleRepository;
 import com.codequest.libralink.repository.UserRepository;
 import com.codequest.libralink.security.JwtUtil;
@@ -20,120 +22,88 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final InstitutionRepository institutionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
     public AuthService(UserRepository userRepository, RoleRepository roleRepository,
+                       InstitutionRepository institutionRepository,
                        PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.institutionRepository = institutionRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
     }
 
     public AuthResponse login(String email, String password) {
         String trimmedEmail = email != null ? email.trim().toLowerCase() : "";
-        User user = userRepository.findByEmail(trimmedEmail)
+        User user = userRepository.findByEmailIgnoreCase(trimmedEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
+        return toAuthResponse(user);
+    }
+
+    public AuthResponse register(RegisterRequest request) {
+        return registerWithRole(request, "STUDENT");
+    }
+
+    public AuthResponse registerLecturer(RegisterRequest request) {
+        return registerWithRole(request, "LECTURER");
+    }
+
+    public AuthResponse registerLibrarian(RegisterRequest request) {
+        return registerWithRole(request, "LIBRARIAN");
+    }
+
+    private AuthResponse registerWithRole(RegisterRequest request, String roleName) {
+        String email = normalizeEmail(request.getEmail());
+        if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
+            throw new IllegalArgumentException("An account with this email already exists");
+        }
+
+        User user = new User();
+        user.setFirstName(request.getFirstName() != null ? request.getFirstName().trim() : "");
+        user.setLastName(request.getLastName() != null ? request.getLastName().trim() : "");
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setActive(true);
+        attachInstitution(user, request.getInstitutionId());
+
+        Role role = roleRepository.findByName(roleName)
+                .orElseGet(() -> roleRepository.save(new Role(roleName)));
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+        user.setRoles(roles);
+
+        return toAuthResponse(userRepository.save(user));
+    }
+
+    private void attachInstitution(User user, Integer institutionId) {
+        if (institutionId == null) {
+            return;
+        }
+        Institution institution = institutionRepository.findById(institutionId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Institution not found with id: " + institutionId));
+        user.setInstitution(institution);
+    }
+
+    private AuthResponse toAuthResponse(User user) {
         List<String> roleNames = user.getRoles().stream()
                 .map(Role::getName)
                 .collect(Collectors.toList());
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), roleNames);
         Integer instId = user.getInstitution() != null ? user.getInstitution().getInstitutionId() : null;
-
         return new AuthResponse(token, user.getId(), user.getEmail(),
                 user.getFirstName(), user.getLastName(), roleNames, instId);
     }
 
-    public AuthResponse register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("An account with this email already exists");
-        }
-
-        User user = new User();
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-
-        Role role = roleRepository.findByName("STUDENT")
-                .orElseGet(() -> roleRepository.save(new Role("STUDENT")));
-        Set<Role> roles = new HashSet<>();
-        roles.add(role);
-        user.setRoles(roles);
-
-        User saved = userRepository.save(user);
-
-        List<String> roleNames = saved.getRoles().stream()
-                .map(Role::getName)
-                .collect(Collectors.toList());
-        String token = jwtUtil.generateToken(saved.getId(), saved.getEmail(), roleNames);
-        Integer instId = saved.getInstitution() != null ? saved.getInstitution().getInstitutionId() : null;
-
-        return new AuthResponse(token, saved.getId(), saved.getEmail(),
-                saved.getFirstName(), saved.getLastName(), roleNames, instId);
-    }
-
-    public AuthResponse registerLecturer(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("An account with this email already exists");
-        }
-
-        User user = new User();
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-
-        Role role = roleRepository.findByName("LECTURER")
-                .orElseGet(() -> roleRepository.save(new Role("LECTURER")));
-        Set<Role> roles = new HashSet<>();
-        roles.add(role);
-        user.setRoles(roles);
-
-        User saved = userRepository.save(user);
-
-        List<String> roleNames = saved.getRoles().stream()
-                .map(Role::getName)
-                .collect(Collectors.toList());
-        String token = jwtUtil.generateToken(saved.getId(), saved.getEmail(), roleNames);
-        Integer instId = saved.getInstitution() != null ? saved.getInstitution().getInstitutionId() : null;
-
-        return new AuthResponse(token, saved.getId(), saved.getEmail(),
-                saved.getFirstName(), saved.getLastName(), roleNames, instId);
-    }
-
-    public AuthResponse registerLibrarian(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("An account with this email already exists");
-        }
-
-        User user = new User();
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-
-        Role role = roleRepository.findByName("LIBRARIAN")
-                .orElseGet(() -> roleRepository.save(new Role("LIBRARIAN")));
-        Set<Role> roles = new HashSet<>();
-        roles.add(role);
-        user.setRoles(roles);
-
-        User saved = userRepository.save(user);
-
-        List<String> roleNames = saved.getRoles().stream()
-                .map(Role::getName)
-                .collect(Collectors.toList());
-        String token = jwtUtil.generateToken(saved.getId(), saved.getEmail(), roleNames);
-        Integer instId = saved.getInstitution() != null ? saved.getInstitution().getInstitutionId() : null;
-
-        return new AuthResponse(token, saved.getId(), saved.getEmail(),
-                saved.getFirstName(), saved.getLastName(), roleNames, instId);
+    private String normalizeEmail(String email) {
+        return email != null ? email.trim().toLowerCase() : "";
     }
 }
