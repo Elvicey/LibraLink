@@ -1,10 +1,12 @@
 package com.codequest.libralink.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "pickup_slots")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PickupSlot {
 
     @Id
@@ -42,27 +44,43 @@ public class PickupSlot {
     private LocalDateTime slotEnd;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public PickupSlot() {}
 
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+        if (status == null || status.isBlank()) {
+            status = "SCHEDULED";
+        }
+        if (scheduledAt == null && slotStart != null) {
+            scheduledAt = slotStart;
+        }
+    }
+
     public PickupSlot(Integer id, Integer userId, Integer loanId, String qrCode,
-                      String status, LocalDateTime scheduledAt, Integer collectedBy,
-                      LocalDateTime collectedAt, LocalDateTime createdAt,
-                      LocalDateTime updatedAt) {
+                      String status, Integer reservationId, LocalDateTime scheduledAt,
+                      Integer collectedBy, LocalDateTime collectedAt,
+                      LocalDateTime slotStart, LocalDateTime slotEnd,
+                      LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.userId = userId;
         this.loanId = loanId;
         this.qrCode = qrCode;
         this.status = status;
-        this.reservationId =reservationId;
+        this.reservationId = reservationId;
         this.scheduledAt = scheduledAt;
         this.collectedBy = collectedBy;
         this.collectedAt = collectedAt;
-        this.slotStart =slotStart;
+        this.slotStart = slotStart;
         this.slotEnd = slotEnd;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -106,4 +124,9 @@ public class PickupSlot {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    @PreUpdate
+    public void updateTimestamp() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

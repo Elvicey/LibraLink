@@ -1,11 +1,13 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Input from "../../components/common/Input";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
+import { useAuth } from "../../contexts/AuthContext";
+import { aiService } from "../../services/ai";
 
-const SUGGESTIONS = [
+const FALLBACK_SUGGESTIONS = [
   "Recommend books for a project",
   "Find study guides for economics",
   "Summarize my reading list",
@@ -18,12 +20,14 @@ interface ChatMessage {
 }
 
 export default function AI() {
+  const { userId } = useAuth();
   const [prompt, setPrompt] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>(FALLBACK_SUGGESTIONS);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "1",
       sender: "libra",
-      text: "Hello Esther! I am Libra, your library assistant. Ask me to find books, compile lists, or suggest study guides in plain English.",
+      text: "Hello! I am Libra, your library assistant. Ask me to find books, compile lists, or suggest study guides in plain English.",
     },
   ]);
   const [isTyping, setIsTyping] = useState(false);
@@ -31,7 +35,13 @@ export default function AI() {
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
 
-  const sendMessage = (text: string) => {
+  useEffect(() => {
+    aiService.getSuggestions().then((items) => {
+      if (items?.length) setSuggestions(items);
+    });
+  }, []);
+
+  const sendMessage = async (text: string) => {
     if (!text.trim()) return;
 
     const userMsgId = Date.now().toString();
@@ -43,41 +53,36 @@ export default function AI() {
     setPrompt("");
     setIsTyping(true);
 
-    // Scroll to bottom
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
 
-    // Simulated AI response
-    setTimeout(() => {
+    try {
+      const res = await aiService.askLibra(text, userId ?? 1);
       setIsTyping(false);
-      const aiResponseText = getMockResponse(text);
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           sender: "libra" as const,
-          text: aiResponseText,
+          text: res.response,
         },
       ]);
+    } catch {
+      setIsTyping(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          sender: "libra" as const,
+          text: "I searched the catalog for that query. I suggest checking out the main collection under Class B or talking to a librarian at the reference desk.",
+        },
+      ]);
+    } finally {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-    }, 1800);
-  };
-
-  const getMockResponse = (text: string) => {
-    const lower = text.toLowerCase();
-    if (lower.includes("project") || lower.includes("recommend")) {
-      return "Based on your final year requirements, I recommend checking out 'Lean Startup' by Eric Ries and 'Data Structures in Practice' in the Computing section.";
     }
-    if (lower.includes("econ") || lower.includes("study")) {
-      return "I found 'African Economics' by A. Smith (Available on Shelf B4) and 'African Economic Dev.' (Currently on Loan, due in 5 days).";
-    }
-    if (lower.includes("summarize") || lower.includes("list")) {
-      return "Your active Semester reading list contains 17 titles. You have completed 37% of 'Data Structures in Practice' and have 1 overdue check-out.";
-    }
-    return "I searched the catalog for that query. I suggest checking out the main collection under Class B or talking to a librarian at the reference desk.";
   };
 
   const getPromptIcon = (text: string) => {
@@ -148,7 +153,7 @@ export default function AI() {
           <View style={styles.suggestionsContainer}>
             <Text style={styles.suggestionsTitle}>Suggested Prompts</Text>
             <View style={styles.promptRow}>
-              {SUGGESTIONS.map((item) => (
+              {suggestions.map((item) => (
                 <Pressable
                   key={item}
                   style={styles.promptChip}
