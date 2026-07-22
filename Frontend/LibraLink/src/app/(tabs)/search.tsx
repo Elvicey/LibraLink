@@ -215,6 +215,8 @@ export default function Search() {
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           ListEmptyComponent={
             <Text style={[styles.emptyText, { color: colors.textMuted }]}>
               No books match the selected filters.

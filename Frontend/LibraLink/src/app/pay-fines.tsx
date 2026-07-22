@@ -1,23 +1,47 @@
-import { API_BASE_URL } from "../config/api";
-import { useAuth } from "../contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../components/common/Button";
 import Card from "../components/common/Card";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { useTheme } from "../constants/theme";
 
+/** Normalize pasted/local Ghana numbers to 9 national digits (no leading 0, no 233). */
+function toGhanaNationalDigits(raw: string): string {
+  let digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("233")) {
+    digits = digits.slice(3);
+  }
+  if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  return digits.slice(0, 9);
+}
+
 export default function PayFines() {
   const router = useRouter();
   const [selectedMethod, setSelectedMethod] = useState<"momo" | "card" | null>("momo");
   const [momoProvider, setMomoProvider] = useState<"mtn" | "telecel" | "at">("mtn");
+  /** 9-digit Ghana national number after +233 (e.g. 244123456). */
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | undefined>();
   const [status, setStatus] = useState<"idle" | "processing" | "success">("idle");
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
 
+  const handlePhoneChange = (text: string) => {
+    setPhone(toGhanaNationalDigits(text));
+    setPhoneError(undefined);
+  };
+
   const handlePay = () => {
+    if (selectedMethod === "momo") {
+      if (phone.length !== 9) {
+        setPhoneError("Enter a valid Ghana MoMo number: +233 followed by 9 digits.");
+        Alert.alert("Invalid number", "Use +233 and exactly 9 digits (e.g. +233 24 412 3456).");
+        return;
+      }
+    }
     setStatus("processing");
     setTimeout(() => {
       setStatus("success");
@@ -168,11 +192,19 @@ export default function PayFines() {
 
           <Input
             label="MoMo Number"
-            placeholder="024XXXXXXX"
+            placeholder="24XXXXXXX"
             keyboardType="phone-pad"
             value={phone}
-            onChangeText={setPhone}
+            onChangeText={handlePhoneChange}
+            maxLength={9}
+            error={phoneError}
+            leftIcon={
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 16 }}>+233</Text>
+            }
           />
+          <Text style={[styles.phoneHint, { color: colors.textMuted }]}>
+            Ghana format: +233 + 9 digits (example +233244123456). Do not include the leading 0.
+          </Text>
         </Card>
       )}
 
@@ -289,6 +321,12 @@ const styles = StyleSheet.create({
   telecomText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  phoneHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: -4,
+    marginBottom: 4,
   },
   cardExpiryCVV: {
     flexDirection: "row",
