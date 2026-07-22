@@ -18,6 +18,18 @@ public class ReadingListService {
     }
 
     public ReadingList saveReadingList(ReadingList list) {
+        if (list.getCourseId() == null) {
+            throw new IllegalArgumentException("courseId is required");
+        }
+        if (list.getCreatedAt() == null) {
+            list.setCreatedAt(java.time.LocalDateTime.now());
+        }
+        if (list.getUpdatedAt() == null) {
+            list.setUpdatedAt(java.time.LocalDateTime.now());
+        }
+        if (list.getIsPublished() == null) {
+            list.setIsPublished(false);
+        }
         return readingListRepository.save(list);
     }
 

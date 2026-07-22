@@ -10,5 +10,5 @@ import java.util.List;
 public interface FineRepository extends JpaRepository<Fine, Integer> {
     List<Fine> findByUserId(Integer userId);
     List<Fine> findByStatus(String status);
-    List<Fine> findByLoanId(Integer borrowId);
+    List<Fine> findByBorrowId(Integer borrowId);
 }

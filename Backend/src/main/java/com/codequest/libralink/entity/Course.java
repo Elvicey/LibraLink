@@ -1,7 +1,10 @@
 package com.codequest.libralink.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "courses")
@@ -11,8 +14,18 @@ public class Course {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "institution_id", nullable = false)
-    private Integer institutionId;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "institution_id", nullable = false)
+    private Institution institution;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "course_books",
+        joinColumns = @JoinColumn(name = "course_id"),
+        inverseJoinColumns = @JoinColumn(name = "book_id")
+    )
+    @JsonIgnoreProperties("authors")
+    private Set<Book> books = new HashSet<>();
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -27,31 +40,33 @@ public class Course {
     private String status = "ACTIVE";
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public Course() {}
 
-    public Course(Integer id, Integer institutionId, String name, String code,
-                  String description, String status, LocalDateTime createdAt,
-                  LocalDateTime updatedAt) {
-        this.id = id;
-        this.institutionId = institutionId;
-        this.name = name;
-        this.code = code;
-        this.description = description;
-        this.status = status;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+        if (status == null || status.isBlank()) {
+            status = "ACTIVE";
+        }
     }
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 
-    public Integer getInstitutionId() { return institutionId; }
-    public void setInstitutionId(Integer institutionId) { this.institutionId = institutionId; }
+    public Institution getInstitution() { return institution; }
+    public void setInstitution(Institution institution) { this.institution = institution; }
+
+    public Set<Book> getBooks() { return books; }
+    public void setBooks(Set<Book> books) { this.books = books; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -69,5 +84,9 @@ public class Course {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    @PreUpdate
+    public void updateTimestamp() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

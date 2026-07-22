@@ -1,10 +1,12 @@
 package com.codequest.libralink.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "reading_lists")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ReadingList {
 
     @Id
@@ -36,13 +38,33 @@ public class ReadingList {
     private LocalDateTime publishedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     // Constructors
     public ReadingList() {}
+
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+        if (isPublished == null) {
+            isPublished = false;
+        }
+        if (Boolean.TRUE.equals(isPublished) && publishedAt == null) {
+            publishedAt = now;
+        }
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
     public ReadingList(Integer id, Integer courseId, Integer createdBy, String title,
                        String description, String semester, String academicYear,

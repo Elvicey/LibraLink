@@ -17,6 +17,18 @@ public class ReadingListItemService {
     }
 
     public ReadingListItem addItemToList(ReadingListItem item) {
+        if (item.getReadingListId() == null) {
+            throw new IllegalArgumentException("readingListId is required");
+        }
+        if (item.getBookId() == null) {
+            throw new IllegalArgumentException("bookId is required");
+        }
+        if (item.getCreatedAt() == null) {
+            item.setCreatedAt(java.time.LocalDateTime.now());
+        }
+        if (item.getUpdatedAt() == null) {
+            item.setUpdatedAt(java.time.LocalDateTime.now());
+        }
         return readingListItemRepository.save(item);
     }
 
