@@ -18,7 +18,8 @@
 		{ "key": "testPublisherId", "value": "", "type": "string" },
 		{ "key": "testAuthorId", "value": "", "type": "string" },
 		{ "key": "testBarcode", "value": "", "type": "string" },
-		{ "key": "testReservationId", "value": "", "type": "string" }
+		{ "key": "testReservationId", "value": "", "type": "string" },
+		{ "key": "testFineId", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -263,7 +264,13 @@
 		{
 			"name": "Fines",
 			"item": [
-				{ "name": "Issue Fine (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+				{ "name": "Issue Fine (Librarian)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"var j = pm.response.json();",
+						"if (j.id) { pm.collectionVariables.set('testFineId', String(j.id)); }"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
 					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"borrowId\": 1,\n  \"amount\": 5.00,\n  \"status\": \"PENDING\",\n  \"reason\": \"Overdue return\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/fines", "host": ["{{baseUrl}}"], "path": ["api", "fines"] }
 				}},
@@ -274,7 +281,7 @@
 			"name": "Fine Payments",
 			"item": [
 				{ "name": "Process Fine Payment (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"fineId\": 1,\n  \"userId\": {{testUserId}},\n  \"amount\": 0,\n  \"amountPaid\": 0,\n  \"paymentMethod\": \"\",\n  \"transactionRef\": \"\"\n}" },
+					"body": { "mode": "raw", "raw": "{\n  \"fineId\": {{testFineId}},\n  \"userId\": {{testUserId}},\n  \"amount\": 5.00,\n  \"amountPaid\": 5.00,\n  \"paymentMethod\": \"CASH\",\n  \"transactionRef\": \"TX-001\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/fine-payments", "host": ["{{baseUrl}}"], "path": ["api", "fine-payments"] }
 				}}
 			]

@@ -17,6 +17,9 @@ public class GlobalExceptionHandler {
         if (message.toLowerCase().contains("barcode") && message.toLowerCase().contains("already exists")) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", message));
         }
+        if (message.toLowerCase().contains("not found")) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", message));
+        }
         return ResponseEntity.badRequest().body(Map.of("error", message));
     }
 
