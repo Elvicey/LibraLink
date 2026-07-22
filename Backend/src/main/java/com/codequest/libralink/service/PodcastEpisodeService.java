@@ -68,8 +68,10 @@ public class PodcastEpisodeService {
         if (updates.getDescription() != null) {
             existing.setDescription(updates.getDescription());
         }
+        // Allow clearing demo/external URLs by sending "" (null means "leave unchanged")
         if (updates.getAudioUrl() != null) {
-            existing.setAudioUrl(updates.getAudioUrl());
+            String audioUrl = updates.getAudioUrl().isBlank() ? null : updates.getAudioUrl().trim();
+            existing.setAudioUrl(audioUrl);
         }
         if (updates.getDurationSeconds() != null) {
             existing.setDurationSeconds(updates.getDurationSeconds());

@@ -135,11 +135,10 @@ export default function PodcastShowDetailScreen() {
                 <Text style={[styles.epTitle, { color: colors.text }]} numberOfLines={2}>
                   {ep.title}
                 </Text>
-                {!!ep.durationSeconds && (
-                  <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-                    {formatDuration(ep.durationSeconds)}
-                  </Text>
-                )}
+                <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+                  {ep.bookId != null ? `Book discussion` : "Library episode"}
+                  {ep.durationSeconds ? ` · ${formatDuration(ep.durationSeconds)}` : ""}
+                </Text>
               </View>
               <Ionicons name="play-circle-outline" size={28} color={colors.primary} />
             </Pressable>
