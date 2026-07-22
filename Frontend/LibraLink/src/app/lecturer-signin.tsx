@@ -47,7 +47,7 @@ export default function LecturerSignIn() {
         lastName: data.lastName,
         email: data.email,
       });
-      router.replace("/(tabs)/home" as any);
+      router.replace("/lecturer" as any);
     } catch (e: any) {
       Alert.alert("Sign in failed", e.message || "Please try again.");
     } finally {

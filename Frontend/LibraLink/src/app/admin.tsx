@@ -359,13 +359,13 @@ export default function Admin() {
           <View style={styles.quickActionGrid}>
             <TouchableOpacity
               style={[styles.actionCard, isDark && styles.cardDark]}
-              onPress={() => router.push("/course?mode=librarian" as any)}
+              onPress={() => router.push("/reports" as any)}
             >
               <View style={[styles.actionIconCircle, { backgroundColor: colors.primaryLight }]}>
-                <Ionicons name="journal" size={20} color={colors.primary} />
+                <Ionicons name="bar-chart" size={20} color={colors.primary} />
               </View>
-              <Text style={[styles.actionCardTitle, { color: colors.text }]}>Course Reading</Text>
-              <Text style={[styles.actionCardSubtitle, { color: colors.textMuted }]}>Assign Textbooks</Text>
+              <Text style={[styles.actionCardTitle, { color: colors.text }]}>Reports</Text>
+              <Text style={[styles.actionCardSubtitle, { color: colors.textMuted }]}>Admin analytics</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

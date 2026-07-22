@@ -30,6 +30,11 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getCoursesByInstitution(instId));
     }
 
+    @GetMapping("/{courseId}")
+    public ResponseEntity<Course> getCourse(@PathVariable Integer courseId) {
+        return ResponseEntity.ok(courseService.getCourseById(courseId));
+    }
+
     @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
     @PutMapping("/{courseId}/books")
     public ResponseEntity<?> addBooksToCourse(@PathVariable Integer courseId,

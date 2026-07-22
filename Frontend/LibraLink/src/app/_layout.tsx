@@ -13,6 +13,8 @@ export default function RootLayout() {
           <Stack.Screen name="signup" />
           <Stack.Screen name="lecturer-signin" />
           <Stack.Screen name="lecturer-signup" />
+          <Stack.Screen name="lecturer/index" />
+          <Stack.Screen name="lecturer/[courseId]" />
           <Stack.Screen name="librarian-signin" />
           <Stack.Screen name="librarian-signup" />
           <Stack.Screen name="admin-signin" />

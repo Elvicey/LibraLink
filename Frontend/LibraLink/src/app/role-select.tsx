@@ -6,16 +6,24 @@ import { theme, lightColors } from "../constants/theme";
 const roles = [
   {
     id: "student",
-    title: "Student / Lecturer",
-    description: "Same academic app: browse, borrow, reading lists, and study tools",
+    title: "Student",
+    description: "Browse catalogue, borrow books, and follow published course reading lists",
     emoji: "🎓",
     color: "#0b6efd",
     route: "/signin",
   },
   {
+    id: "lecturer",
+    title: "Lecturer",
+    description: "Lecture-to-Library: link courses, publish reading lists, alert on low stock",
+    emoji: "👨‍🏫",
+    color: "#8b5cf6",
+    route: "/lecturer-signin",
+  },
+  {
     id: "staff",
     title: "Librarian / Admin",
-    description: "Same staff console: inventory, circulation, and system management",
+    description: "Staff console: inventory, circulation, and Admin reports",
     emoji: "📚",
     color: "#10b981",
     route: "/librarian-signin",

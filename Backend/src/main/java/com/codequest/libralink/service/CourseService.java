@@ -61,6 +61,14 @@ public class CourseService {
         return courseRepository.findByInstitutionInstitutionId(instId);
     }
 
+    @Transactional(readOnly = true)
+    public Course getCourseById(Integer courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("Course not found with id: " + courseId));
+        course.getBooks().size();
+        return course;
+    }
+
     @Transactional
     public Course addBooksToCourse(Integer courseId, List<Integer> bookIds) {
         Course course = courseRepository.findById(courseId)

@@ -14,9 +14,10 @@ import { inferSubject } from "../services/books";
 
 export default function ReportsScreen() {
   const router = useRouter();
-  const { userId, token, firstName } = useAuth();
+  const { userId, token, roles, loading: authLoading } = useAuth();
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
+  const isAdmin = roles.includes("ADMIN");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,10 +74,39 @@ export default function ReportsScreen() {
   }, [userId, token]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!authLoading && isAdmin) {
+      load();
+    }
+  }, [load, authLoading, isAdmin]);
 
   const generatedAt = useMemo(() => new Date().toLocaleString(), [loading]);
+
+  if (authLoading) {
+    return (
+      <ScreenWrapper contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
+        <ActivityIndicator color={colors.primary} />
+      </ScreenWrapper>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <ScreenWrapper contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <View style={styles.backRow}>
+            <Ionicons name="chevron-back" size={20} color={colors.primary} />
+            <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
+          </View>
+        </Pressable>
+        <Text style={[styles.title, { color: colors.text, fontSize: typography.titleMedium.fontSize }]}>
+          Reports
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+          Library reports are available to Admin accounts only.
+        </Text>
+      </ScreenWrapper>
+    );
+  }
 
   return (
     <ScreenWrapper scrollable contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
@@ -88,10 +118,10 @@ export default function ReportsScreen() {
       </Pressable>
 
       <Text style={[styles.title, { color: colors.text, fontSize: typography.titleMedium.fontSize }]}>
-        Library Report
+        Admin Library Report
       </Text>
       <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-        {firstName ? `${firstName}'s activity summary` : "Your LibraLink activity summary"} · {generatedAt}
+        Institutional catalogue and circulation summary · {generatedAt}
       </Text>
 
       {loading && <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.xl }} />}
@@ -121,7 +151,7 @@ export default function ReportsScreen() {
               </Card>
             ))}
 
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Your borrowing</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Circulation snapshot</Text>
           <View style={styles.grid}>
             <Card style={styles.metricCard}>
               <Text style={[styles.metricValue, { color: colors.primary }]}>{activeLoans}</Text>

@@ -28,4 +28,8 @@ public class StudentReadingProgressService {
         progress.setUpdatedAt(LocalDateTime.now());
         return progressRepository.save(progress);
     }
+
+    public java.util.List<StudentReadingProgress> getProgressForStudent(Integer studentId) {
+        return progressRepository.findByStudentId(studentId);
+    }
 }
