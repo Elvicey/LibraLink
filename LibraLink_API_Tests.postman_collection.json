@@ -264,7 +264,7 @@
 			"name": "Fines",
 			"item": [
 				{ "name": "Issue Fine (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"borrowId\": 1,\n  \"amount\": 0,\n  \"status\": \"PENDING\",\n  \"reason\": \"\",\n  \"dueDate\": \"\"\n}" },
+					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"borrowId\": 1,\n  \"amount\": 5.00,\n  \"status\": \"PENDING\",\n  \"reason\": \"Overdue return\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/fines", "host": ["{{baseUrl}}"], "path": ["api", "fines"] }
 				}},
 				{ "name": "Get User Fines", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/fines/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "fines", "user", "{{testUserId}}"] } } }
