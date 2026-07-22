@@ -1,20 +1,55 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { useTheme } from "../constants/theme";
+import { useAuth } from "../contexts/AuthContext";
+import { audioService, AudioBookTrackResponse } from "../services/audio";
 
 export default function AudioBookPlayer() {
   const router = useRouter();
+  const { userId } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<"1.0x" | "1.25x" | "1.5x" | "2.0x">("1.0x");
   const [isCached, setIsCached] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState<AudioBookTrackResponse | null>(null);
+  const [currentPositionSeconds, setCurrentPositionSeconds] = useState(515); // Default 08:35 demo
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
   
   const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
 
-  const togglePlayback = () => setIsPlaying(!isPlaying);
+  useEffect(() => {
+    // Fetch audio tracks from backend API
+    audioService.getAllTracks().then((tracks) => {
+      if (tracks && tracks.length > 0) {
+        setCurrentTrack(tracks[0]);
+        // Fetch existing playback position for demo user ID 1
+        const progressUserId = userId ?? 1;
+        audioService.getProgress(tracks[0].id, progressUserId).then((progress) => {
+          if (progress && progress.currentPositionSeconds) {
+            setCurrentPositionSeconds(progress.currentPositionSeconds);
+          }
+        });
+      }
+    });
+  }, [userId]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const togglePlayback = () => {
+    const nextState = !isPlaying;
+    setIsPlaying(nextState);
+    if (currentTrack) {
+      audioService
+        .saveProgress(currentTrack.id, userId ?? 1, currentPositionSeconds, false)
+        .catch(() => {});
+    }
+  };
 
   const cycleSpeed = () => {
     if (playbackSpeed === "1.0x") setPlaybackSpeed("1.25x");
@@ -22,6 +57,12 @@ export default function AudioBookPlayer() {
     else if (playbackSpeed === "1.5x") setPlaybackSpeed("2.0x");
     else setPlaybackSpeed("1.0x");
   };
+
+  const trackTitle = currentTrack?.title || "Data Structures: Linked Lists";
+  const trackAuthor = currentTrack?.author || "CS 301 - Dr. O. Asiedu";
+  const totalDuration = currentTrack?.durationSeconds || 1450;
+  const fileSizeMb = currentTrack?.fileSizeBytes ? `${currentTrack.fileSizeBytes} MB` : "18.4 MB";
+  const progressPercent = Math.min(100, Math.max(0, (currentPositionSeconds / totalDuration) * 100));
 
   return (
     <ScreenWrapper scrollable contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
@@ -51,19 +92,19 @@ export default function AudioBookPlayer() {
 
       {/* Audio Metadata */}
       <View style={styles.metadataSection}>
-        <Text style={[styles.audioTitle, { color: colors.text }]}>No track loaded</Text>
-        <Text style={[styles.audioAuthor, { color: colors.textMuted }]}>Select a track to begin</Text>
+        <Text style={[styles.audioTitle, { color: colors.text }]}>{trackTitle}</Text>
+        <Text style={[styles.audioAuthor, { color: colors.textMuted }]}>{trackAuthor}</Text>
       </View>
 
       {/* Progress slider bar mock */}
       <View style={styles.progressContainer}>
         <View style={[styles.trackBg, { backgroundColor: colors.border }]}>
-          <View style={[styles.trackProgress, { backgroundColor: colors.primary, width: "35%" }]} />
-          <View style={[styles.trackThumb, { backgroundColor: colors.primary, left: "35%" }]} />
+          <View style={[styles.trackProgress, { backgroundColor: colors.primary, width: `${progressPercent}%` }]} />
+          <View style={[styles.trackThumb, { backgroundColor: colors.primary, left: `${progressPercent}%` }]} />
         </View>
         <View style={styles.timeRow}>
-          <Text style={[styles.timeText, { color: colors.textMuted }]}>00:00</Text>
-          <Text style={[styles.timeText, { color: colors.textMuted }]}>00:00</Text>
+          <Text style={[styles.timeText, { color: colors.textMuted }]}>{formatTime(currentPositionSeconds)}</Text>
+          <Text style={[styles.timeText, { color: colors.textMuted }]}>{formatTime(totalDuration)}</Text>
         </View>
       </View>
 
@@ -75,7 +116,10 @@ export default function AudioBookPlayer() {
         </Pressable>
 
         {/* Skip Back 15s */}
-        <Pressable style={[styles.circleButton, { borderColor: colors.border }]}>
+        <Pressable 
+          style={[styles.circleButton, { borderColor: colors.border }]}
+          onPress={() => setCurrentPositionSeconds(Math.max(0, currentPositionSeconds - 15))}
+        >
           <Ionicons name="play-back-outline" size={20} color={colors.text} />
         </Pressable>
 
@@ -90,7 +134,10 @@ export default function AudioBookPlayer() {
         </Pressable>
 
         {/* Skip Forward 15s */}
-        <Pressable style={[styles.circleButton, { borderColor: colors.border }]}>
+        <Pressable 
+          style={[styles.circleButton, { borderColor: colors.border }]}
+          onPress={() => setCurrentPositionSeconds(Math.min(totalDuration, currentPositionSeconds + 15))}
+        >
           <Ionicons name="play-forward-outline" size={20} color={colors.text} />
         </Pressable>
 
@@ -120,7 +167,7 @@ export default function AudioBookPlayer() {
             {isCached ? "Available Offline" : "Save for offline study"}
           </Text>
           <Text style={[styles.cacheDesc, { color: colors.textMuted }]}>
-            {isCached ? "This lecture summary (18.4 MB) is fully saved on your device." : "Download audio textbook tracks to play without campus WiFi."}
+            {isCached ? `This lecture summary (${fileSizeMb}) is fully saved on your device.` : "Download audio textbook tracks to play without campus WiFi."}
           </Text>
         </View>
       </View>

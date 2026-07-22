@@ -25,6 +25,7 @@ export const authService = {
       lastName: payload.lastName,
       email: payload.email,
       password: payload.passwordHash,
+      institutionId: payload.institutionId,
     };
     const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: "POST",

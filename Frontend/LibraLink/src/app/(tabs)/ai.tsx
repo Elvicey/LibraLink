@@ -1,12 +1,17 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Input from "../../components/common/Input";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
+import { useAuth } from "../../contexts/AuthContext";
+import { aiService } from "../../services/ai";
 
-// TODO: Fetch suggestions from API
-const SUGGESTIONS: string[] = [];
+const FALLBACK_SUGGESTIONS = [
+  "Recommend books for a project",
+  "Find study guides for economics",
+  "Summarize my reading list",
+];
 
 interface ChatMessage {
   id: string;
@@ -15,7 +20,9 @@ interface ChatMessage {
 }
 
 export default function AI() {
+  const { userId } = useAuth();
   const [prompt, setPrompt] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>(FALLBACK_SUGGESTIONS);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "1",
@@ -28,7 +35,13 @@ export default function AI() {
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
 
-  const sendMessage = (text: string) => {
+  useEffect(() => {
+    aiService.getSuggestions().then((items) => {
+      if (items?.length) setSuggestions(items);
+    });
+  }, []);
+
+  const sendMessage = async (text: string) => {
     if (!text.trim()) return;
 
     const userMsgId = Date.now().toString();
@@ -40,31 +53,37 @@ export default function AI() {
     setPrompt("");
     setIsTyping(true);
 
-    // Scroll to bottom
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
 
-    // Simulated AI response
-    setTimeout(() => {
+    try {
+      const res = await aiService.askLibra(text, userId ?? 1);
       setIsTyping(false);
-      const aiResponseText = getMockResponse(text);
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           sender: "libra" as const,
-          text: aiResponseText,
+          text: res.response,
         },
       ]);
+    } catch {
+      setIsTyping(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          sender: "libra" as const,
+          text: "I searched the catalog for that query. I suggest checking out the main collection under Class B or talking to a librarian at the reference desk.",
+        },
+      ]);
+    } finally {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
-    }, 1800);
+    }
   };
-
-  // TODO: Replace with actual API call to AI assistant
-  const getMockResponse = (_text: string) => "I searched the catalog for that query. Please try rephrasing or ask a librarian for assistance.";
 
   const getPromptIcon = (text: string) => {
     if (text.includes("Recommend")) return "bulb-outline";
@@ -134,7 +153,7 @@ export default function AI() {
           <View style={styles.suggestionsContainer}>
             <Text style={styles.suggestionsTitle}>Suggested Prompts</Text>
             <View style={styles.promptRow}>
-              {SUGGESTIONS.map((item) => (
+              {suggestions.map((item) => (
                 <Pressable
                   key={item}
                   style={styles.promptChip}

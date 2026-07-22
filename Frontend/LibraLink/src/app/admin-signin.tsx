@@ -46,6 +46,7 @@ export default function AdminSignIn() {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
+        institutionId: data.institutionId ?? null,
       });
       router.replace("/admin" as any);
     } catch (e: any) {

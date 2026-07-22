@@ -30,7 +30,7 @@ type EnrichedItem = ReadingListItemResponse & {
 
 export default function CourseReadingLists() {
   const router = useRouter();
-  const { userId, token } = useAuth();
+  const { userId, token, institutionId } = useAuth();
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
 
@@ -63,13 +63,13 @@ export default function CourseReadingLists() {
       });
       setProgressMap(pMap);
 
-      const institutionId = institutions[0]?.institutionId;
-      if (institutionId == null) {
+      const selectedInstitutionId = institutionId ?? institutions[0]?.institutionId;
+      if (selectedInstitutionId == null) {
         setCourses([]);
         return;
       }
 
-      const courseList = await coursesService.getCourses(institutionId);
+      const courseList = await coursesService.getCourses(selectedInstitutionId);
       setCourses(courseList);
 
       const listsMap: Record<number, ReadingListResponse[]> = {};
@@ -89,7 +89,7 @@ export default function CourseReadingLists() {
     } finally {
       setLoading(false);
     }
-  }, [userId, token]);
+  }, [userId, token, institutionId]);
 
   useEffect(() => {
     load();

@@ -37,6 +37,7 @@ export default function Profile() {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
+          institutionId: user.institutionId ?? null,
         });
       }
       setBorrowedCount(history.length);

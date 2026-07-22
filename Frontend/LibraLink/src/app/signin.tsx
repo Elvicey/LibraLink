@@ -47,6 +47,7 @@ export default function SignIn() {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
+        institutionId: data.institutionId ?? null,
       });
       router.replace("/(tabs)/home" as any);
     } catch (e: any) {

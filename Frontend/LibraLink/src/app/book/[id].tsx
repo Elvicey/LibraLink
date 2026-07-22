@@ -1,24 +1,28 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../../components/common/Button";
 import Card from "../../components/common/Card";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
+import { useAuth } from "../../contexts/AuthContext";
 import { bookAuthorName, booksService, Book, isBookAvailable } from "../../services/books";
+import { reservationsService, slotWindowFromLabel } from "../../services/reservations";
 
 export default function BookDetail() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { id } = params as { id: string };
+  const { userId, token } = useAuth();
   const { colors, spacing, borderRadius, typography } = useTheme();
 
   const [reserveVisible, setReserveVisible] = useState(false);
   const [listVisible, setListVisible] = useState(false);
+  const [reserving, setReserving] = useState(false);
   const [pickupDate, setPickupDate] = useState("Tomorrow");
   const [pickupTime, setPickupTime] = useState("10:00 AM - 12:00 PM");
   const [pickupCampus, setPickupCampus] = useState("KNUST Main Library");
-  const [reservedPass, setReservedPass] = useState<{ date: string; time: string; campus: string } | null>(null);
+  const [reservedPass, setReservedPass] = useState<{ date: string; time: string; campus: string; qr?: string } | null>(null);
   const [folders, setFolders] = useState({
     semester: false,
     research: false,
@@ -260,10 +264,50 @@ export default function BookDetail() {
             </View>
 
             <Button
-              title="Confirm Reservation"
-              onPress={() => {
-                setReservedPass({ date: pickupDate, time: pickupTime, campus: pickupCampus });
-                setReserveVisible(false);
+              title={reserving ? "Confirming..." : "Confirm Reservation"}
+              loading={reserving}
+              onPress={async () => {
+                if (!userId || !token) {
+                  Alert.alert("Sign in required", "Please sign in to reserve this book.");
+                  return;
+                }
+                const bookId = Number(id);
+                if (!Number.isFinite(bookId)) {
+                  Alert.alert("Invalid book", "Could not reserve this title.");
+                  return;
+                }
+                setReserving(true);
+                try {
+                  const reservation = await reservationsService.create(
+                    userId,
+                    bookId,
+                    `Pickup at ${pickupCampus} · ${pickupDate} · ${pickupTime}`
+                  );
+                  const window = slotWindowFromLabel(pickupTime);
+                  const pickup = await reservationsService.schedulePickup({
+                    userId,
+                    reservationId: reservation.id,
+                    slotStart: window.slotStart,
+                    slotEnd: window.slotEnd,
+                  });
+                  setReservedPass({
+                    date: pickupDate,
+                    time: pickupTime,
+                    campus: pickupCampus,
+                    qr: pickup.qrCode,
+                  });
+                  setReserveVisible(false);
+                  Alert.alert(
+                    "Reservation confirmed",
+                    pickup.qrCode
+                      ? `Pickup scheduled. Show QR ${pickup.qrCode.slice(0, 8)}… at the desk.`
+                      : "Pickup scheduled. Check Pick-Up Scheduler for your slot."
+                  );
+                } catch (e: any) {
+                  Alert.alert("Reservation failed", e?.message || "Please try another slot.");
+                } finally {
+                  setReserving(false);
+                }
               }}
               style={{ paddingVertical: spacing.md, borderRadius: borderRadius.xl, marginBottom: spacing.lg }}
             />

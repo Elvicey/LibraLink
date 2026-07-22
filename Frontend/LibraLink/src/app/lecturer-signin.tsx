@@ -46,6 +46,7 @@ export default function LecturerSignIn() {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
+        institutionId: data.institutionId ?? null,
       });
       router.replace("/lecturer" as any);
     } catch (e: any) {
