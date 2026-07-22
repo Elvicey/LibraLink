@@ -46,9 +46,15 @@ public class ReservationController {
                                                       @RequestBody Map<String, String> body) {
         try {
             String status = body.get("status");
+            if (status == null || status.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "status is required"));
+            }
             Reservation updated = reservationService.updateStatus(id, status);
             return ResponseEntity.ok(updated);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+            }
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
