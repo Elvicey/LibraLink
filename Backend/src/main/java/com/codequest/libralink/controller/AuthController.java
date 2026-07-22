@@ -52,7 +52,6 @@ public class AuthController {
         }
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping("/register-lecturer")
     public ResponseEntity<?> registerLecturer(@Valid @RequestBody RegisterRequest request) {
         try {
