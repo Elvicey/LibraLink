@@ -1,12 +1,11 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../../components/common/Button";
 import Card from "../../components/common/Card";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
-
-const ALL_BOOKS: Record<string, { title: string; author: string; tag: string; available: boolean; pages: number; desc: string }> = {};
+import { bookAuthorName, booksService, Book, isBookAvailable } from "../../services/books";
 
 export default function BookDetail() {
   const router = useRouter();
@@ -14,30 +13,57 @@ export default function BookDetail() {
   const { id } = params as { id: string };
   const { colors, spacing, borderRadius, typography } = useTheme();
 
-  // Bottom sheets modals toggle visibility states
   const [reserveVisible, setReserveVisible] = useState(false);
   const [listVisible, setListVisible] = useState(false);
-
-  // States for pickup choices
   const [pickupDate, setPickupDate] = useState("Tomorrow");
   const [pickupTime, setPickupTime] = useState("10:00 AM - 12:00 PM");
   const [pickupCampus, setPickupCampus] = useState("KNUST Main Library");
   const [reservedPass, setReservedPass] = useState<{ date: string; time: string; campus: string } | null>(null);
-
-  // States for folders selections
   const [folders, setFolders] = useState({
     semester: false,
     research: false,
     exam: false,
   });
 
-  const book = ALL_BOOKS[id] || {
-    title: `Sample Book #${id}`,
-    author: "Unknown Author",
-    tag: "General",
-    available: true,
-    pages: 300,
-    desc: "No book description is available for this title. Please contact the KNUST library administrator for cataloging updates.",
+  const [apiBook, setApiBook] = useState<Book | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId)) {
+      setError("Invalid book id.");
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      setApiBook(await booksService.getById(numericId));
+    } catch (e: any) {
+      setError(e?.message || "Could not load book.");
+      setApiBook(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const book = {
+    title: apiBook?.title || `Book #${id}`,
+    author: apiBook ? bookAuthorName(apiBook) : "Unknown Author",
+    tag: apiBook?.language || "General",
+    available: apiBook ? isBookAvailable(apiBook) : false,
+    pages: "—",
+    desc:
+      apiBook?.description ||
+      "No book description is available for this title yet.",
+    copies: apiBook
+      ? `${apiBook.availableCopies ?? 0} / ${apiBook.totalCopies ?? 0} available`
+      : "—",
   };
 
   const getCheckbox = (checked: boolean) => (
@@ -52,6 +78,13 @@ export default function BookDetail() {
         <Text style={[styles.backText, { color: colors.primary }]}>← Back</Text>
       </Pressable>
 
+      {loading && <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.xl }} />}
+      {!!error && !loading && (
+        <Text style={{ color: colors.danger, marginBottom: spacing.lg }}>{error}</Text>
+      )}
+
+      {!loading && !error && (
+        <>
       <View style={[styles.coverSection, { marginVertical: spacing.lg }]}>
         <View style={[styles.coverPlaceholder, { backgroundColor: colors.surface, borderRadius: borderRadius.lg, borderColor: colors.border }]}>
           <Text style={styles.coverEmoji}>📖</Text>
@@ -79,8 +112,8 @@ export default function BookDetail() {
           </Text>
         </Card>
         <Card style={[styles.statCard, { padding: spacing.md }]}>
-          <Text style={[styles.statLabel, { color: colors.textMuted, marginBottom: spacing.xs }]}>Pages</Text>
-          <Text style={[styles.statValue, { color: colors.text }]}>{book.pages}</Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted, marginBottom: spacing.xs }]}>Copies</Text>
+          <Text style={[styles.statValue, { color: colors.text }]}>{book.copies}</Text>
         </Card>
       </View>
 
@@ -88,6 +121,8 @@ export default function BookDetail() {
         <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: spacing.sm }]}>Summary</Text>
         <Text style={[styles.descText, { color: colors.textMuted }]}>{book.desc}</Text>
       </View>
+        </>
+      )}
 
       {/* Ticket Pass Output if Reserved */}
       {reservedPass ? (

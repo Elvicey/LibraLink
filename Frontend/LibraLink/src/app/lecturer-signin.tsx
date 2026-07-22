@@ -1,5 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../config/api";
+import { useAuth } from "../contexts/AuthContext";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
@@ -10,6 +10,7 @@ import { theme, lightColors } from "../constants/theme";
 
 export default function LecturerSignIn() {
   const router = useRouter();
+  const { setSession } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,9 +39,14 @@ export default function LecturerSignIn() {
         throw new Error("This account does not have lecturer privileges.");
       }
 
-      await AsyncStorage.setItem("authToken", data.token);
-      await AsyncStorage.setItem("userId", String(data.userId));
-      await AsyncStorage.setItem("userRoles", JSON.stringify(roles));
+      await setSession({
+        token: data.token,
+        userId: data.userId,
+        roles,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+      });
       router.replace("/(tabs)/home" as any);
     } catch (e: any) {
       Alert.alert("Sign in failed", e.message || "Please try again.");

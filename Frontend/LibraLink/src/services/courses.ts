@@ -38,53 +38,36 @@ export interface BookResponse {
 }
 
 export const coursesService = {
-  /**
-   * Fetches all courses registered under a specific institution ID.
-   */
   getCourses: async (institutionId: number): Promise<CourseResponse[]> => {
-    return api.get<CourseResponse[]>(`/api/courses/institutions/${institutionId}`);
+    return api.get<CourseResponse[]>(`/api/courses/institutions/${institutionId}`, { auth: false });
   },
 
-  /**
-   * Fetches reading lists associated with a course.
-   */
   getReadingLists: async (courseId: number): Promise<ReadingListResponse[]> => {
     return api.get<ReadingListResponse[]>(`/api/reading-lists/course/${courseId}`);
   },
 
-  /**
-   * Fetches all library catalog books.
-   */
   getBooks: async (): Promise<BookResponse[]> => {
-    return api.get<BookResponse[]>("/api/books");
+    return api.get<BookResponse[]>("/api/books", { auth: false });
   },
 
-  /**
-   * Assigns a textbook item to a specific reading list.
-   */
   addBookToReadingList: async (
     readingListId: number,
     bookId: number,
     notes?: string
   ): Promise<ReadingListItemResponse> => {
-    const body = {
+    return api.post<ReadingListItemResponse>("/api/reading_list_items", {
       readingListId,
       bookId,
       notes: notes || "Assigned reading",
-    };
-    return api.post<ReadingListItemResponse>("/api/reading_list_items", body);
+    });
   },
 
-  /**
-   * Convenience helper to create a brand new textbook catalog entry.
-   */
   createBook: async (title: string, author: string): Promise<BookResponse> => {
-    const body = {
+    return api.post<BookResponse>("/api/books", {
       title,
       author,
       totalCopies: 5,
       availableCopies: 5,
-    };
-    return api.post<BookResponse>("/api/books", body);
+    });
   },
 };

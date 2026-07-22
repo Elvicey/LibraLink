@@ -32,6 +32,12 @@ public class FinePaymentService {
         }
 
         Fine fine = fineService.getFineById(payment.getFineId());
+        if (!fine.getUserId().equals(payment.getUserId())) {
+            throw new IllegalArgumentException("Fine does not belong to this user");
+        }
+        if ("PAID".equalsIgnoreCase(fine.getStatus())) {
+            throw new IllegalArgumentException("Fine is already paid");
+        }
 
         if (payment.getAmount() == null) {
             payment.setAmount(payment.getAmountPaid());

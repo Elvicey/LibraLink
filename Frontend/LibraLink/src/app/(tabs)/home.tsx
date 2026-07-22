@@ -1,20 +1,28 @@
-import { API_BASE_URL } from "../../config/api";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Button from "../../components/common/Button";
 import Card from "../../components/common/Card";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
-
-// TODO: Fetch recommended books from API
-const RECOMMENDED: { id: string; title: string; author: string; tag: string; emoji: string }[] = [];
+import { useAuth } from "../../contexts/AuthContext";
+import { bookAuthorName, booksService, Book } from "../../services/books";
+import { borrowsService } from "../../services/borrows";
+import { fineAmount, finesService } from "../../services/fines";
+import { notificationsService } from "../../services/users";
 
 export default function Home() {
   const router = useRouter();
+  const { firstName, userId, token } = useAuth();
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
+
+  const [recommended, setRecommended] = useState<Book[]>([]);
+  const [borrowedCount, setBorrowedCount] = useState(0);
+  const [overdueCount, setOverdueCount] = useState(0);
+  const [unpaidFineTotal, setUnpaidFineTotal] = useState(0);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   const getGreeting = () => {
     const hours = new Date().getHours();
@@ -23,8 +31,58 @@ export default function Home() {
     return "Good evening";
   };
 
-  // TODO: Fetch highlights from API
-  const highlightsList: { title: string; value: string; icon: string; bg: string; border: string; color: string }[] = [];
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const books = await booksService.list();
+      setRecommended(books.slice(0, 8));
+
+      if (userId && token) {
+        const [borrows, fines, notifs] = await Promise.all([
+          borrowsService.getCurrent(userId).catch(() => []),
+          finesService.getForUser(userId).catch(() => []),
+          notificationsService.getForUser(userId).catch(() => []),
+        ]);
+        setBorrowedCount(borrows.length);
+        setOverdueCount(borrows.filter((b) => (b.status || "").toUpperCase() === "OVERDUE").length);
+        setUnpaidFineTotal(
+          fines
+            .filter((f) => (f.status || "").toUpperCase() !== "PAID")
+            .reduce((sum, f) => sum + fineAmount(f), 0)
+        );
+        setUnreadNotifs(notifs.filter((n) => !n.isRead).length);
+      }
+    } catch {
+      setRecommended([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, token]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const displayName = firstName || "Student";
+
+  const highlightsList = [
+    {
+      title: "Fines",
+      value: `GHS ${unpaidFineTotal.toFixed(2)}`,
+      icon: "cash-outline",
+      bg: isDark ? "rgba(220, 38, 38, 0.08)" : "#fff5f5",
+      border: "rgba(220, 38, 38, 0.15)",
+      color: colors.danger,
+    },
+    {
+      title: "Loans",
+      value: String(borrowedCount),
+      icon: "book-outline",
+      bg: isDark ? "rgba(37, 99, 235, 0.08)" : "#f0f7ff",
+      border: "rgba(37, 99, 235, 0.15)",
+      color: colors.primary,
+    },
+  ];
 
   return (
     <ScreenWrapper scrollable style={styles.screen} contentContainerStyle={styles.container}>
@@ -56,14 +114,14 @@ export default function Home() {
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.greetingText}>{getGreeting()},</Text>
-          <Text style={styles.userName}>Student</Text>
+          <Text style={styles.userName}>{displayName}</Text>
         </View>
         <Pressable
           style={styles.bellButton}
           onPress={() => router.push("/notifications" as any)}
         >
           <Ionicons name="notifications-outline" size={22} color={colors.text} />
-          <View style={styles.bellBadge} />
+          {unreadNotifs > 0 && <View style={styles.bellBadge} />}
         </Pressable>
       </View>
 
@@ -90,19 +148,19 @@ export default function Home() {
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Ionicons name="book-outline" size={20} color={colors.primary} style={{ marginBottom: spacing.xs }} />
-          <Text style={styles.statValue}>0</Text>
+          <Text style={styles.statValue}>{borrowedCount}</Text>
           <Text style={styles.statLabel}>Borrowed</Text>
         </View>
         <View style={styles.statCard}>
           <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={{ marginBottom: spacing.xs }} />
-          <Text style={[styles.statValue, { color: colors.danger }]}>0</Text>
+          <Text style={[styles.statValue, { color: colors.danger }]}>{overdueCount}</Text>
           <Text style={styles.statLabel}>Overdue</Text>
         </View>
-        <View style={styles.statCard}>
-          <Ionicons name="bookmark-outline" size={20} color={colors.warning} style={{ marginBottom: spacing.xs }} />
-          <Text style={styles.statValue}>0</Text>
-          <Text style={styles.statLabel}>Holds</Text>
-        </View>
+        <Pressable style={styles.statCard} onPress={() => router.push("/pay-fines" as any)}>
+          <Ionicons name="cash-outline" size={20} color={colors.warning} style={{ marginBottom: spacing.xs }} />
+          <Text style={styles.statValue}>{unpaidFineTotal.toFixed(0)}</Text>
+          <Text style={styles.statLabel}>Fine GHS</Text>
+        </Pressable>
       </View>
 
       {/* Quick Actions Header */}
@@ -164,22 +222,22 @@ export default function Home() {
 
       {/* Continue Reading Card */}
       <Card style={styles.resourcesCard}>
-        <Text style={styles.resourcesTitle}>Continue reading</Text>
-        <Text style={styles.resourcesSubtitle}>Pick up where you left off</Text>
+        <Text style={styles.resourcesTitle}>Library catalogue</Text>
+        <Text style={styles.resourcesSubtitle}>
+          {loading ? "Loading books…" : `${recommended.length} titles ready to explore`}
+        </Text>
         <View style={styles.resourceInfo}>
           <View style={{ flex: 1, marginRight: spacing.md }}>
             <Text style={styles.resourceLabel}>
-              Data Structures in Practice
+              {recommended[0]?.title || "Browse the catalogue"}
             </Text>
-            <Text style={styles.resourceMeta}>50% complete</Text>
+            <Text style={styles.resourceMeta}>
+              {recommended[0] ? bookAuthorName(recommended[0]) : "Open Search to find books"}
+            </Text>
           </View>
-          
-          {/* Custom Circular Progress Arc */}
-          <View style={styles.circularProgressContainer}>
-            <View style={styles.progressTrack} />
-            <View style={styles.progressSegment} />
-            <Text style={styles.progressPercent}>50%</Text>
-          </View>
+          <Pressable onPress={() => router.push("/search" as any)}>
+            <Ionicons name="arrow-forward-circle" size={36} color={colors.primary} />
+          </Pressable>
         </View>
       </Card>
 
@@ -188,30 +246,39 @@ export default function Home() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recommended for you</Text>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carouselContainer}
-        >
-          {RECOMMENDED.map((item) => (
-            <Pressable
-              key={item.id}
-              style={styles.carouselCard}
-              onPress={() => router.push(`/book/${item.id}` as any)}
-            >
-              <View style={styles.carouselCardHeader}>
-                <Text style={styles.carouselEmoji}>{item.emoji}</Text>
-                <Text style={styles.carouselTag}>{item.tag}</Text>
-              </View>
-              <Text style={styles.carouselTitle} numberOfLines={2}>
-                {item.title}
-              </Text>
-              <Text style={styles.carouselAuthor} numberOfLines={1}>
-                {item.author}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+        {loading ? (
+          <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.lg }} />
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselContainer}
+          >
+            {recommended.map((item) => (
+              <Pressable
+                key={item.id}
+                style={styles.carouselCard}
+                onPress={() => router.push(`/book/${item.id}` as any)}
+              >
+                <View style={styles.carouselCardHeader}>
+                  <Text style={styles.carouselEmoji}>📖</Text>
+                  <Text style={styles.carouselTag}>
+                    {(item.availableCopies ?? 0) > 0 ? "Available" : "On loan"}
+                  </Text>
+                </View>
+                <Text style={styles.carouselTitle} numberOfLines={2}>
+                  {item.title}
+                </Text>
+                <Text style={styles.carouselAuthor} numberOfLines={1}>
+                  {bookAuthorName(item)}
+                </Text>
+              </Pressable>
+            ))}
+            {recommended.length === 0 && (
+              <Text style={{ color: colors.textMuted }}>No books found in the catalogue yet.</Text>
+            )}
+          </ScrollView>
+        )}
       </View>
     </ScreenWrapper>
   );
