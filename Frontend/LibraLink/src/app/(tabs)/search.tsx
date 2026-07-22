@@ -6,17 +6,16 @@ import Input from "../../components/common/Input";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
 import Card from "../../components/common/Card";
-import { bookAuthorName, booksService, Book, isBookAvailable } from "../../services/books";
+import { bookAuthorName, booksService, Book, inferSubject, isBookAvailable } from "../../services/books";
 
-const SUBJECT_OPTIONS = ["All"];
-const AUTHOR_OPTIONS = ["All"];
+const SUBJECT_OPTIONS = ["All", "Science", "Literature", "Computing", "Economics"];
 const AVAILABILITY_OPTIONS = ["All", "Available", "On Loan"];
 
 const CATEGORIES = [
-  { label: "Science", emoji: "🧬", query: "Calculus", tint: "rgba(11, 110, 253, 0.08)" },
-  { label: "Literature", emoji: "📖", query: "Things Fall Apart", tint: "rgba(139, 92, 246, 0.08)" },
-  { label: "Computing", emoji: "💻", query: "Data", tint: "rgba(6, 182, 212, 0.08)" },
-  { label: "Economics", emoji: "📈", query: "Economics", tint: "rgba(245, 158, 11, 0.08)" },
+  { label: "Science", emoji: "🧬", subject: "Science", tint: "rgba(11, 110, 253, 0.08)" },
+  { label: "Literature", emoji: "📖", subject: "Literature", tint: "rgba(139, 92, 246, 0.08)" },
+  { label: "Computing", emoji: "💻", subject: "Computing", tint: "rgba(6, 182, 212, 0.08)" },
+  { label: "Economics", emoji: "📈", subject: "Economics", tint: "rgba(245, 158, 11, 0.08)" },
 ];
 
 type SearchBook = {
@@ -33,7 +32,7 @@ function toSearchBook(book: Book): SearchBook {
     title: book.title,
     author: bookAuthorName(book),
     available: isBookAvailable(book),
-    tag: book.language || "General",
+    tag: inferSubject(book),
   };
 }
 
@@ -45,6 +44,7 @@ export default function Search() {
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [selectedAuthor, setSelectedAuthor] = useState("All");
   const [selectedAvailability, setSelectedAvailability] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
   const [activeDropdown, setActiveDropdown] = useState<"subject" | "author" | "availability" | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -82,7 +82,10 @@ export default function Search() {
         .toLowerCase()
         .includes(query.toLowerCase());
       
-      const matchesSubject = selectedSubject === "All" || b.tag === selectedSubject;
+      const matchesSubject =
+        selectedSubject === "All" || b.tag === selectedSubject;
+      const matchesCategory =
+        !selectedCategory || b.tag === selectedCategory;
       const matchesAuthor = selectedAuthor === "All" || b.author === selectedAuthor;
       
       let matchesAvailability = true;
@@ -92,9 +95,9 @@ export default function Search() {
         matchesAvailability = !b.available;
       }
       
-      return matchesSearch && matchesSubject && matchesAuthor && matchesAvailability;
+      return matchesSearch && matchesSubject && matchesCategory && matchesAuthor && matchesAvailability;
     });
-  }, [books, query, selectedSubject, selectedAuthor, selectedAvailability]);
+  }, [books, query, selectedSubject, selectedCategory, selectedAuthor, selectedAvailability]);
 
   const suggestions = useMemo(() => {
     if (!query.trim()) return [];
@@ -231,9 +234,13 @@ export default function Search() {
           {CATEGORIES.map((cat) => (
             <Pressable
               key={cat.label}
-              style={styles.categoryTile}
+              style={[
+                styles.categoryTile,
+                selectedCategory === cat.subject && { borderColor: colors.primary, borderWidth: 1.5 },
+              ]}
               onPress={() => {
-                setQuery(cat.query);
+                setSelectedCategory(cat.subject);
+                setQuery("");
                 setSelectedSubject("All");
                 setSelectedAuthor("All");
                 setSelectedAvailability("All");
@@ -246,6 +253,13 @@ export default function Search() {
             </Pressable>
           ))}
         </View>
+        {!!selectedCategory && (
+          <Pressable onPress={() => setSelectedCategory(null)} style={{ marginBottom: spacing.md }}>
+            <Text style={{ color: colors.primary, fontWeight: "600" }}>
+              Showing {selectedCategory} · Clear filter
+            </Text>
+          </Pressable>
+        )}
 
         {/* Search Results */}
         <Text style={styles.resultsTitle}>Search results</Text>

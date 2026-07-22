@@ -1,9 +1,13 @@
 package com.codequest.libralink.config;
 
+import com.codequest.libralink.entity.Author;
+import com.codequest.libralink.entity.Book;
 import com.codequest.libralink.entity.PodcastEpisode;
 import com.codequest.libralink.entity.PodcastShow;
 import com.codequest.libralink.entity.Role;
 import com.codequest.libralink.entity.User;
+import com.codequest.libralink.repository.AuthorRepository;
+import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.PodcastEpisodeRepository;
 import com.codequest.libralink.repository.PodcastShowRepository;
 import com.codequest.libralink.repository.RoleRepository;
@@ -47,21 +51,29 @@ public class DataSeeder implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final PodcastShowRepository podcastShowRepository;
     private final PodcastEpisodeRepository podcastEpisodeRepository;
+    private final BookRepository bookRepository;
+    private final AuthorRepository authorRepository;
 
     public DataSeeder(UserRepository userRepository, RoleRepository roleRepository,
                       PasswordEncoder passwordEncoder,
                       PodcastShowRepository podcastShowRepository,
-                      PodcastEpisodeRepository podcastEpisodeRepository) {
+                      PodcastEpisodeRepository podcastEpisodeRepository,
+                      BookRepository bookRepository,
+                      AuthorRepository authorRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.podcastShowRepository = podcastShowRepository;
         this.podcastEpisodeRepository = podcastEpisodeRepository;
+        this.bookRepository = bookRepository;
+        this.authorRepository = authorRepository;
     }
 
     @Override
     public void run(String... args) {
         seedAdmin();
+        seedCatalogBooks();
+        tagExistingLiteratureBooks();
         seedPodcasts();
         upgradePlaceholderPodcastAudio();
     }
@@ -73,7 +85,7 @@ public class DataSeeder implements CommandLineRunner {
         Role adminRole = roleRepository.findByName("ADMIN")
                 .orElseGet(() -> roleRepository.save(new Role("ADMIN")));
 
-        User admin = userRepository.findByEmail(adminEmail).orElse(null);
+        User admin = userRepository.findByEmailIgnoreCase(adminEmail).orElse(null);
 
         if (admin == null) {
             admin = new User();
@@ -99,6 +111,95 @@ public class DataSeeder implements CommandLineRunner {
         }
     }
 
+    private void seedCatalogBooks() {
+        ensureBook("Introduction to Calculus", "James Stewart", "Science",
+                "Subject: Science. Core calculus text covering limits, derivatives, and integrals for undergraduate science students.",
+                "9781285741550", (short) 2015, 8, 5);
+        ensureBook("University Physics", "Hugh D. Young", "Science",
+                "Subject: Science. Mechanics, waves, thermodynamics, and electromagnetism for first-year physics.",
+                "9780321973610", (short) 2019, 6, 4);
+        ensureBook("Organic Chemistry Essentials", "Paula Bruice", "Science",
+                "Subject: Science. Foundations of organic chemistry with campus lab applications.",
+                "9780134042282", (short) 2016, 5, 3);
+
+        ensureBook("Data Structures in Practice", "Michael T. Goodrich", "Computing",
+                "Subject: Computing. Arrays, trees, graphs, hashing, and algorithm analysis for CS courses.",
+                "9781118771334", (short) 2014, 10, 7);
+        ensureBook("Introduction to Algorithms", "Thomas H. Cormen", "Computing",
+                "Subject: Computing. Classic algorithms reference used across computing departments.",
+                "9780262046305", (short) 2022, 7, 4);
+        ensureBook("Database System Concepts", "Abraham Silberschatz", "Computing",
+                "Subject: Computing. Relational models, SQL, transactions, and modern database design.",
+                "9780078022159", (short) 2019, 6, 4);
+
+        ensureBook("Principles of Economics", "N. Gregory Mankiw", "Economics",
+                "Subject: Economics. Micro and macro foundations for introductory economics modules.",
+                "9780357133491", (short) 2020, 9, 6);
+        ensureBook("Development Economics", "Debraj Ray", "Economics",
+                "Subject: Economics. Growth, poverty, inequality, and development policy for African campuses.",
+                "9780691017068", (short) 1998, 5, 3);
+        ensureBook("African Economic History", "Ralph A. Austen", "Economics",
+                "Subject: Economics. Long-run patterns of African trade, labour, and economic change.",
+                "9780435080174", (short) 1987, 4, 2);
+
+        ensureBook("Things Fall Apart", "Chinua Achebe", "Literature",
+                "Subject: Literature. Achebe's classic Igbo novel on tradition, masculinity, and colonial encounter.",
+                "9780385474542", (short) 1958, 8, 5);
+        ensureBook("Purple Hibiscus", "Chimamanda Ngozi Adichie", "Literature",
+                "Subject: Literature. Coming-of-age novel set in Nigeria exploring family, faith, and freedom.",
+                "9780007189885", (short) 2003, 6, 4);
+        ensureBook("Nervous Conditions", "Tsitsi Dangarembga", "Literature",
+                "Subject: Literature. Zimbabwean novel on education, gender, and colonial identity.",
+                "9780954702335", (short) 1988, 5, 3);
+    }
+
+    private void ensureBook(String title, String authorName, String subject,
+                            String description, String isbn, short year,
+                            int totalCopies, int availableCopies) {
+        if (bookRepository.findFirstByTitleIgnoreCase(title).isPresent()) {
+            return;
+        }
+        // Skip if ISBN already taken by another title
+        if (isbn != null && !bookRepository.findByIsbn(isbn).isEmpty()) {
+            return;
+        }
+
+        Author author = authorRepository.findByFullNameIgnoreCase(authorName)
+                .orElseGet(() -> authorRepository.save(new Author(authorName, subject + " author")));
+
+        Book book = new Book();
+        book.setTitle(title);
+        book.setDescription(description);
+        book.setIsbn(isbn);
+        book.setPublicationYear(year);
+        book.setLanguage("English");
+        book.setTotalCopies(totalCopies);
+        book.setAvailableCopies(availableCopies);
+        book.setActive(true);
+        book.setSubtitle("Subject: " + subject);
+        Set<Author> authors = new HashSet<>();
+        authors.add(author);
+        book.setAuthors(authors);
+        bookRepository.save(book);
+    }
+
+    private void tagExistingLiteratureBooks() {
+        bookRepository.findAll().forEach(book -> {
+            String title = book.getTitle() != null ? book.getTitle().toLowerCase() : "";
+            String subtitle = book.getSubtitle() != null ? book.getSubtitle() : "";
+            if (subtitle.toLowerCase().contains("subject:")) {
+                return;
+            }
+            if (title.contains("things fall apart") || title.contains("purple hibiscus") || title.contains("nervous conditions")) {
+                book.setSubtitle("Subject: Literature");
+                if (book.getDescription() == null || book.getDescription().isBlank()) {
+                    book.setDescription("Subject: Literature. Catalogued for LibraLink campus reading.");
+                }
+                bookRepository.save(book);
+            }
+        });
+    }
+
     private void seedPodcasts() {
         if (podcastShowRepository.count() > 0) {
             return;
@@ -118,9 +219,6 @@ public class DataSeeder implements CommandLineRunner {
                 "Ikemefuna and the Cost of Belonging", TFA_EPISODE_2_SCRIPT, 90));
     }
 
-    /**
-     * Existing deploys seeded SoundHelix demo music. Replace those with book-linked spoken scripts.
-     */
     private void upgradePlaceholderPodcastAudio() {
         List<PodcastEpisode> episodes = podcastEpisodeRepository.findAll();
         for (PodcastEpisode episode : episodes) {
@@ -152,9 +250,6 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         podcastShowRepository.findAll().forEach(show -> {
-            if (show.getDescription() != null && show.getDescription().toLowerCase().contains("demo")) {
-                return;
-            }
             if ("Integration Test Show".equals(show.getTitle())) {
                 show.setTitle("Things Fall Apart Companion");
                 show.setDescription("Short spoken companion episodes for Chinua Achebe's Things Fall Apart in the LibraLink catalog.");

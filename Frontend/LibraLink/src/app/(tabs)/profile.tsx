@@ -149,6 +149,19 @@ export default function Profile() {
             </Pressable>
 
             <Pressable
+              style={styles.menuItem}
+              onPress={() => router.push("/reports" as any)}
+            >
+              <View style={styles.menuItemRow}>
+                <View style={styles.menuItemLeft}>
+                  <Ionicons name="bar-chart-outline" size={20} color={colors.textMuted} style={styles.menuIcon} />
+                  <Text style={styles.menuText}>Reports</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.borderDark} />
+              </View>
+            </Pressable>
+
+            <Pressable
               style={[styles.menuItem, styles.lastMenuItem]}
               onPress={() => router.push("/pay-fines" as any)}
             >

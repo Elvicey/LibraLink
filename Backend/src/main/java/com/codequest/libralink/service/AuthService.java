@@ -33,7 +33,7 @@ public class AuthService {
 
     public AuthResponse login(String email, String password) {
         String trimmedEmail = email != null ? email.trim().toLowerCase() : "";
-        User user = userRepository.findByEmail(trimmedEmail)
+        User user = userRepository.findByEmailIgnoreCase(trimmedEmail)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
@@ -51,15 +51,17 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        String email = normalizeEmail(request.getEmail());
+        if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
             throw new IllegalArgumentException("An account with this email already exists");
         }
 
         User user = new User();
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
+        user.setFirstName(request.getFirstName() != null ? request.getFirstName().trim() : "");
+        user.setLastName(request.getLastName() != null ? request.getLastName().trim() : "");
+        user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setActive(true);
 
         Role role = roleRepository.findByName("STUDENT")
                 .orElseGet(() -> roleRepository.save(new Role("STUDENT")));
@@ -80,15 +82,17 @@ public class AuthService {
     }
 
     public AuthResponse registerLecturer(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        String email = normalizeEmail(request.getEmail());
+        if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
             throw new IllegalArgumentException("An account with this email already exists");
         }
 
         User user = new User();
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
+        user.setFirstName(request.getFirstName() != null ? request.getFirstName().trim() : "");
+        user.setLastName(request.getLastName() != null ? request.getLastName().trim() : "");
+        user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setActive(true);
 
         Role role = roleRepository.findByName("LECTURER")
                 .orElseGet(() -> roleRepository.save(new Role("LECTURER")));
@@ -109,15 +113,17 @@ public class AuthService {
     }
 
     public AuthResponse registerLibrarian(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        String email = normalizeEmail(request.getEmail());
+        if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
             throw new IllegalArgumentException("An account with this email already exists");
         }
 
         User user = new User();
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
+        user.setFirstName(request.getFirstName() != null ? request.getFirstName().trim() : "");
+        user.setLastName(request.getLastName() != null ? request.getLastName().trim() : "");
+        user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setActive(true);
 
         Role role = roleRepository.findByName("LIBRARIAN")
                 .orElseGet(() -> roleRepository.save(new Role("LIBRARIAN")));
@@ -135,5 +141,9 @@ public class AuthService {
 
         return new AuthResponse(token, saved.getId(), saved.getEmail(),
                 saved.getFirstName(), saved.getLastName(), roleNames, instId);
+    }
+
+    private String normalizeEmail(String email) {
+        return email != null ? email.trim().toLowerCase() : "";
     }
 }
