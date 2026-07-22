@@ -1,15 +1,64 @@
+import { useAuth } from "../contexts/AuthContext";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { theme, lightColors } from "../constants/theme";
+import { API_BASE_URL } from "../config/api";
 
 export default function SignIn() {
   const router = useRouter();
+  const { setSession } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSignIn = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password;
+    if (!cleanEmail || !cleanPassword) {
+      Alert.alert("Error", "Please enter email and password.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Invalid email or password.");
+      }
+
+      const roles: string[] = data.roles || [];
+      const isAcademic = roles.some((r) => r === "STUDENT" || r === "LECTURER");
+      if (!isAcademic) {
+        throw new Error("Use the Librarian / Admin portal for staff accounts.");
+      }
+
+      await setSession({
+        token: data.token,
+        userId: data.userId,
+        roles,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        institutionId: data.institutionId ?? null,
+      });
+      router.replace("/(tabs)/home" as any);
+    } catch (e: any) {
+      Alert.alert(
+        "Sign in failed",
+        e.message || "Check your email and password, then try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScreenWrapper
@@ -21,26 +70,20 @@ export default function SignIn() {
     >
       {/* Decorative background circles */}
       <View style={styles.backgroundCirclesContainer}>
-        {/* Large soft blue circle top left */}
         <View style={[styles.circle, styles.circleBlueLarge, { top: -100, left: -100 }]} />
-        {/* Medium yellow circle top right */}
         <View style={[styles.circle, styles.circleYellowMedium, { top: 80, right: -40 }]} />
-        {/* Medium blue ring middle left */}
         <View style={[styles.circle, styles.circleBlueRing, { top: "45%", left: -50 }]} />
-        {/* Small yellow circle bottom left */}
         <View style={[styles.circle, styles.circleYellowSmall, { bottom: 120, left: -30 }]} />
-        {/* Large blue circle bottom right */}
         <View style={[styles.circle, styles.circleBlueLarge, { bottom: -120, right: -80 }]} />
-        {/* Medium-small yellow ring middle right */}
         <View style={[styles.circle, styles.circleYellowRing, { top: "25%", right: "15%" }]} />
       </View>
 
       {/* Glassmorphic Form Card */}
       <View style={styles.glassCard}>
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome back</Text>
+          <Text style={styles.title}>Academic Portal</Text>
           <Text style={styles.subtitle}>
-            Sign in to access your library account
+            Sign in as Student or Lecturer — same library screens
           </Text>
         </View>
 
@@ -60,11 +103,6 @@ export default function SignIn() {
           onChangeText={setPassword}
         />
 
-        {/* Role-based routing info banner */}
-        <Text style={styles.roleNote}>
-          ℹ️ Students use standard logins. Librarians log in with <Text style={{ fontWeight: "700" }}>admin@knust.edu.gh</Text>.
-        </Text>
-
         <Pressable
           style={styles.linkButton}
           onPress={() => router.push("/forgot-password" as any)}
@@ -74,14 +112,8 @@ export default function SignIn() {
 
         <Button
           title="Sign in"
-          onPress={() => {
-            const isLibrarian = email.toLowerCase().includes("admin") || email.toLowerCase().includes("librarian");
-            if (isLibrarian) {
-              router.replace("/admin" as any);
-            } else {
-              router.replace("/home" as any);
-            }
-          }}
+          onPress={handleSignIn}
+          loading={loading}
           style={[styles.submitButton, { backgroundColor: lightColors.primary }]}
           textStyle={styles.submitButtonText}
         />
@@ -115,6 +147,15 @@ export default function SignIn() {
         >
           <Text style={styles.bottomText}>
             No account? <Text style={styles.bottomLinkText}>Sign up</Text>
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.librarianLink}
+          onPress={() => router.replace("/")}
+        >
+          <Text style={styles.librarianLinkText}>
+            <Text style={styles.librarianLinkHighlight}>← Back to role selection</Text>
           </Text>
         </Pressable>
       </View>
@@ -164,17 +205,6 @@ const styles = StyleSheet.create({
   linkText: {
     color: lightColors.primary,
     fontWeight: "600",
-  },
-  roleNote: {
-    color: lightColors.textMuted,
-    fontSize: 13,
-    lineHeight: 18,
-    marginVertical: theme.spacing.sm,
-    backgroundColor: "rgba(11, 110, 253, 0.05)",
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: "rgba(11, 110, 253, 0.1)",
   },
   submitButton: {
     width: "100%",
@@ -231,6 +261,19 @@ const styles = StyleSheet.create({
     color: lightColors.textMuted,
   },
   bottomLinkText: {
+    color: lightColors.primary,
+    fontWeight: "700",
+  },
+  librarianLink: {
+    alignSelf: "center",
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.xs,
+  },
+  librarianLinkText: {
+    color: lightColors.textMuted,
+    fontSize: 13,
+  },
+  librarianLinkHighlight: {
     color: lightColors.primary,
     fontWeight: "700",
   },

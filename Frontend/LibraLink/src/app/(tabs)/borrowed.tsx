@@ -1,53 +1,51 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../../components/common/Button";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
+import { useAuth } from "../../contexts/AuthContext";
+import { bookAuthorName } from "../../services/books";
+import { borrowsService, BorrowRecord } from "../../services/borrows";
 
-const BORROWED = [
-  {
-    id: "2",
-    title: "Introduction to Calculus",
-    author: "J. Stewart",
-    due: "Due 30 Jun 2026",
-    status: "active",
-    progress: "3 days left",
-  },
-  {
-    id: "4",
-    title: "African Economic Dev.",
-    author: "Aryeetey & Fosu",
-    due: "Overdue",
-    status: "overdue",
-    fine: "GHS 1.00",
-  },
-  {
-    id: "5",
-    title: "Data Structures in Practice",
-    author: "Mark Allen Weiss",
-    due: "Pick-up 2:00 PM today",
-    status: "ready",
-  },
-];
+type LoanView = {
+  id: string;
+  title: string;
+  author: string;
+  due: string;
+  status: string;
+  progress?: string;
+  fine?: string;
+};
+
+function mapBorrow(record: BorrowRecord): LoanView {
+  const statusRaw = (record.status || "BORROWED").toUpperCase();
+  let status = "active";
+  if (statusRaw === "OVERDUE") status = "overdue";
+  if (statusRaw === "RETURNED") status = "returned";
+  return {
+    id: String(record.id),
+    title: record.book?.title || "Unknown book",
+    author: record.book ? bookAuthorName(record.book) : "Unknown author",
+    due: record.dueDate || "—",
+    status,
+    progress: record.dueDate ? `Due ${record.dueDate}` : undefined,
+  };
+}
 
 function getLoanStatusColor(status: string, colors: any) {
-  return status === "overdue"
-    ? colors.danger
-    : status === "ready"
-      ? colors.success
-      : colors.primary;
+  if (status === "overdue") return colors.danger;
+  if (status === "ready" || status === "returned") return colors.success;
+  return colors.primary;
 }
 
 function getLoanStatusBg(status: string, colors: any) {
-  return status === "overdue"
-    ? colors.dangerLight
-    : status === "ready"
-      ? colors.successLight
-      : colors.primaryLight;
+  if (status === "overdue") return colors.dangerLight;
+  if (status === "ready" || status === "returned") return colors.successLight;
+  return colors.primaryLight;
 }
 
-function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: any) {
+function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn, showActions = true }: any) {
   const statusColor = getLoanStatusColor(loan.status, colors);
   const statusBg = getLoanStatusBg(loan.status, colors);
 
@@ -63,7 +61,6 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: an
         },
       ]}
     >
-      {/* Header Row: Title & Badge Pill */}
       <View style={styles.cardHeader}>
         <Text style={[styles.cardTitle, { color: colors.text, marginRight: spacing.sm }]}>
           {loan.title}
@@ -79,18 +76,13 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: an
         by {loan.author}
       </Text>
 
-      {/* Visual Status Content Block */}
       <View style={styles.infoBlockContainer}>
         {loan.status === "active" && (
           <View style={styles.progressSection}>
-            <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
-              {/* Mocking 11/14 days elapsed (approx 78%) */}
-              <View style={[styles.progressBarFill, { width: "78.5%", backgroundColor: colors.primary }]} />
-            </View>
             <View style={styles.dueDetails}>
               <Ionicons name="time-outline" size={14} color={colors.textMuted} style={{ marginRight: 4 }} />
               <Text style={[styles.dueText, { color: colors.textMuted }]}>
-                {loan.progress} (Due 30 Jun)
+                {loan.progress || `Due ${loan.due}`}
               </Text>
             </View>
           </View>
@@ -101,35 +93,23 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: an
             <View style={styles.alertHeader}>
               <Ionicons name="alert-circle" size={16} color={colors.danger} style={{ marginRight: 6 }} />
               <Text style={[styles.alertText, { color: colors.danger }]}>
-                Overdue · Immediate Action Required
+                Overdue · Due {loan.due}
               </Text>
-            </View>
-            <View style={styles.fineRow}>
-              <Text style={[styles.fineLabel, { color: colors.textMuted }]}>Accumulated Fine:</Text>
-              <Text style={[styles.fineValue, { color: colors.danger }]}>{loan.fine}</Text>
             </View>
           </View>
         )}
 
-        {loan.status === "ready" && (
-          <View style={[styles.readyBlock, { backgroundColor: colors.successLight, borderColor: "rgba(21, 128, 61, 0.12)" }]}>
-            <View style={styles.readyHeader}>
-              <Ionicons name="sparkles" size={16} color={colors.success} style={{ marginRight: 6 }} />
-              <Text style={[styles.readyText, { color: colors.success }]}>
-                Ready for Pickup at Campus Desk
-              </Text>
-            </View>
-            <View style={styles.pickupTimeRow}>
-              <Ionicons name="alarm-outline" size={14} color={colors.success} style={{ marginRight: 4 }} />
-              <Text style={[styles.pickupText, { color: colors.text }]}>
-                {loan.due} (Desk C)
-              </Text>
-            </View>
+        {loan.status === "returned" && (
+          <View style={styles.dueDetails}>
+            <Ionicons name="checkmark-circle-outline" size={14} color={colors.success} style={{ marginRight: 4 }} />
+            <Text style={[styles.dueText, { color: colors.textMuted }]}>
+              Returned · was due {loan.due}
+            </Text>
           </View>
         )}
       </View>
 
-      {/* Action Buttons Row */}
+      {showActions && (
       <View style={styles.cardActions}>
         <Button
           title="Renew"
@@ -149,27 +129,60 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: an
           textStyle={{ color: colors.text, fontWeight: "700" }}
         />
       </View>
+      )}
     </View>
   );
 }
 
 export default function Borrowed() {
   const { colors, spacing, borderRadius } = useTheme();
+  const { userId, token } = useAuth();
+  const [tab, setTab] = useState<"active" | "history">("active");
+  const [activeLoans, setActiveLoans] = useState<LoanView[]>([]);
+  const [historyLoans, setHistoryLoans] = useState<LoanView[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Selected book context states
   const [selectedBook, setSelectedBook] = useState<any>(null);
   const [returnVisible, setReturnVisible] = useState(false);
   const [renewVisible, setRenewVisible] = useState(false);
   const [renewStatus, setRenewStatus] = useState<"loading" | "success">("loading");
 
+  const load = useCallback(async () => {
+    if (!userId || !token) {
+      setActiveLoans([]);
+      setHistoryLoans([]);
+      setError("Sign in to see your borrowed books and history.");
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const [current, history] = await Promise.all([
+        borrowsService.getCurrent(userId),
+        borrowsService.getHistory(userId),
+      ]);
+      setActiveLoans(current.map(mapBorrow));
+      setHistoryLoans(history.map(mapBorrow));
+    } catch (e: any) {
+      setError(e?.message || "Could not load borrowed books.");
+      setActiveLoans([]);
+      setHistoryLoans([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, token]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const handleRenewClick = (book: any) => {
     setSelectedBook(book);
     setRenewVisible(true);
     setRenewStatus("loading");
-    
-    setTimeout(() => {
-      setRenewStatus("success");
-    }, 1800);
+    setTimeout(() => setRenewStatus("success"), 1800);
   };
 
   const handleReturnClick = (book: any) => {
@@ -177,19 +190,61 @@ export default function Borrowed() {
     setReturnVisible(true);
   };
 
+  const loans = tab === "active" ? activeLoans : historyLoans;
+
   return (
     <ScreenWrapper style={{ backgroundColor: colors.background }}>
       <View style={[styles.container, { padding: spacing.lg }]}>
         <Text style={{ fontSize: 26, fontWeight: "800", color: colors.text, marginBottom: spacing.xs }}>
           My Borrowed Books
         </Text>
-        <Text style={{ color: colors.textMuted, marginBottom: spacing.lg, fontSize: 15 }}>
-          Active loans, overdue alerts, and pick-up status
+        <Text style={{ color: colors.textMuted, marginBottom: spacing.md, fontSize: 15 }}>
+          Active loans and full borrowing history
         </Text>
+
+        <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg }}>
+          <Pressable
+            onPress={() => setTab("active")}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: borderRadius.lg,
+              backgroundColor: tab === "active" ? colors.primary : colors.surface,
+              borderWidth: 1,
+              borderColor: tab === "active" ? colors.primary : colors.border,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontWeight: "700", color: tab === "active" ? colors.textLight : colors.text }}>
+              Active ({activeLoans.length})
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setTab("history")}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: borderRadius.lg,
+              backgroundColor: tab === "history" ? colors.primary : colors.surface,
+              borderWidth: 1,
+              borderColor: tab === "history" ? colors.primary : colors.border,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontWeight: "700", color: tab === "history" ? colors.textLight : colors.text }}>
+              History ({historyLoans.length})
+            </Text>
+          </Pressable>
+        </View>
+
+        {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />}
+        {!!error && !loading && (
+          <Text style={{ color: colors.danger, marginBottom: spacing.md }}>{error}</Text>
+        )}
         
         <FlatList
-          data={BORROWED}
-          keyExtractor={(item) => item.id}
+          data={loans}
+          keyExtractor={(item) => `${tab}-${item.id}`}
           renderItem={({ item }) => (
             <LoanCard
               loan={item}
@@ -198,11 +253,21 @@ export default function Borrowed() {
               borderRadius={borderRadius}
               onRenew={handleRenewClick}
               onReturn={handleReturnClick}
+              showActions={tab === "active" && item.status !== "returned"}
             />
           )}
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            !loading ? (
+              <Text style={{ color: colors.textMuted, textAlign: "center", marginTop: spacing.xl }}>
+                {tab === "active"
+                  ? "No active loans right now."
+                  : "No borrowing history yet. When you borrow books, they will appear here."}
+              </Text>
+            ) : null
+          }
         />
       </View>
 

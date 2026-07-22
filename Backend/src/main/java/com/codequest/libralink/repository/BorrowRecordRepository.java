@@ -16,4 +16,6 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Inte
     List<BorrowRecord> findByStatusAndDueDateBefore(String status, LocalDate date);
 
     List<BorrowRecord> findByUserIdAndStatus(Integer userId, String status);
+
+    List<BorrowRecord> findByUserIdAndStatusIn(Integer userId, List<String> statuses);
 }

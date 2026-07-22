@@ -1,5 +1,14 @@
 import React from "react";
-import { ScrollView, StatusBar, StyleSheet, View, ViewStyle, StyleProp } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  View,
+  ViewStyle,
+  StyleProp,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../constants/theme";
 
@@ -20,14 +29,13 @@ export default function ScreenWrapper({
   contentContainerStyle,
   statusBarColor,
   statusBarStyle,
-  edges = ["top", "left", "right"], // default to including top safe area
+  edges = ["top", "left", "right"],
 }: ScreenWrapperProps) {
   const { colors, isDark } = useTheme();
-  
+
   const hasNoTopSafe = edges.indexOf("top") === -1;
   const activeBg = hasNoTopSafe ? "transparent" : (statusBarColor || colors.background);
   const activeStatusStyle = statusBarStyle || (isDark ? "light-content" : "dark-content");
-  const Container = scrollable ? ScrollView : View;
 
   return (
     <SafeAreaView
@@ -39,23 +47,41 @@ export default function ScreenWrapper({
         backgroundColor={hasNoTopSafe ? "transparent" : activeBg}
         barStyle={activeStatusStyle}
       />
-      <Container
-        style={[styles.container, { backgroundColor: colors.background }, style]}
-        contentContainerStyle={
-          scrollable
-            ? [styles.scrollContent, contentContainerStyle]
-            : undefined
-        }
-        keyboardShouldPersistTaps={scrollable ? "handled" : undefined}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
       >
-        {children}
-      </Container>
+        {scrollable ? (
+          <ScrollView
+            style={[styles.container, { backgroundColor: colors.background }, style]}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: 48 },
+              contentContainerStyle,
+            ]}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            automaticallyAdjustKeyboardInsets
+            showsVerticalScrollIndicator={false}
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={[styles.container, { backgroundColor: colors.background }, style]}>
+            {children}
+          </View>
+        )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+  },
+  flex: {
     flex: 1,
   },
   container: {

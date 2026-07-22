@@ -23,7 +23,7 @@ export default function BarcodeScanner() {
     // Simulate camera lock and scan after 1.5 seconds
     setTimeout(() => {
       setIsScanning(false);
-      setScanResult("Calculus Intro (KNUST-1084)");
+      setScanResult("Scanned Book (KNUST)");
     }, 1500);
   };
 

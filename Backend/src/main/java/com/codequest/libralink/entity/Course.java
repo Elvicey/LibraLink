@@ -24,7 +24,7 @@ public class Course {
         joinColumns = @JoinColumn(name = "course_id"),
         inverseJoinColumns = @JoinColumn(name = "book_id")
     )
-    @JsonIgnoreProperties("authors")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Set<Book> books = new HashSet<>();
 
     @Column(nullable = false, length = 100)

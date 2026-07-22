@@ -26,16 +26,21 @@ public class AudioController {
     @PostMapping("/convert")
     public ResponseEntity<?> initiateConversion(@RequestBody Map<String, Object> body) {
         try {
-            Integer bookId = (Integer) body.get("bookId");
-            Integer userId = (Integer) body.get("userId");
-            String voiceName = (String) body.getOrDefault("voiceName", "en-US-Standard-A");
-            String languageCode = (String) body.getOrDefault("languageCode", "en-US");
+            Integer bookId = toInteger(body.get("bookId"));
+            Integer userId = toInteger(body.get("userId"));
+            String voiceName = body.get("voiceName") != null ? String.valueOf(body.get("voiceName")) : "en-US-Standard-A";
+            String languageCode = body.get("languageCode") != null ? String.valueOf(body.get("languageCode")) : "en-US";
+            String content = body.get("content") != null ? String.valueOf(body.get("content")) : null;
+            if (content == null && body.get("text") != null) {
+                content = String.valueOf(body.get("text"));
+            }
 
             if (bookId == null || userId == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "bookId and userId are required."));
             }
 
-            AudioTrack track = audioTrackService.initiateConversion(bookId, userId, voiceName, languageCode);
+            AudioTrack track = audioTrackService.initiateConversion(
+                    bookId, userId, voiceName, languageCode, content);
             audioTrackService.processConversion(track.getId());
 
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of(
@@ -45,6 +50,17 @@ public class AudioController {
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    private Integer toInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer i) return i;
+        if (value instanceof Number n) return n.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
@@ -69,9 +85,16 @@ public class AudioController {
     public ResponseEntity<?> streamAudio(@PathVariable Integer id,
                                           @RequestHeader(value = "Range", required = false) String range) {
         return audioTrackService.getTrack(id)
-                .filter(track -> "COMPLETED".equals(track.getStatus()))
-                .filter(track -> track.getAudioUrl() != null)
                 .<ResponseEntity<?>>map(track -> {
+                    if (!"COMPLETED".equals(track.getStatus()) || track.getAudioUrl() == null) {
+                        return ResponseEntity.badRequest().body(Map.of(
+                                "error", "Audio track is not ready to stream",
+                                "trackId", track.getId(),
+                                "status", track.getStatus() != null ? track.getStatus() : "UNKNOWN",
+                                "errorMessage", track.getErrorMessage() != null ? track.getErrorMessage() : ""
+                        ));
+                    }
+
                     HttpHeaders headers = new HttpHeaders();
                     headers.setContentType(MediaType.parseMediaType("audio/" + track.getAudioFormat()));
                     headers.set("Accept-Ranges", "bytes");

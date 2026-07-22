@@ -162,7 +162,7 @@ export default function Onboarding() {
           <View style={styles.actions}>
             <Pressable
               style={styles.skipButton}
-              onPress={() => router.replace("../signin")}
+              onPress={() => router.replace("/")}
             >
               <Text style={styles.skipText}>Skip</Text>
             </Pressable>
@@ -170,7 +170,7 @@ export default function Onboarding() {
               title={nextLabel}
               onPress={() => {
                 if (index === slides.length - 1) {
-                  router.replace("../signin");
+                  router.replace("/");
                 } else {
                   ref.current?.scrollTo({
                     x: (index + 1) * width,

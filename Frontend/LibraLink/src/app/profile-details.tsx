@@ -1,5 +1,7 @@
+import { API_BASE_URL } from "../config/api";
+import { useAuth } from "../contexts/AuthContext";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../components/common/Button";
@@ -10,9 +12,9 @@ import { useTheme } from "../constants/theme";
 
 export default function ProfileDetails() {
   const router = useRouter();
-  const [name, setName] = useState("Esther Asamoah");
-  const [email, setEmail] = useState("esther@knust.edu.gh");
-  const [campus, setCampus] = useState("KNUST Main Library");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [campus, setCampus] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [msg, setMsg] = useState("");
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();

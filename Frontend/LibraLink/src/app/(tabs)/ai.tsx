@@ -1,13 +1,13 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Input from "../../components/common/Input";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
-
+import { useAuth } from "../../contexts/AuthContext";
 import { aiService } from "../../services/ai";
 
-const SUGGESTIONS = [
+const FALLBACK_SUGGESTIONS = [
   "Recommend books for a project",
   "Find study guides for economics",
   "Summarize my reading list",
@@ -20,18 +20,26 @@ interface ChatMessage {
 }
 
 export default function AI() {
+  const { userId } = useAuth();
   const [prompt, setPrompt] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>(FALLBACK_SUGGESTIONS);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "1",
       sender: "libra",
-      text: "Hello Esther! I am Libra, your library assistant. Ask me to find books, compile lists, or suggest study guides in plain English.",
+      text: "Hello! I am Libra, your library assistant. Ask me to find books, compile lists, or suggest study guides in plain English.",
     },
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
+
+  useEffect(() => {
+    aiService.getSuggestions().then((items) => {
+      if (items?.length) setSuggestions(items);
+    });
+  }, []);
 
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;
@@ -45,14 +53,12 @@ export default function AI() {
     setPrompt("");
     setIsTyping(true);
 
-    // Scroll to bottom
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 100);
 
     try {
-      // Fetch dynamic response from backend AI service
-      const res = await aiService.askLibra(text, 1);
+      const res = await aiService.askLibra(text, userId ?? 1);
       setIsTyping(false);
       setMessages((prev) => [
         ...prev,
@@ -147,7 +153,7 @@ export default function AI() {
           <View style={styles.suggestionsContainer}>
             <Text style={styles.suggestionsTitle}>Suggested Prompts</Text>
             <View style={styles.promptRow}>
-              {SUGGESTIONS.map((item) => (
+              {suggestions.map((item) => (
                 <Pressable
                   key={item}
                   style={styles.promptChip}

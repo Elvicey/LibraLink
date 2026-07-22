@@ -52,22 +52,38 @@ public class AiExamService {
 
     @Transactional
     public StudySummary createSummary(Integer bookId, Integer userId, String summaryType) {
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found with ID: " + bookId));
+        return createSummary(bookId, userId, summaryType, null);
+    }
 
-        if (book.getDescription() == null || book.getDescription().isBlank()) {
-            throw new IllegalStateException("Book has no textual content to summarize.");
-        }
+    @Transactional
+    public StudySummary createSummary(Integer bookId, Integer userId, String summaryType, String contentOverride) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new IllegalArgumentException("Book not found with ID: " + bookId));
+
+        String content = resolveBookContent(book, contentOverride, "summarize");
 
         StudySummary summary = new StudySummary();
         summary.setBookId(bookId);
         summary.setUserId(userId);
-        summary.setTitle(book.getTitle() + " - " + (summaryType != null ? summaryType : "BRIEF") + " Summary");
-        summary.setOriginalText(book.getDescription());
+        summary.setTitle((book.getTitle() != null ? book.getTitle() : "Book")
+                + " - " + (summaryType != null ? summaryType : "BRIEF") + " Summary");
+        summary.setOriginalText(content);
         summary.setSummaryType(summaryType != null ? summaryType : "BRIEF");
         summary.setStatus("PENDING");
 
         return studySummaryRepository.save(summary);
+    }
+
+    private String resolveBookContent(Book book, String contentOverride, String action) {
+        if (contentOverride != null && !contentOverride.isBlank()) {
+            return contentOverride.trim();
+        }
+        if (book.getDescription() != null && !book.getDescription().isBlank()) {
+            return book.getDescription().trim();
+        }
+        throw new IllegalStateException(
+                "Book has no textual content to " + action + ". "
+                        + "Set the book's description, or pass a non-empty \"content\" field in the request body.");
     }
 
     @Async
@@ -102,12 +118,17 @@ public class AiExamService {
     @Transactional
     public List<ExamQuestion> generateQuestions(Integer bookId, Integer userId,
                                                  Integer count, String difficulty) {
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found with ID: " + bookId));
+        return generateQuestions(bookId, userId, count, difficulty, null);
+    }
 
-        if (book.getDescription() == null || book.getDescription().isBlank()) {
-            throw new IllegalStateException("Book has no textual content to generate questions from.");
-        }
+    @Transactional
+    public List<ExamQuestion> generateQuestions(Integer bookId, Integer userId,
+                                                 Integer count, String difficulty,
+                                                 String contentOverride) {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new IllegalArgumentException("Book not found with ID: " + bookId));
+
+        String content = resolveBookContent(book, contentOverride, "generate questions from");
 
         int questionCount = (count != null && count > 0) ? Math.min(count, 20) : 5;
         String diff = (difficulty != null && !difficulty.isBlank()) ? difficulty : "MEDIUM";
@@ -119,10 +140,7 @@ public class AiExamService {
         session.setTotalQuestions(questionCount);
         session = studySessionRepository.save(session);
 
-        List<ExamQuestion> questions = generateQuestionsFromAi(book.getDescription(),
-                questionCount, diff, bookId, userId, session.getId());
-
-        return questions;
+        return generateQuestionsFromAi(content, questionCount, diff, bookId, userId, session.getId());
     }
 
     private List<ExamQuestion> generateQuestionsFromAi(String bookContent, int count,

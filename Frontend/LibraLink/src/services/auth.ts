@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { API_BASE_URL } from "../config/api";
 
 export interface RegisterPayload {
   firstName: string;
@@ -8,66 +8,87 @@ export interface RegisterPayload {
   institutionId: number;
 }
 
-export interface UserResponse {
-  id: number;
+export interface LoginResponse {
+  token: string;
+  userId: number;
+  email: string;
   firstName: string;
   lastName: string;
-  email: string;
-  passwordHash?: string;
-  phoneNumber?: string;
-  profileImageUrl?: string;
-  isActive: boolean;
-  institution?: {
-    institutionId: number;
-    name?: string;
-    shortName?: string;
-  };
+  roles: string[];
+  institutionId: number | null;
 }
 
 export const authService = {
-  /**
-   * Registers a new student user profile.
-   */
-  register: async (payload: RegisterPayload): Promise<UserResponse> => {
-    // Nested institution object format required by Spring Boot controller
+  register: async (payload: RegisterPayload): Promise<LoginResponse> => {
     const body = {
       firstName: payload.firstName,
       lastName: payload.lastName,
       email: payload.email,
-      passwordHash: payload.passwordHash,
-      institution: {
-        institutionId: payload.institutionId,
-      },
+      password: payload.passwordHash,
+      institutionId: payload.institutionId,
     };
-    return api.post<UserResponse>("/api/users", body);
+    const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Registration failed.");
+    }
+    return data;
   },
 
-  /**
-   * Performs authentication request.
-   * Leverages user matching fallback for developmental testing.
-   */
-  login: async (email: string, passwordHash: string): Promise<UserResponse> => {
-    try {
-      return await api.post<UserResponse>("/api/users/login", { email, passwordHash });
-    } catch (error) {
-      console.warn("Auth connection error. Falling back to local demo profile:", error);
-      
-      // Local fallback for local student simulation
-      if (email.endsWith("@knust.edu.gh") || email === "esther@knust.edu.gh") {
-        return {
-          id: 1,
-          firstName: "Esther",
-          lastName: "Asamoah",
-          email: email || "esther@knust.edu.gh",
-          isActive: true,
-          institution: {
-            institutionId: 1,
-            name: "KNUST Main Campus",
-            shortName: "KNUST",
-          },
-        };
-      }
-      throw new Error("Invalid student email or password");
+  registerLibrarian: async (
+    firstName: string,
+    lastName: string,
+    email: string,
+    password: string
+  ): Promise<LoginResponse> => {
+    const token = await (await import("@react-native-async-storage/async-storage")).default.getItem("authToken");
+    const res = await fetch(`${API_BASE_URL}/api/auth/register-librarian`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ firstName, lastName, email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Librarian registration failed.");
     }
+    return data;
+  },
+
+  registerLecturer: async (
+    firstName: string,
+    lastName: string,
+    email: string,
+    password: string
+  ): Promise<LoginResponse> => {
+    const res = await fetch(`${API_BASE_URL}/api/auth/register-lecturer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ firstName, lastName, email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Lecturer registration failed.");
+    }
+    return data;
+  },
+
+  login: async (email: string, password: string): Promise<LoginResponse> => {
+    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Invalid email or password.");
+    }
+    return data;
   },
 };
