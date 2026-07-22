@@ -139,6 +139,19 @@ export default function Profile() {
 
             <Pressable
               style={styles.menuItem}
+              onPress={() => router.push("/podcasts" as any)}
+            >
+              <View style={styles.menuItemRow}>
+                <View style={styles.menuItemLeft}>
+                  <Ionicons name="mic-outline" size={20} color={colors.textMuted} style={styles.menuIcon} />
+                  <Text style={styles.menuText}>Podcasts</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.borderDark} />
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={styles.menuItem}
               onPress={() => router.push("/exam-mode" as any)}
             >
               <View style={styles.menuItemRow}>

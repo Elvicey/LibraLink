@@ -27,7 +27,9 @@
 		{ "key": "testAudioTrackId", "value": "", "type": "string" },
 		{ "key": "testSummaryId", "value": "", "type": "string" },
 		{ "key": "testQuestionId", "value": "", "type": "string" },
-		{ "key": "testSessionId", "value": "", "type": "string" }
+		{ "key": "testSessionId", "value": "", "type": "string" },
+		{ "key": "testPodcastShowId", "value": "", "type": "string" },
+		{ "key": "testPodcastEpisodeId", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -416,6 +418,58 @@
 					"request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/scan?qrCode={{testPickupQrCode}}&librarianId={{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "scan"], "query": [{ "key": "qrCode", "value": "{{testPickupQrCode}}" }, { "key": "librarianId", "value": "{{testUserId}}" }] } }
 				},
 				{ "name": "Get User Pickup Slots", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/pickup-slots/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "pickup-slots", "user", "{{testUserId}}"] } } }
+			]
+		},
+		{
+			"name": "Podcasts",
+			"item": [
+				{ "name": "List Published Shows",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var list = pm.response.json();",
+						"if (Array.isArray(list) && list.length > 0) { pm.collectionVariables.set('testPodcastShowId', String(list[0].id)); }"
+					]}}],
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/podcasts", "host": ["{{baseUrl}}"], "path": ["api", "podcasts"] } }
+				},
+				{ "name": "Get Show by ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/podcasts/{{testPodcastShowId}}", "host": ["{{baseUrl}}"], "path": ["api", "podcasts", "{{testPodcastShowId}}"] } } },
+				{ "name": "List Show Episodes",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var list = pm.response.json();",
+						"if (Array.isArray(list) && list.length > 0) { pm.collectionVariables.set('testPodcastEpisodeId', String(list[0].id)); }"
+					]}}],
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/podcasts/{{testPodcastShowId}}/episodes", "host": ["{{baseUrl}}"], "path": ["api", "podcasts", "{{testPodcastShowId}}", "episodes"] } }
+				},
+				{ "name": "Get Episode by ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/podcasts/episodes/{{testPodcastEpisodeId}}", "host": ["{{baseUrl}}"], "path": ["api", "podcasts", "episodes", "{{testPodcastEpisodeId}}"] } } },
+				{ "name": "List Episodes by Book", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/podcasts/book/{{testBookId}}", "host": ["{{baseUrl}}"], "path": ["api", "podcasts", "book", "{{testBookId}}"] } } },
+				{ "name": "Create Show (Librarian)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var j = pm.response.json();",
+						"if (j.id) { pm.collectionVariables.set('testPodcastShowId', String(j.id)); }"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+						"body": { "mode": "raw", "raw": "{\n  \"title\": \"Campus Book Club\",\n  \"description\": \"Weekly discussions of library picks.\",\n  \"hostName\": \"LibraLink Library\",\n  \"coverImageUrl\": \"https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800\",\n  \"isPublished\": true\n}" },
+						"url": { "raw": "{{baseUrl}}/api/podcasts", "host": ["{{baseUrl}}"], "path": ["api", "podcasts"] }
+					}
+				},
+				{ "name": "Update Show (Librarian)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"title\": \"Campus Book Club (Updated)\",\n  \"description\": \"Updated weekly discussions of library picks.\",\n  \"isPublished\": true\n}" },
+					"url": { "raw": "{{baseUrl}}/api/podcasts/{{testPodcastShowId}}", "host": ["{{baseUrl}}"], "path": ["api", "podcasts", "{{testPodcastShowId}}"] }
+				},
+				{ "name": "Create Episode (Librarian)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var j = pm.response.json();",
+						"if (j.id) { pm.collectionVariables.set('testPodcastEpisodeId', String(j.id)); }"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+						"body": { "mode": "raw", "raw": "{\n  \"title\": \"Episode 1: Opening Chapter\",\n  \"description\": \"A sample library podcast episode.\",\n  \"audioUrl\": \"https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3\",\n  \"durationSeconds\": 372,\n  \"episodeNumber\": 1,\n  \"bookId\": {{testBookId}},\n  \"isPublished\": true\n}" },
+						"url": { "raw": "{{baseUrl}}/api/podcasts/{{testPodcastShowId}}/episodes", "host": ["{{baseUrl}}"], "path": ["api", "podcasts", "{{testPodcastShowId}}", "episodes"] }
+					}
+				},
+				{ "name": "Update Episode (Librarian)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"title\": \"Episode 1: Opening Chapter (Updated)\",\n  \"description\": \"Updated sample episode.\",\n  \"isPublished\": true\n}" },
+					"url": { "raw": "{{baseUrl}}/api/podcasts/episodes/{{testPodcastEpisodeId}}", "host": ["{{baseUrl}}"], "path": ["api", "podcasts", "episodes", "{{testPodcastEpisodeId}}"] }
+				},
+				{ "name": "Delete Episode (Librarian)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/podcasts/episodes/{{testPodcastEpisodeId}}", "host": ["{{baseUrl}}"], "path": ["api", "podcasts", "episodes", "{{testPodcastEpisodeId}}"] } } },
+				{ "name": "Delete Show (Librarian)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/podcasts/{{testPodcastShowId}}", "host": ["{{baseUrl}}"], "path": ["api", "podcasts", "{{testPodcastShowId}}"] } } }
 			]
 		},
 		{
