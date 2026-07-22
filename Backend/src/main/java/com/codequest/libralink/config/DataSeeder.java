@@ -13,10 +13,34 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
+
+    private static final String TFA_EPISODE_1_SCRIPT =
+            "Welcome to LibraLink Literary Voices. Today's episode is about Chinua Achebe's novel Things Fall Apart, "
+                    + "a cornerstone of African literature and a frequent campus reading-list title. "
+                    + "Achebe follows Okonkwo, a driven Igbo leader whose personal ambition collides with the arrival of "
+                    + "colonial authority and Christian missions in his community. "
+                    + "The novel matters because it refuses the idea that African societies were silent before Europe arrived. "
+                    + "Instead, Achebe shows a complex world of custom, status, family duty, and debate. "
+                    + "As students, listen for how fear of weakness shapes Okonkwo's choices, and how the community itself "
+                    + "is changed when outsiders redefine power and belief. "
+                    + "If Things Fall Apart is on your course list, borrow it through LibraLink and read with those questions in mind. "
+                    + "This has been Literary Voices. Thanks for listening.";
+
+    private static final String TFA_EPISODE_2_SCRIPT =
+            "Welcome back to LibraLink Literary Voices. We continue with Things Fall Apart by Chinua Achebe, "
+                    + "focusing on Ikemefuna and what the story teaches about belonging. "
+                    + "Ikemefuna arrives in Umuofia as a settlement for a dispute, grows close to Okonkwo's household, "
+                    + "and then becomes the tragic centre of a decision that reveals the cost of rigid honour. "
+                    + "Achebe asks whether tradition that cannot bend will break the people who live inside it. "
+                    + "For campus readers, this episode is a reminder that the novel is not only about colonial encounter; "
+                    + "it is also about how a community treats its own children, and how silence can become violence. "
+                    + "Open Things Fall Apart in LibraLink, revisit the Ikemefuna chapters, and notice whose voice Achebe "
+                    + "gives space to at each turn. Thanks for listening to Literary Voices.";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -39,6 +63,7 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         seedAdmin();
         seedPodcasts();
+        upgradePlaceholderPodcastAudio();
     }
 
     private void seedAdmin() {
@@ -81,31 +106,75 @@ public class DataSeeder implements CommandLineRunner {
 
         PodcastShow show = new PodcastShow();
         show.setTitle("LibraLink Literary Voices");
-        show.setDescription("Conversations about African literature, campus reading culture, and books in the LibraLink collection.");
+        show.setDescription("Spoken episodes about books in the LibraLink collection — start with Chinua Achebe's Things Fall Apart.");
         show.setHostName("LibraLink Library");
         show.setCoverImageUrl("https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800");
         show.setIsPublished(true);
         show = podcastShowRepository.save(show);
 
-        PodcastEpisode ep1 = new PodcastEpisode();
-        ep1.setShowId(show.getId());
-        ep1.setTitle("Why Things Fall Apart Still Matters");
-        ep1.setDescription("A short discussion of Chinua Achebe's classic and why it remains essential campus reading.");
-        ep1.setAudioUrl("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
-        ep1.setDurationSeconds(372);
-        ep1.setEpisodeNumber(1);
-        ep1.setBookId(3);
-        ep1.setIsPublished(true);
-        podcastEpisodeRepository.save(ep1);
+        podcastEpisodeRepository.save(buildThingsFallApartEpisode(show.getId(), 1,
+                "Why Things Fall Apart Still Matters", TFA_EPISODE_1_SCRIPT, 95));
+        podcastEpisodeRepository.save(buildThingsFallApartEpisode(show.getId(), 2,
+                "Ikemefuna and the Cost of Belonging", TFA_EPISODE_2_SCRIPT, 90));
+    }
 
-        PodcastEpisode ep2 = new PodcastEpisode();
-        ep2.setShowId(show.getId());
-        ep2.setTitle("Building a Reading Habit on Campus");
-        ep2.setDescription("Tips for students balancing coursework and recreational reading with LibraLink.");
-        ep2.setAudioUrl("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3");
-        ep2.setDurationSeconds(420);
-        ep2.setEpisodeNumber(2);
-        ep2.setIsPublished(true);
-        podcastEpisodeRepository.save(ep2);
+    /**
+     * Existing deploys seeded SoundHelix demo music. Replace those with book-linked spoken scripts.
+     */
+    private void upgradePlaceholderPodcastAudio() {
+        List<PodcastEpisode> episodes = podcastEpisodeRepository.findAll();
+        for (PodcastEpisode episode : episodes) {
+            String url = episode.getAudioUrl();
+            boolean placeholder = url != null && url.toLowerCase().contains("soundhelix");
+            boolean missingBookScript = episode.getBookId() == null
+                    || episode.getDescription() == null
+                    || episode.getDescription().length() < 200;
+            if (!placeholder && !missingBookScript) {
+                continue;
+            }
+
+            if (episode.getEpisodeNumber() != null && episode.getEpisodeNumber() == 2
+                    && (episode.getTitle() == null || episode.getTitle().toLowerCase().contains("reading habit"))) {
+                episode.setTitle("Ikemefuna and the Cost of Belonging");
+                episode.setDescription(TFA_EPISODE_2_SCRIPT);
+                episode.setDurationSeconds(90);
+            } else {
+                episode.setTitle(episode.getTitle() != null && episode.getTitle().toLowerCase().contains("things fall apart")
+                        ? episode.getTitle()
+                        : "Why Things Fall Apart Still Matters");
+                episode.setDescription(TFA_EPISODE_1_SCRIPT);
+                episode.setDurationSeconds(95);
+            }
+            episode.setBookId(3);
+            episode.setAudioUrl(null);
+            episode.setIsPublished(true);
+            podcastEpisodeRepository.save(episode);
+        }
+
+        podcastShowRepository.findAll().forEach(show -> {
+            if (show.getDescription() != null && show.getDescription().toLowerCase().contains("demo")) {
+                return;
+            }
+            if ("Integration Test Show".equals(show.getTitle())) {
+                show.setTitle("Things Fall Apart Companion");
+                show.setDescription("Short spoken companion episodes for Chinua Achebe's Things Fall Apart in the LibraLink catalog.");
+                show.setHostName("LibraLink Library");
+                podcastShowRepository.save(show);
+            }
+        });
+    }
+
+    private PodcastEpisode buildThingsFallApartEpisode(Integer showId, int number, String title,
+                                                       String script, int durationSeconds) {
+        PodcastEpisode episode = new PodcastEpisode();
+        episode.setShowId(showId);
+        episode.setTitle(title);
+        episode.setDescription(script);
+        episode.setAudioUrl(null);
+        episode.setDurationSeconds(durationSeconds);
+        episode.setEpisodeNumber(number);
+        episode.setBookId(3);
+        episode.setIsPublished(true);
+        return episode;
     }
 }
