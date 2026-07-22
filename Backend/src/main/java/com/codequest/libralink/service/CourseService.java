@@ -34,11 +34,26 @@ public class CourseService {
 
     @Transactional
     public Course saveCourse(Course course) {
-        if (course.getInstitution() != null && course.getInstitution().getInstitutionId() != null) {
-            Institution managed = entityManager.getReference(Institution.class,
-                    course.getInstitution().getInstitutionId());
-            course.setInstitution(managed);
+        if (course.getName() == null || course.getName().isBlank()) {
+            throw new IllegalArgumentException("name is required");
         }
+        if (course.getInstitution() == null || course.getInstitution().getInstitutionId() == null) {
+            throw new IllegalArgumentException("institution.institutionId is required");
+        }
+
+        Integer institutionId = course.getInstitution().getInstitutionId();
+        Institution managed = institutionRepository.findById(institutionId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Institution not found with id: " + institutionId));
+        course.setInstitution(managed);
+
+        if (course.getStatus() == null || course.getStatus().isBlank()) {
+            course.setStatus("ACTIVE");
+        }
+        if (course.getCreatedAt() == null) {
+            course.setCreatedAt(java.time.LocalDateTime.now());
+        }
+
         return courseRepository.save(course);
     }
 

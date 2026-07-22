@@ -40,12 +40,24 @@ public class Course {
     private String status = "ACTIVE";
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public Course() {}
+
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+        if (status == null || status.isBlank()) {
+            status = "ACTIVE";
+        }
+    }
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
