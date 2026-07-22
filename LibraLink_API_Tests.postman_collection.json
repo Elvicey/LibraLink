@@ -418,7 +418,7 @@
 			"name": "Audio (Text-to-Speech)",
 			"item": [
 				{ "name": "Convert Text to Audio", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{authToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"voiceName\": \"\",\n  \"languageCode\": \"\"\n}" },
+					"body": { "mode": "raw", "raw": "{\n  \"bookId\": {{testBookId}},\n  \"userId\": {{testUserId}},\n  \"voiceName\": \"en-US-Standard-A\",\n  \"languageCode\": \"en-US\",\n  \"content\": \"Things Fall Apart tells the story of Okonkwo, a respected leader in an Igbo community, as colonial change arrives in Nigeria.\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/audio/convert", "host": ["{{baseUrl}}"], "path": ["api", "audio", "convert"] }
 				}},
 				{ "name": "Get Audio Track by ID", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/audio/1", "host": ["{{baseUrl}}"], "path": ["api", "audio", "1"] } } },
