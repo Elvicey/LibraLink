@@ -3,15 +3,23 @@ package com.codequest.libralink.config;
 import com.codequest.libralink.entity.Author;
 import com.codequest.libralink.entity.Book;
 import com.codequest.libralink.entity.BorrowRecord;
+import com.codequest.libralink.entity.Course;
+import com.codequest.libralink.entity.Institution;
 import com.codequest.libralink.entity.PodcastEpisode;
 import com.codequest.libralink.entity.PodcastShow;
+import com.codequest.libralink.entity.ReadingList;
+import com.codequest.libralink.entity.ReadingListItem;
 import com.codequest.libralink.entity.Role;
 import com.codequest.libralink.entity.User;
 import com.codequest.libralink.repository.AuthorRepository;
 import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.BorrowRecordRepository;
+import com.codequest.libralink.repository.CourseRepository;
+import com.codequest.libralink.repository.InstitutionRepository;
 import com.codequest.libralink.repository.PodcastEpisodeRepository;
 import com.codequest.libralink.repository.PodcastShowRepository;
+import com.codequest.libralink.repository.ReadingListItemRepository;
+import com.codequest.libralink.repository.ReadingListRepository;
 import com.codequest.libralink.repository.RoleRepository;
 import com.codequest.libralink.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -58,6 +66,10 @@ public class DataSeeder implements CommandLineRunner {
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
     private final BorrowRecordRepository borrowRecordRepository;
+    private final InstitutionRepository institutionRepository;
+    private final CourseRepository courseRepository;
+    private final ReadingListRepository readingListRepository;
+    private final ReadingListItemRepository readingListItemRepository;
 
     public DataSeeder(UserRepository userRepository, RoleRepository roleRepository,
                       PasswordEncoder passwordEncoder,
@@ -65,7 +77,11 @@ public class DataSeeder implements CommandLineRunner {
                       PodcastEpisodeRepository podcastEpisodeRepository,
                       BookRepository bookRepository,
                       AuthorRepository authorRepository,
-                      BorrowRecordRepository borrowRecordRepository) {
+                      BorrowRecordRepository borrowRecordRepository,
+                      InstitutionRepository institutionRepository,
+                      CourseRepository courseRepository,
+                      ReadingListRepository readingListRepository,
+                      ReadingListItemRepository readingListItemRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -74,17 +90,23 @@ public class DataSeeder implements CommandLineRunner {
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
         this.borrowRecordRepository = borrowRecordRepository;
+        this.institutionRepository = institutionRepository;
+        this.courseRepository = courseRepository;
+        this.readingListRepository = readingListRepository;
+        this.readingListItemRepository = readingListItemRepository;
     }
 
     @Override
     public void run(String... args) {
         seedAdmin();
         seedDemoStudent();
+        Institution knust = seedInstitutionAndLecturer();
         seedCatalogBooks();
         tagExistingLiteratureBooks();
         seedDemoBorrows();
         seedPodcasts();
         upgradePlaceholderPodcastAudio();
+        seedLectureCourses(knust);
     }
 
     private void seedAdmin() {
@@ -338,5 +360,131 @@ public class DataSeeder implements CommandLineRunner {
         episode.setBookId(3);
         episode.setIsPublished(true);
         return episode;
+    }
+
+    private Institution seedInstitutionAndLecturer() {
+        Institution knust = institutionRepository.findAll().stream()
+                .filter(i -> "KNUST".equalsIgnoreCase(i.getShortName())
+                        || (i.getName() != null && i.getName().toLowerCase().contains("kwame nkrumah")))
+                .findFirst()
+                .orElseGet(() -> institutionRepository.save(new Institution(
+                        "Kwame Nkrumah University of Science and Technology",
+                        "KNUST",
+                        "INSTITUTIONAL",
+                        "Kumasi",
+                        "library@knust.edu.gh",
+                        "+233322060000"
+                )));
+
+        String lecturerEmail = "lecturer@knust.edu.gh";
+        if (userRepository.findByEmailIgnoreCase(lecturerEmail).isEmpty()) {
+            Role lecturerRole = roleRepository.findByName("LECTURER")
+                    .orElseGet(() -> roleRepository.save(new Role("LECTURER")));
+            User lecturer = new User();
+            lecturer.setFirstName("Kwesi");
+            lecturer.setLastName("Lecturer");
+            lecturer.setEmail(lecturerEmail);
+            lecturer.setPasswordHash(passwordEncoder.encode("lecturer123"));
+            lecturer.setActive(true);
+            lecturer.setInstitution(knust);
+            Set<Role> roles = new HashSet<>();
+            roles.add(lecturerRole);
+            lecturer.setRoles(roles);
+            userRepository.save(lecturer);
+        }
+
+        userRepository.findByEmailIgnoreCase("student@libralink.com").ifPresent(student -> {
+            if (student.getInstitution() == null) {
+                student.setInstitution(knust);
+                userRepository.save(student);
+            }
+        });
+
+        return knust;
+    }
+
+    private void seedLectureCourses(Institution institution) {
+        if (institution == null) {
+            return;
+        }
+        if (!courseRepository.findByInstitutionInstitutionId(institution.getInstitutionId()).isEmpty()) {
+            return;
+        }
+
+        User lecturer = userRepository.findByEmailIgnoreCase("lecturer@knust.edu.gh").orElse(null);
+        Integer lecturerId = lecturer != null ? lecturer.getId() : null;
+
+        Course literature = new Course();
+        literature.setInstitution(institution);
+        literature.setName("African Literature");
+        literature.setCode("ENGL 301");
+        literature.setDescription("Lecture-to-Library sample course linking classroom texts to the catalogue.");
+        literature.setStatus("ACTIVE");
+        literature = courseRepository.save(literature);
+
+        Course computing = new Course();
+        computing.setInstitution(institution);
+        computing.setName("Data Structures");
+        computing.setCode("COE 252");
+        computing.setDescription("Computing course with catalogue-linked reading list.");
+        computing.setStatus("ACTIVE");
+        computing = courseRepository.save(computing);
+
+        List<Book> books = bookRepository.findAll();
+        Book litBook = books.stream()
+                .filter(b -> b.getTitle() != null && b.getTitle().toLowerCase().contains("things fall apart"))
+                .findFirst()
+                .orElse(books.isEmpty() ? null : books.get(0));
+        Book compBook = books.stream()
+                .filter(b -> b.getDescription() != null && b.getDescription().toLowerCase().contains("computing"))
+                .findFirst()
+                .orElse(books.size() > 1 ? books.get(1) : litBook);
+
+        if (litBook != null) {
+            literature.getBooks().add(litBook);
+            courseRepository.save(literature);
+        }
+        if (compBook != null) {
+            computing.getBooks().add(compBook);
+            courseRepository.save(computing);
+        }
+
+        ReadingList litList = new ReadingList();
+        litList.setCourseId(literature.getId());
+        litList.setCreatedBy(lecturerId);
+        litList.setTitle("ENGL 301 Required Reading — Semester 1");
+        litList.setDescription("Official published reading list for African Literature.");
+        litList.setSemester("Semester 1");
+        litList.setAcademicYear("2025/2026");
+        litList.setIsPublished(true);
+        litList.setPublishedAt(LocalDateTime.now());
+        litList = readingListRepository.save(litList);
+
+        if (litBook != null) {
+            ReadingListItem item = new ReadingListItem();
+            item.setReadingListId(litList.getId());
+            item.setBookId(litBook.getId());
+            item.setNotes("REQUIRED");
+            readingListItemRepository.save(item);
+        }
+
+        ReadingList compList = new ReadingList();
+        compList.setCourseId(computing.getId());
+        compList.setCreatedBy(lecturerId);
+        compList.setTitle("COE 252 Recommended Texts");
+        compList.setDescription("Recommended computing titles from the library catalogue.");
+        compList.setSemester("Semester 1");
+        compList.setAcademicYear("2025/2026");
+        compList.setIsPublished(true);
+        compList.setPublishedAt(LocalDateTime.now());
+        compList = readingListRepository.save(compList);
+
+        if (compBook != null) {
+            ReadingListItem item = new ReadingListItem();
+            item.setReadingListId(compList.getId());
+            item.setBookId(compBook.getId());
+            item.setNotes("RECOMMENDED");
+            readingListItemRepository.save(item);
+        }
     }
 }

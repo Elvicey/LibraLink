@@ -13,7 +13,7 @@ const roles = [
   {
     key: "lecturer",
     title: "Lecturer",
-    subtitle: "Manage courses & reading lists",
+    subtitle: "Lecture-to-Library & course reading lists",
     emoji: "📖",
     route: "/lecturer-signin",
   },
