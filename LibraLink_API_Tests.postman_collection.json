@@ -20,7 +20,8 @@
 		{ "key": "testBarcode", "value": "", "type": "string" },
 		{ "key": "testReservationId", "value": "", "type": "string" },
 		{ "key": "testFineId", "value": "", "type": "string" },
-		{ "key": "testNotificationId", "value": "", "type": "string" }
+		{ "key": "testNotificationId", "value": "", "type": "string" },
+		{ "key": "testCourseId", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -119,11 +120,22 @@
 		{
 			"name": "Institutions",
 			"item": [
-				{ "name": "Create Institution (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"name\": \"\",\n  \"shortName\": \"\",\n  \"tier\": \"\",\n  \"city\": \"\",\n  \"country\": \"\",\n  \"email\": \"\",\n  \"phone\": \"\",\n  \"isActive\": true\n}" },
+				{ "name": "Create Institution (Librarian)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var j = pm.response.json();",
+						"if (j.institutionId) { pm.collectionVariables.set('testInstitutionId', String(j.institutionId)); }"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"name\": \"Kwame Nkrumah University of Science and Technology\",\n  \"shortName\": \"KNUST\",\n  \"tier\": \"PUBLIC\",\n  \"city\": \"Kumasi\",\n  \"country\": \"Ghana\",\n  \"email\": \"library@knust.edu.gh\",\n  \"phone\": \"+233234123456\",\n  \"isActive\": true\n}" },
 					"url": { "raw": "{{baseUrl}}/api/institutions", "host": ["{{baseUrl}}"], "path": ["api", "institutions"] }
 				}},
-				{ "name": "Get All Institutions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/institutions", "host": ["{{baseUrl}}"], "path": ["api", "institutions"] } } }
+				{ "name": "Get All Institutions",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var list = pm.response.json();",
+						"if (Array.isArray(list) && list.length > 0) { pm.collectionVariables.set('testInstitutionId', String(list[0].institutionId)); }"
+					]}}],
+					"request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/institutions", "host": ["{{baseUrl}}"], "path": ["api", "institutions"] } }
+				}
 			]
 		},
 		{
@@ -324,16 +336,29 @@
 		{
 			"name": "Courses",
 			"item": [
-				{ "name": "Create Course (Lecturer)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"institution\": {\"institutionId\": {{testInstitutionId}}},\n  \"name\": \"\",\n  \"code\": \"\",\n  \"description\": \"\"\n}" },
+				{ "name": "Create Course (Lecturer)",
+					"event": [
+						{ "listen": "prerequest", "script": { "exec": [
+							"if (!pm.collectionVariables.get('testInstitutionId')) {",
+							"  throw new Error('testInstitutionId is empty. Run Institutions > Get All Institutions first (use institutionId 3 for KNUST).');",
+							"}"
+						]}},
+						{ "listen": "test", "script": { "exec": [
+							"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+							"var j = pm.response.json();",
+							"if (j.id) { pm.collectionVariables.set('testCourseId', String(j.id)); }"
+						]}}
+					],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"institution\": {\"institutionId\": {{testInstitutionId}}},\n  \"name\": \"Introduction to Algorithms\",\n  \"code\": \"CS281\",\n  \"description\": \"Core CS course\",\n  \"status\": \"ACTIVE\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/courses", "host": ["{{baseUrl}}"], "path": ["api", "courses"] }
 				}},
 				{ "name": "Get Courses by Institution", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/courses/institutions/{{testInstitutionId}}", "host": ["{{baseUrl}}"], "path": ["api", "courses", "institutions", "{{testInstitutionId}}"] } } },
 				{ "name": "Add Books to Course (Lecturer)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
 					"body": { "mode": "raw", "raw": "{\n  \"bookIds\": [{{testBookId}}]\n}" },
-					"url": { "raw": "{{baseUrl}}/api/courses/1/books", "host": ["{{baseUrl}}"], "path": ["api", "courses", "1", "books"] }
+					"url": { "raw": "{{baseUrl}}/api/courses/{{testCourseId}}/books", "host": ["{{baseUrl}}"], "path": ["api", "courses", "{{testCourseId}}", "books"] }
 				}},
-				{ "name": "Remove Book from Course (Lecturer)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{lecturerToken}}" }], "url": { "raw": "{{baseUrl}}/api/courses/1/books/{{testBookId}}", "host": ["{{baseUrl}}"], "path": ["api", "courses", "1", "books", "{{testBookId}}"] } } }
+				{ "name": "Remove Book from Course (Lecturer)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{lecturerToken}}" }], "url": { "raw": "{{baseUrl}}/api/courses/{{testCourseId}}/books/{{testBookId}}", "host": ["{{baseUrl}}"], "path": ["api", "courses", "{{testCourseId}}", "books", "{{testBookId}}"] } } }
 			]
 		},
 		{
