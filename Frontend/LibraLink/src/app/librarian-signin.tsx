@@ -33,12 +33,10 @@ export default function LibrarianSignIn() {
       }
 
       const roles: string[] = data.roles || [];
-      const isLibrarian = roles.some(
-        (r) => r === "LIBRARIAN" || r === "ADMIN"
-      );
+      const isStaff = roles.some((r) => r === "LIBRARIAN" || r === "ADMIN");
 
-      if (!isLibrarian) {
-        throw new Error("This account does not have librarian privileges.");
+      if (!isStaff) {
+        throw new Error("Use the Student / Lecturer portal for academic accounts.");
       }
 
       await setSession({
@@ -81,9 +79,9 @@ export default function LibrarianSignIn() {
           <View style={styles.iconBadge}>
             <Text style={styles.iconBadgeText}>📚</Text>
           </View>
-          <Text style={styles.title}>Librarian Portal</Text>
+          <Text style={styles.title}>Staff Portal</Text>
           <Text style={styles.subtitle}>
-            Sign in with your staff credentials
+            Sign in as Librarian or Admin — same staff console
           </Text>
         </View>
 

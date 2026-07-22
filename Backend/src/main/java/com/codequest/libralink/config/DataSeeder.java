@@ -2,12 +2,14 @@ package com.codequest.libralink.config;
 
 import com.codequest.libralink.entity.Author;
 import com.codequest.libralink.entity.Book;
+import com.codequest.libralink.entity.BorrowRecord;
 import com.codequest.libralink.entity.PodcastEpisode;
 import com.codequest.libralink.entity.PodcastShow;
 import com.codequest.libralink.entity.Role;
 import com.codequest.libralink.entity.User;
 import com.codequest.libralink.repository.AuthorRepository;
 import com.codequest.libralink.repository.BookRepository;
+import com.codequest.libralink.repository.BorrowRecordRepository;
 import com.codequest.libralink.repository.PodcastEpisodeRepository;
 import com.codequest.libralink.repository.PodcastShowRepository;
 import com.codequest.libralink.repository.RoleRepository;
@@ -16,6 +18,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -53,13 +57,15 @@ public class DataSeeder implements CommandLineRunner {
     private final PodcastEpisodeRepository podcastEpisodeRepository;
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
+    private final BorrowRecordRepository borrowRecordRepository;
 
     public DataSeeder(UserRepository userRepository, RoleRepository roleRepository,
                       PasswordEncoder passwordEncoder,
                       PodcastShowRepository podcastShowRepository,
                       PodcastEpisodeRepository podcastEpisodeRepository,
                       BookRepository bookRepository,
-                      AuthorRepository authorRepository) {
+                      AuthorRepository authorRepository,
+                      BorrowRecordRepository borrowRecordRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -67,13 +73,16 @@ public class DataSeeder implements CommandLineRunner {
         this.podcastEpisodeRepository = podcastEpisodeRepository;
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
+        this.borrowRecordRepository = borrowRecordRepository;
     }
 
     @Override
     public void run(String... args) {
         seedAdmin();
+        seedDemoStudent();
         seedCatalogBooks();
         tagExistingLiteratureBooks();
+        seedDemoBorrows();
         seedPodcasts();
         upgradePlaceholderPodcastAudio();
     }
@@ -108,6 +117,64 @@ public class DataSeeder implements CommandLineRunner {
                 admin.setActive(true);
                 userRepository.save(admin);
             }
+        }
+    }
+
+    private void seedDemoStudent() {
+        String email = "student@libralink.com";
+        if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
+            return;
+        }
+        Role studentRole = roleRepository.findByName("STUDENT")
+                .orElseGet(() -> roleRepository.save(new Role("STUDENT")));
+        User student = new User();
+        student.setFirstName("Ama");
+        student.setLastName("Student");
+        student.setEmail(email);
+        student.setPasswordHash(passwordEncoder.encode("student123"));
+        student.setActive(true);
+        Set<Role> roles = new HashSet<>();
+        roles.add(studentRole);
+        student.setRoles(roles);
+        userRepository.save(student);
+    }
+
+    private void seedDemoBorrows() {
+        User student = userRepository.findByEmailIgnoreCase("student@libralink.com").orElse(null);
+        if (student == null || !borrowRecordRepository.findByUserId(student.getId()).isEmpty()) {
+            return;
+        }
+        Book calculus = bookRepository.findFirstByTitleIgnoreCase("Introduction to Calculus").orElse(null);
+        Book tfa = bookRepository.findFirstByTitleIgnoreCase("Things Fall Apart").orElse(null);
+        Book data = bookRepository.findFirstByTitleIgnoreCase("Data Structures in Practice").orElse(null);
+
+        if (calculus != null) {
+            BorrowRecord active = new BorrowRecord();
+            active.setUser(student);
+            active.setBook(calculus);
+            active.setStatus("BORROWED");
+            active.setBorrowedAt(LocalDateTime.now().minusDays(3));
+            active.setDueDate(LocalDate.now().plusDays(11));
+            borrowRecordRepository.save(active);
+        }
+        if (tfa != null) {
+            BorrowRecord returned = new BorrowRecord();
+            returned.setUser(student);
+            returned.setBook(tfa);
+            returned.setStatus("RETURNED");
+            returned.setBorrowedAt(LocalDateTime.now().minusDays(40));
+            returned.setDueDate(LocalDate.now().minusDays(26));
+            returned.setReturnedAt(LocalDateTime.now().minusDays(28));
+            borrowRecordRepository.save(returned);
+        }
+        if (data != null) {
+            BorrowRecord overdue = new BorrowRecord();
+            overdue.setUser(student);
+            overdue.setBook(data);
+            overdue.setStatus("OVERDUE");
+            overdue.setBorrowedAt(LocalDateTime.now().minusDays(20));
+            overdue.setDueDate(LocalDate.now().minusDays(6));
+            borrowRecordRepository.save(overdue);
         }
     }
 

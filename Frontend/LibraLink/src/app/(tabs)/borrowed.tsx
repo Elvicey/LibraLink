@@ -34,22 +34,18 @@ function mapBorrow(record: BorrowRecord): LoanView {
 }
 
 function getLoanStatusColor(status: string, colors: any) {
-  return status === "overdue"
-    ? colors.danger
-    : status === "ready"
-      ? colors.success
-      : colors.primary;
+  if (status === "overdue") return colors.danger;
+  if (status === "ready" || status === "returned") return colors.success;
+  return colors.primary;
 }
 
 function getLoanStatusBg(status: string, colors: any) {
-  return status === "overdue"
-    ? colors.dangerLight
-    : status === "ready"
-      ? colors.successLight
-      : colors.primaryLight;
+  if (status === "overdue") return colors.dangerLight;
+  if (status === "ready" || status === "returned") return colors.successLight;
+  return colors.primaryLight;
 }
 
-function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: any) {
+function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn, showActions = true }: any) {
   const statusColor = getLoanStatusColor(loan.status, colors);
   const statusBg = getLoanStatusBg(loan.status, colors);
 
@@ -102,8 +98,18 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: an
             </View>
           </View>
         )}
+
+        {loan.status === "returned" && (
+          <View style={styles.dueDetails}>
+            <Ionicons name="checkmark-circle-outline" size={14} color={colors.success} style={{ marginRight: 4 }} />
+            <Text style={[styles.dueText, { color: colors.textMuted }]}>
+              Returned · was due {loan.due}
+            </Text>
+          </View>
+        )}
       </View>
 
+      {showActions && (
       <View style={styles.cardActions}>
         <Button
           title="Renew"
@@ -123,6 +129,7 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: an
           textStyle={{ color: colors.text, fontWeight: "700" }}
         />
       </View>
+      )}
     </View>
   );
 }
@@ -130,7 +137,9 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: an
 export default function Borrowed() {
   const { colors, spacing, borderRadius } = useTheme();
   const { userId, token } = useAuth();
-  const [loans, setLoans] = useState<LoanView[]>([]);
+  const [tab, setTab] = useState<"active" | "history">("active");
+  const [activeLoans, setActiveLoans] = useState<LoanView[]>([]);
+  const [historyLoans, setHistoryLoans] = useState<LoanView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -141,19 +150,25 @@ export default function Borrowed() {
 
   const load = useCallback(async () => {
     if (!userId || !token) {
-      setLoans([]);
-      setError("Sign in to see your borrowed books.");
+      setActiveLoans([]);
+      setHistoryLoans([]);
+      setError("Sign in to see your borrowed books and history.");
       setLoading(false);
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const records = await borrowsService.getCurrent(userId);
-      setLoans(records.map(mapBorrow));
+      const [current, history] = await Promise.all([
+        borrowsService.getCurrent(userId),
+        borrowsService.getHistory(userId),
+      ]);
+      setActiveLoans(current.map(mapBorrow));
+      setHistoryLoans(history.map(mapBorrow));
     } catch (e: any) {
       setError(e?.message || "Could not load borrowed books.");
-      setLoans([]);
+      setActiveLoans([]);
+      setHistoryLoans([]);
     } finally {
       setLoading(false);
     }
@@ -175,15 +190,52 @@ export default function Borrowed() {
     setReturnVisible(true);
   };
 
+  const loans = tab === "active" ? activeLoans : historyLoans;
+
   return (
     <ScreenWrapper style={{ backgroundColor: colors.background }}>
       <View style={[styles.container, { padding: spacing.lg }]}>
         <Text style={{ fontSize: 26, fontWeight: "800", color: colors.text, marginBottom: spacing.xs }}>
           My Borrowed Books
         </Text>
-        <Text style={{ color: colors.textMuted, marginBottom: spacing.lg, fontSize: 15 }}>
-          Active loans from your LibraLink account
+        <Text style={{ color: colors.textMuted, marginBottom: spacing.md, fontSize: 15 }}>
+          Active loans and full borrowing history
         </Text>
+
+        <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg }}>
+          <Pressable
+            onPress={() => setTab("active")}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: borderRadius.lg,
+              backgroundColor: tab === "active" ? colors.primary : colors.surface,
+              borderWidth: 1,
+              borderColor: tab === "active" ? colors.primary : colors.border,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontWeight: "700", color: tab === "active" ? colors.textLight : colors.text }}>
+              Active ({activeLoans.length})
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setTab("history")}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: borderRadius.lg,
+              backgroundColor: tab === "history" ? colors.primary : colors.surface,
+              borderWidth: 1,
+              borderColor: tab === "history" ? colors.primary : colors.border,
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ fontWeight: "700", color: tab === "history" ? colors.textLight : colors.text }}>
+              History ({historyLoans.length})
+            </Text>
+          </Pressable>
+        </View>
 
         {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />}
         {!!error && !loading && (
@@ -192,7 +244,7 @@ export default function Borrowed() {
         
         <FlatList
           data={loans}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => `${tab}-${item.id}`}
           renderItem={({ item }) => (
             <LoanCard
               loan={item}
@@ -201,6 +253,7 @@ export default function Borrowed() {
               borderRadius={borderRadius}
               onRenew={handleRenewClick}
               onReturn={handleReturnClick}
+              showActions={tab === "active" && item.status !== "returned"}
             />
           )}
           style={styles.list}
@@ -209,7 +262,9 @@ export default function Borrowed() {
           ListEmptyComponent={
             !loading ? (
               <Text style={{ color: colors.textMuted, textAlign: "center", marginTop: spacing.xl }}>
-                No active loans right now.
+                {tab === "active"
+                  ? "No active loans right now."
+                  : "No borrowing history yet. When you borrow books, they will appear here."}
               </Text>
             ) : null
           }

@@ -34,10 +34,16 @@ export default function SignIn() {
         throw new Error(data.error || data.message || "Invalid email or password.");
       }
 
+      const roles: string[] = data.roles || [];
+      const isAcademic = roles.some((r) => r === "STUDENT" || r === "LECTURER");
+      if (!isAcademic) {
+        throw new Error("Use the Librarian / Admin portal for staff accounts.");
+      }
+
       await setSession({
         token: data.token,
         userId: data.userId,
-        roles: data.roles || [],
+        roles,
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
@@ -74,9 +80,9 @@ export default function SignIn() {
       {/* Glassmorphic Form Card */}
       <View style={styles.glassCard}>
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome back</Text>
+          <Text style={styles.title}>Academic Portal</Text>
           <Text style={styles.subtitle}>
-            Sign in to access your library account
+            Sign in as Student or Lecturer — same library screens
           </Text>
         </View>
 

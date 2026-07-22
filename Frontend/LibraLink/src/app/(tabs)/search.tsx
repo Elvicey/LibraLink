@@ -138,157 +138,148 @@ export default function Search() {
     }, 2200);
   };
 
-  return (
-    <ScreenWrapper style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Search Catalogue</Text>
-          <Text style={styles.subtitle}>
-            Find books, resources, and exam materials instantly
-          </Text>
-        </View>
-
-        {/* Search Wrapper with Overlay Dropdown */}
-        <View style={styles.searchWrapper}>
-          <Input
-            placeholder="Search by title, author or subject"
-            value={query}
-            onChangeText={setQuery}
-            onFocus={() => setShowDropdown(true)}
-            onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-            containerStyle={styles.searchContainer}
-            leftIcon={<Ionicons name="search-outline" size={20} color={colors.textMuted} />}
-            rightIcon={
-              query ? (
-                <Pressable onPress={() => setQuery("")}>
-                  <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-                </Pressable>
-              ) : (
-                <Pressable onPress={startVoiceMock}>
-                  <Ionicons name="mic-outline" size={20} color={colors.primary} />
-                </Pressable>
-              )
-            }
-          />
-          {showDropdown && suggestions.length > 0 && (
-            <View style={styles.suggestionsList}>
-              {suggestions.map((sug, idx) => (
-                <Pressable
-                  key={idx}
-                  style={[
-                    styles.dropdownItem,
-                    idx < suggestions.length - 1 && styles.dropdownItemBorder,
-                  ]}
-                  onPress={() => {
-                    setQuery(sug);
-                    setShowDropdown(false);
-                  }}
-                >
-                  <Text style={styles.dropdownText}>🔍  {sug}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Dynamic Dropdown Filter Chips */}
-        <View style={styles.filterRow}>
-          <Pressable
-            style={[
-              styles.filterPill,
-              selectedSubject !== "All" && styles.activePill,
-            ]}
-            onPress={() => setActiveDropdown("subject")}
-          >
-            <Text style={[styles.filterPillText, selectedSubject !== "All" && styles.activePillText]}>
-              Subject: {selectedSubject} ▾
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.filterPill,
-              selectedAuthor !== "All" && styles.activePill,
-            ]}
-            onPress={() => setActiveDropdown("author")}
-          >
-            <Text style={[styles.filterPillText, selectedAuthor !== "All" && styles.activePillText]}>
-              Author: {selectedAuthor} ▾
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.filterPill,
-              selectedAvailability !== "All" && styles.activePill,
-            ]}
-            onPress={() => setActiveDropdown("availability")}
-          >
-            <Text style={[styles.filterPillText, selectedAvailability !== "All" && styles.activePillText]}>
-              Status: {selectedAvailability} ▾
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Category Browsing Grid */}
-        <Text style={styles.sectionTitle}>Browse Categories</Text>
-        <View style={styles.categoryGrid}>
-          {CATEGORIES.map((cat) => (
-            <Pressable
-              key={cat.label}
-              style={[
-                styles.categoryTile,
-                selectedCategory === cat.subject && { borderColor: colors.primary, borderWidth: 1.5 },
-              ]}
-              onPress={() => {
-                setSelectedCategory(cat.subject);
-                setQuery("");
-                setSelectedSubject("All");
-                setSelectedAuthor("All");
-                setSelectedAvailability("All");
-              }}
-            >
-              <View style={[styles.catEmojiWrapper, { backgroundColor: cat.tint }]}>
-                <Text style={styles.catEmoji}>{cat.emoji}</Text>
-              </View>
-              <Text style={styles.catLabel}>{cat.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-        {!!selectedCategory && (
-          <Pressable onPress={() => setSelectedCategory(null)} style={{ marginBottom: spacing.md }}>
-            <Text style={{ color: colors.primary, fontWeight: "600" }}>
-              Showing {selectedCategory} · Clear filter
-            </Text>
-          </Pressable>
-        )}
-
-        {/* Search Results */}
-        <Text style={styles.resultsTitle}>Search results</Text>
-        {loading && (
-          <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />
-        )}
-        {!!error && !loading && (
-          <Text style={[styles.emptyText, { color: colors.danger }]}>{error}</Text>
-        )}
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <BookCard book={item} />}
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          ListEmptyComponent={
-            !loading ? (
-              <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                No books match the selected filters.
-              </Text>
-            ) : null
-          }
-        />
+  const listHeader = (
+    <>
+      <View style={styles.header}>
+        <Text style={styles.title}>Search Catalogue</Text>
+        <Text style={styles.subtitle}>
+          Find books, resources, and exam materials instantly
+        </Text>
+        <Text style={{ color: colors.textMuted, marginTop: spacing.xs, fontSize: 13 }}>
+          {loading ? "Loading catalogue…" : `${filtered.length} of ${books.length} books`}
+        </Text>
       </View>
 
-      {/* Premium Option Selector Bottom Sheet Modal */}
+      <View style={styles.searchWrapper}>
+        <Input
+          placeholder="Search by title, author or subject"
+          value={query}
+          onChangeText={setQuery}
+          onFocus={() => setShowDropdown(true)}
+          onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+          containerStyle={styles.searchContainer}
+          leftIcon={<Ionicons name="search-outline" size={20} color={colors.textMuted} />}
+          rightIcon={
+            query ? (
+              <Pressable onPress={() => setQuery("")}>
+                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+              </Pressable>
+            ) : (
+              <Pressable onPress={startVoiceMock}>
+                <Ionicons name="mic-outline" size={20} color={colors.primary} />
+              </Pressable>
+            )
+          }
+        />
+        {showDropdown && suggestions.length > 0 && (
+          <View style={styles.suggestionsList}>
+            {suggestions.map((sug, idx) => (
+              <Pressable
+                key={idx}
+                style={[
+                  styles.dropdownItem,
+                  idx < suggestions.length - 1 && styles.dropdownItemBorder,
+                ]}
+                onPress={() => {
+                  setQuery(sug);
+                  setShowDropdown(false);
+                }}
+              >
+                <Text style={styles.dropdownText}>🔍  {sug}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+
+      <View style={styles.filterRow}>
+        <Pressable
+          style={[styles.filterPill, selectedSubject !== "All" && styles.activePill]}
+          onPress={() => setActiveDropdown("subject")}
+        >
+          <Text style={[styles.filterPillText, selectedSubject !== "All" && styles.activePillText]}>
+            Subject: {selectedSubject} ▾
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.filterPill, selectedAuthor !== "All" && styles.activePill]}
+          onPress={() => setActiveDropdown("author")}
+        >
+          <Text style={[styles.filterPillText, selectedAuthor !== "All" && styles.activePillText]}>
+            Author: {selectedAuthor.length > 12 ? `${selectedAuthor.slice(0, 12)}…` : selectedAuthor} ▾
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.filterPill, selectedAvailability !== "All" && styles.activePill]}
+          onPress={() => setActiveDropdown("availability")}
+        >
+          <Text style={[styles.filterPillText, selectedAvailability !== "All" && styles.activePillText]}>
+            Status: {selectedAvailability} ▾
+          </Text>
+        </Pressable>
+      </View>
+
+      <Text style={styles.sectionTitle}>Browse Categories</Text>
+      <View style={styles.categoryGrid}>
+        {CATEGORIES.map((cat) => (
+          <Pressable
+            key={cat.label}
+            style={[
+              styles.categoryTile,
+              selectedCategory === cat.subject && { borderColor: colors.primary, borderWidth: 1.5 },
+            ]}
+            onPress={() => {
+              setSelectedCategory((prev) => (prev === cat.subject ? null : cat.subject));
+              setQuery("");
+              setSelectedSubject("All");
+              setSelectedAuthor("All");
+              setSelectedAvailability("All");
+            }}
+          >
+            <View style={[styles.catEmojiWrapper, { backgroundColor: cat.tint }]}>
+              <Text style={styles.catEmoji}>{cat.emoji}</Text>
+            </View>
+            <Text style={styles.catLabel}>{cat.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      {!!selectedCategory && (
+        <Pressable onPress={() => setSelectedCategory(null)} style={{ marginBottom: spacing.md }}>
+          <Text style={{ color: colors.primary, fontWeight: "600" }}>
+            Showing {selectedCategory} · Clear filter
+          </Text>
+        </Pressable>
+      )}
+
+      <Text style={styles.resultsTitle}>Search results</Text>
+      {loading && <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />}
+      {!!error && !loading && (
+        <Text style={[styles.emptyText, { color: colors.danger }]}>{error}</Text>
+      )}
+    </>
+  );
+
+  return (
+    <ScreenWrapper style={styles.safeArea}>
+      <FlatList
+        style={styles.list}
+        contentContainerStyle={[styles.listContent, { padding: spacing.lg }]}
+        data={loading ? [] : filtered}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <BookCard book={item} />}
+        ListHeaderComponent={listHeader}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        ListEmptyComponent={
+          !loading ? (
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+              No books match the selected filters.
+            </Text>
+          ) : null
+        }
+      />
+
       <Modal
         visible={activeDropdown !== null}
         transparent
@@ -330,7 +321,6 @@ export default function Search() {
         </Pressable>
       </Modal>
 
-      {/* Voice Interaction Listening Modal Overlay */}
       <Modal visible={isListening} transparent animationType="fade">
         <View style={styles.voiceOverlay}>
           <Card style={[styles.voiceCard, isDark ? styles.cardDark : null]}>
@@ -338,13 +328,11 @@ export default function Search() {
             <Text style={[styles.voiceDesc, { color: colors.textMuted }]}>
               Say a book title, author, or subject.
             </Text>
-            
             <View style={[styles.pulseCircle, { borderColor: colors.primaryLight }]}>
               <View style={[styles.pulseInner, { backgroundColor: colors.primary }]}>
                 <Ionicons name="mic" size={32} color={colors.textLight} />
               </View>
             </View>
-            
             <Text style={[styles.speechHint, { color: colors.primary }]}>"Calculus by J. Stewart"</Text>
           </Card>
         </View>
