@@ -57,7 +57,7 @@ public class NotificationService {
 
     public Notification markAsRead(Integer id) {
         Notification notification = notificationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Notification not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Notification not found with id: " + id));
 
         notification.setIsRead(true);
         notification.setReadAt(LocalDateTime.now());
