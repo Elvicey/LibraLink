@@ -1,12 +1,37 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../../components/common/Button";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
+import { useAuth } from "../../contexts/AuthContext";
+import { bookAuthorName } from "../../services/books";
+import { borrowsService, BorrowRecord } from "../../services/borrows";
 
-// TODO: Fetch borrowed books from API
-const BORROWED: { id: string; title: string; author: string; due: string; status: string; progress?: string; fine?: string }[] = [];
+type LoanView = {
+  id: string;
+  title: string;
+  author: string;
+  due: string;
+  status: string;
+  progress?: string;
+  fine?: string;
+};
+
+function mapBorrow(record: BorrowRecord): LoanView {
+  const statusRaw = (record.status || "BORROWED").toUpperCase();
+  let status = "active";
+  if (statusRaw === "OVERDUE") status = "overdue";
+  if (statusRaw === "RETURNED") status = "returned";
+  return {
+    id: String(record.id),
+    title: record.book?.title || "Unknown book",
+    author: record.book ? bookAuthorName(record.book) : "Unknown author",
+    due: record.dueDate || "—",
+    status,
+    progress: record.dueDate ? `Due ${record.dueDate}` : undefined,
+  };
+}
 
 function getLoanStatusColor(status: string, colors: any) {
   return status === "overdue"
@@ -40,7 +65,6 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: an
         },
       ]}
     >
-      {/* Header Row: Title & Badge Pill */}
       <View style={styles.cardHeader}>
         <Text style={[styles.cardTitle, { color: colors.text, marginRight: spacing.sm }]}>
           {loan.title}
@@ -56,18 +80,13 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: an
         by {loan.author}
       </Text>
 
-      {/* Visual Status Content Block */}
       <View style={styles.infoBlockContainer}>
         {loan.status === "active" && (
           <View style={styles.progressSection}>
-            <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
-              {/* Mocking 11/14 days elapsed (approx 78%) */}
-              <View style={[styles.progressBarFill, { width: "78.5%", backgroundColor: colors.primary }]} />
-            </View>
             <View style={styles.dueDetails}>
               <Ionicons name="time-outline" size={14} color={colors.textMuted} style={{ marginRight: 4 }} />
               <Text style={[styles.dueText, { color: colors.textMuted }]}>
-                {loan.progress} (Due 30 Jun)
+                {loan.progress || `Due ${loan.due}`}
               </Text>
             </View>
           </View>
@@ -78,35 +97,13 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: an
             <View style={styles.alertHeader}>
               <Ionicons name="alert-circle" size={16} color={colors.danger} style={{ marginRight: 6 }} />
               <Text style={[styles.alertText, { color: colors.danger }]}>
-                Overdue · Immediate Action Required
-              </Text>
-            </View>
-            <View style={styles.fineRow}>
-              <Text style={[styles.fineLabel, { color: colors.textMuted }]}>Accumulated Fine:</Text>
-              <Text style={[styles.fineValue, { color: colors.danger }]}>{loan.fine}</Text>
-            </View>
-          </View>
-        )}
-
-        {loan.status === "ready" && (
-          <View style={[styles.readyBlock, { backgroundColor: colors.successLight, borderColor: "rgba(21, 128, 61, 0.12)" }]}>
-            <View style={styles.readyHeader}>
-              <Ionicons name="sparkles" size={16} color={colors.success} style={{ marginRight: 6 }} />
-              <Text style={[styles.readyText, { color: colors.success }]}>
-                Ready for Pickup at Campus Desk
-              </Text>
-            </View>
-            <View style={styles.pickupTimeRow}>
-              <Ionicons name="alarm-outline" size={14} color={colors.success} style={{ marginRight: 4 }} />
-              <Text style={[styles.pickupText, { color: colors.text }]}>
-                {loan.due} (Desk C)
+                Overdue · Due {loan.due}
               </Text>
             </View>
           </View>
         )}
       </View>
 
-      {/* Action Buttons Row */}
       <View style={styles.cardActions}>
         <Button
           title="Renew"
@@ -132,21 +129,45 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn }: an
 
 export default function Borrowed() {
   const { colors, spacing, borderRadius } = useTheme();
+  const { userId, token } = useAuth();
+  const [loans, setLoans] = useState<LoanView[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Selected book context states
   const [selectedBook, setSelectedBook] = useState<any>(null);
   const [returnVisible, setReturnVisible] = useState(false);
   const [renewVisible, setRenewVisible] = useState(false);
   const [renewStatus, setRenewStatus] = useState<"loading" | "success">("loading");
 
+  const load = useCallback(async () => {
+    if (!userId || !token) {
+      setLoans([]);
+      setError("Sign in to see your borrowed books.");
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const records = await borrowsService.getCurrent(userId);
+      setLoans(records.map(mapBorrow));
+    } catch (e: any) {
+      setError(e?.message || "Could not load borrowed books.");
+      setLoans([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, token]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const handleRenewClick = (book: any) => {
     setSelectedBook(book);
     setRenewVisible(true);
     setRenewStatus("loading");
-    
-    setTimeout(() => {
-      setRenewStatus("success");
-    }, 1800);
+    setTimeout(() => setRenewStatus("success"), 1800);
   };
 
   const handleReturnClick = (book: any) => {
@@ -161,11 +182,16 @@ export default function Borrowed() {
           My Borrowed Books
         </Text>
         <Text style={{ color: colors.textMuted, marginBottom: spacing.lg, fontSize: 15 }}>
-          Active loans, overdue alerts, and pick-up status
+          Active loans from your LibraLink account
         </Text>
+
+        {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />}
+        {!!error && !loading && (
+          <Text style={{ color: colors.danger, marginBottom: spacing.md }}>{error}</Text>
+        )}
         
         <FlatList
-          data={BORROWED}
+          data={loans}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <LoanCard
@@ -180,6 +206,13 @@ export default function Borrowed() {
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            !loading ? (
+              <Text style={{ color: colors.textMuted, textAlign: "center", marginTop: spacing.xl }}>
+                No active loans right now.
+              </Text>
+            ) : null
+          }
         />
       </View>
 

@@ -1,17 +1,64 @@
-import { API_BASE_URL } from "../../config/api";
-import { useAuth } from "../../contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { ImageBackground, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Card from "../../components/common/Card";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
+import { useAuth } from "../../contexts/AuthContext";
+import { borrowsService } from "../../services/borrows";
+import { usersService } from "../../services/users";
 
 export default function Profile() {
   const router = useRouter();
+  const { userId, firstName, lastName, email, roles, clearSession, setSession, token } = useAuth();
   const { colors, spacing, borderRadius, typography, isDark, toggleTheme } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
+
+  const [borrowedCount, setBorrowedCount] = useState(0);
+  const [displayName, setDisplayName] = useState(firstName || "Student");
+  const [displayEmail, setDisplayEmail] = useState(email || "");
+
+  const load = useCallback(async () => {
+    if (!userId || !token) return;
+    try {
+      const [user, history] = await Promise.all([
+        usersService.getById(userId).catch(() => null),
+        borrowsService.getHistory(userId).catch(() => []),
+      ]);
+      if (user) {
+        const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || "Student";
+        setDisplayName(user.firstName || name);
+        setDisplayEmail(user.email || "");
+        await setSession({
+          token,
+          userId,
+          roles,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+        });
+      }
+      setBorrowedCount(history.length);
+    } catch {
+      // keep cached auth values
+    }
+  }, [userId, token, roles, setSession]);
+
+  useEffect(() => {
+    if (firstName) setDisplayName(firstName);
+    if (email) setDisplayEmail(email);
+    load();
+  }, [firstName, email, load]);
+
+  const initial = (displayName || "S").charAt(0).toUpperCase();
+  const roleLabel = roles.includes("LIBRARIAN")
+    ? "Librarian"
+    : roles.includes("LECTURER")
+      ? "Lecturer"
+      : roles.includes("ADMIN")
+        ? "Admin"
+        : "Student";
 
   return (
     <ScreenWrapper
@@ -20,7 +67,6 @@ export default function Profile() {
       statusBarColor="transparent"
       contentContainerStyle={styles.container}
     >
-      {/* Premium Cover Banner using the library background photo */}
       <ImageBackground
         source={require("../../../assets/images/onboarding-bg.jpg")}
         style={styles.coverBanner}
@@ -29,36 +75,33 @@ export default function Profile() {
         <View style={styles.coverOverlay} />
       </ImageBackground>
 
-      {/* Profile Page Content Wrapper */}
       <View style={styles.content}>
-        {/* Profile Info Header overlapping the banner */}
         <View style={styles.headerRow}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarInitial}>S</Text>
+            <Text style={styles.avatarInitial}>{initial}</Text>
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.title}>Student</Text>
-            <Text style={styles.email}></Text>
-            <Text style={styles.statusBadge}>Student member</Text>
+            <Text style={styles.title}>{[firstName, lastName].filter(Boolean).join(" ") || displayName}</Text>
+            <Text style={styles.email}>{displayEmail}</Text>
+            <Text style={styles.statusBadge}>{roleLabel} member</Text>
           </View>
         </View>
 
-        {/* Statistics Grid */}
         <View style={styles.summaryRow}>
           <Card style={styles.summaryCard}>
             <Ionicons name="book" size={22} color={colors.primary} style={{ marginBottom: spacing.xs }} />
-            <Text style={styles.summaryValue}>0</Text>
-            <Text style={styles.summaryLabel}>Borrowed this semester</Text>
+            <Text style={styles.summaryValue}>{borrowedCount}</Text>
+            <Text style={styles.summaryLabel}>Borrow records</Text>
           </Card>
           <Card style={styles.summaryCard}>
-            <Ionicons name="trending-up" size={22} color={colors.success} style={{ marginBottom: spacing.xs }} />
-            <Text style={styles.summaryValue}>0%</Text>
-            <Text style={styles.summaryLabel}>On-time return rate</Text>
+            <Ionicons name="person" size={22} color={colors.success} style={{ marginBottom: spacing.xs }} />
+            <Text style={styles.summaryValue}>{roleLabel}</Text>
+            <Text style={styles.summaryLabel}>Account role</Text>
           </Card>
           <Card style={styles.summaryCard}>
-            <Ionicons name="bookmark" size={22} color={colors.warning} style={{ marginBottom: spacing.xs }} />
-            <Text style={styles.summaryValue}>0</Text>
-            <Text style={styles.summaryLabel}>Active holds</Text>
+            <Ionicons name="library" size={22} color={colors.warning} style={{ marginBottom: spacing.xs }} />
+            <Text style={styles.summaryValue}>{userId ?? "—"}</Text>
+            <Text style={styles.summaryLabel}>User ID</Text>
           </Card>
         </View>
 
@@ -236,7 +279,10 @@ export default function Profile() {
             {/* Sign Out Action Row */}
             <Pressable
               style={[styles.menuItem, styles.lastMenuItem]}
-              onPress={() => router.replace("/signin" as any)}
+              onPress={async () => {
+                await clearSession();
+                router.replace("/role-select" as any);
+              }}
             >
               <View style={styles.menuItemRow}>
                 <View style={styles.menuItemLeft}>

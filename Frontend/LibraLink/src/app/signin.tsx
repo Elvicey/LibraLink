@@ -1,5 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_BASE_URL } from "../config/api";
+import { useAuth } from "../contexts/AuthContext";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
@@ -7,9 +6,11 @@ import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { theme, lightColors } from "../constants/theme";
+import { API_BASE_URL } from "../config/api";
 
 export default function SignIn() {
   const router = useRouter();
+  const { setSession } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,11 +32,14 @@ export default function SignIn() {
         throw new Error(data.error || "Invalid email or password.");
       }
 
-      const roles: string[] = data.roles || [];
-
-      await AsyncStorage.setItem("authToken", data.token);
-      await AsyncStorage.setItem("userId", String(data.userId));
-      await AsyncStorage.setItem("userRoles", JSON.stringify(roles));
+      await setSession({
+        token: data.token,
+        userId: data.userId,
+        roles: data.roles || [],
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+      });
       router.replace("/(tabs)/home" as any);
     } catch (e: any) {
       Alert.alert("Sign in failed", e.message || "Please try again.");

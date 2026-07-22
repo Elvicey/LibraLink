@@ -1,19 +1,16 @@
-import { useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View, Modal, ScrollView } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, Modal, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import BookCard from "../../components/BookCard";
 import Input from "../../components/common/Input";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
 import Card from "../../components/common/Card";
+import { bookAuthorName, booksService, Book, isBookAvailable } from "../../services/books";
 
-// TODO: Fetch books from API
-const SAMPLE_BOOKS: { id: string; title: string; author: string; available: boolean; tag: string }[] = [];
-
-// TODO: Fetch filter options from API
 const SUBJECT_OPTIONS = ["All"];
 const AUTHOR_OPTIONS = ["All"];
-const AVAILABILITY_OPTIONS = ["All"];
+const AVAILABILITY_OPTIONS = ["All", "Available", "On Loan"];
 
 const CATEGORIES = [
   { label: "Science", emoji: "🧬", query: "Calculus", tint: "rgba(11, 110, 253, 0.08)" },
@@ -22,8 +19,29 @@ const CATEGORIES = [
   { label: "Economics", emoji: "📈", query: "Economics", tint: "rgba(245, 158, 11, 0.08)" },
 ];
 
+type SearchBook = {
+  id: string;
+  title: string;
+  author: string;
+  available: boolean;
+  tag: string;
+};
+
+function toSearchBook(book: Book): SearchBook {
+  return {
+    id: String(book.id),
+    title: book.title,
+    author: bookAuthorName(book),
+    available: isBookAvailable(book),
+    tag: book.language || "General",
+  };
+}
+
 export default function Search() {
   const [query, setQuery] = useState("");
+  const [books, setBooks] = useState<SearchBook[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [selectedAuthor, setSelectedAuthor] = useState("All");
   const [selectedAvailability, setSelectedAvailability] = useState("All");
@@ -35,8 +53,31 @@ export default function Search() {
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
 
+  const loadBooks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await booksService.list();
+      setBooks(data.map(toSearchBook));
+    } catch (e: any) {
+      setError(e?.message || "Could not load books.");
+      setBooks([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBooks();
+  }, [loadBooks]);
+
+  const authorOptions = useMemo(() => {
+    const names = Array.from(new Set(books.map((b) => b.author))).sort();
+    return ["All", ...names];
+  }, [books]);
+
   const filtered = useMemo(() => {
-    return SAMPLE_BOOKS.filter((b) => {
+    return books.filter((b) => {
       const matchesSearch = `${b.title} ${b.author} ${b.tag}`
         .toLowerCase()
         .includes(query.toLowerCase());
@@ -53,20 +94,20 @@ export default function Search() {
       
       return matchesSearch && matchesSubject && matchesAuthor && matchesAvailability;
     });
-  }, [query, selectedSubject, selectedAuthor, selectedAvailability]);
+  }, [books, query, selectedSubject, selectedAuthor, selectedAvailability]);
 
   const suggestions = useMemo(() => {
     if (!query.trim()) return [];
-    return SAMPLE_BOOKS.filter(
+    return books.filter(
       (b) =>
         b.title.toLowerCase().includes(query.toLowerCase()) &&
         b.title.toLowerCase() !== query.toLowerCase()
-    ).map((b) => b.title);
-  }, [query]);
+    ).map((b) => b.title).slice(0, 6);
+  }, [books, query]);
 
   const getDropdownOptions = () => {
     if (activeDropdown === "subject") return SUBJECT_OPTIONS;
-    if (activeDropdown === "author") return AUTHOR_OPTIONS;
+    if (activeDropdown === "author") return authorOptions;
     return AVAILABILITY_OPTIONS;
   };
 
@@ -208,6 +249,12 @@ export default function Search() {
 
         {/* Search Results */}
         <Text style={styles.resultsTitle}>Search results</Text>
+        {loading && (
+          <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />
+        )}
+        {!!error && !loading && (
+          <Text style={[styles.emptyText, { color: colors.danger }]}>{error}</Text>
+        )}
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
@@ -218,9 +265,11 @@ export default function Search() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           ListEmptyComponent={
-            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-              No books match the selected filters.
-            </Text>
+            !loading ? (
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                No books match the selected filters.
+              </Text>
+            ) : null
           }
         />
       </View>
