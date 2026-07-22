@@ -19,7 +19,8 @@
 		{ "key": "testAuthorId", "value": "", "type": "string" },
 		{ "key": "testBarcode", "value": "", "type": "string" },
 		{ "key": "testReservationId", "value": "", "type": "string" },
-		{ "key": "testFineId", "value": "", "type": "string" }
+		{ "key": "testFineId", "value": "", "type": "string" },
+		{ "key": "testNotificationId", "value": "", "type": "string" }
 	],
 	"item": [
 		{
@@ -289,13 +290,25 @@
 		{
 			"name": "Notifications",
 			"item": [
-				{ "name": "Create Notification (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
-					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"type\": \"GENERAL\",\n  \"title\": \"\",\n  \"message\": \"\"\n}" },
+				{ "name": "Create Notification (Librarian)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
+						"var j = pm.response.json();",
+						"if (j.id) { pm.collectionVariables.set('testNotificationId', String(j.id)); }"
+					]}}],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
+					"body": { "mode": "raw", "raw": "{\n  \"userId\": {{testUserId}},\n  \"type\": \"GENERAL\",\n  \"title\": \"Library notice\",\n  \"message\": \"Your reserved book is ready for pickup.\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/notifications", "host": ["{{baseUrl}}"], "path": ["api", "notifications"] }
 				}},
-				{ "name": "Get All Notifications (Librarian)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/notifications", "host": ["{{baseUrl}}"], "path": ["api", "notifications"] } } },
+				{ "name": "Get All Notifications (Librarian)",
+					"event": [{ "listen": "test", "script": { "exec": [
+						"var list = pm.response.json();",
+						"if (Array.isArray(list) && list.length > 0) { pm.collectionVariables.set('testNotificationId', String(list[0].id)); }"
+					]}}],
+					"request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/notifications", "host": ["{{baseUrl}}"], "path": ["api", "notifications"] } }
+				},
 				{ "name": "Get User Notifications", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/notifications/user/{{testUserId}}", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "user", "{{testUserId}}"] } } },
-				{ "name": "Mark Notification as Read", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/notifications/1/read", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "1", "read"] } } },
+				{ "name": "Mark Notification as Read", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/notifications/{{testNotificationId}}/read", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "{{testNotificationId}}", "read"] } } },
 				{ "name": "Mark All Notifications as Read", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{authToken}}" }], "url": { "raw": "{{baseUrl}}/api/notifications/user/{{testUserId}}/read-all", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "user", "{{testUserId}}", "read-all"] } } }
 			]
 		},
