@@ -39,6 +39,24 @@ public class UserService {
         // an unrelated existing user's institution/roles/password hash.
         user.setId(null);
 
+        // Medium: none of these were checked before hitting the DB. A blank/missing
+        // passwordHash used to NPE inside passwordEncoder.encode(...) (raw 500 instead of
+        // a 400); a blank/missing firstName/lastName/email used to fall all the way
+        // through to a DataIntegrityViolationException (mapped to a misleading 409
+        // "constraint violation" instead of a 400 naming the actual missing field).
+        if (user.getFirstName() == null || user.getFirstName().isBlank()) {
+            throw new IllegalArgumentException("firstName is required");
+        }
+        if (user.getLastName() == null || user.getLastName().isBlank()) {
+            throw new IllegalArgumentException("lastName is required");
+        }
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new IllegalArgumentException("email is required");
+        }
+        if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
+            throw new IllegalArgumentException("password is required");
+        }
+
         if (user.getInstitution() == null || user.getInstitution().getInstitutionId() == null) {
             throw new IllegalArgumentException(
                     "Registration failed: 'institution.institutionId' is missing or null in the request body."

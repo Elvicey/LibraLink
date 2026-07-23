@@ -3,8 +3,16 @@ package com.codequest.libralink.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+// Medium: AudioBookTrackService.saveOrUpdateProgress does a find-by-(user,track)-or-create
+// with no locking. Without a DB constraint, two concurrent requests (e.g. a double-tap on
+// "save progress") can both miss the find and both insert, leaving two progress rows for
+// the same user+track that silently diverge from then on. The unique constraint makes the
+// second insert fail loudly (already mapped to 409 by GlobalExceptionHandler) instead of
+// corrupting data.
 @Entity
-@Table(name = "user_audio_progress")
+@Table(name = "user_audio_progress",
+        uniqueConstraints = @UniqueConstraint(name = "uk_user_audio_progress_user_track",
+                columnNames = {"user_id", "track_id"}))
 public class UserAudioProgress {
 
     @Id

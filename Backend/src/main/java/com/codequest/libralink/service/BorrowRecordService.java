@@ -35,10 +35,16 @@ public class BorrowRecordService {
     @Transactional
     public BorrowRecord saveRecord(BorrowRecord rec) {
         // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
-        rec.setId(null);
-        if (rec.getBook() == null || rec.getBook().getId() == null) {
-            throw new IllegalArgumentException("book.id is required");
-        }
+            rec.setId(null);
+            // Medium: user_id has no DB-level nullable=false (unlike book_id, which already
+            // had one), and nothing here checked it either - a request that omitted "user"
+            // used to silently create an ownerless borrow record instead of failing.
+            if (rec.getUser() == null || rec.getUser().getId() == null) {
+                throw new IllegalArgumentException("user.id is required");
+            }
+            if (rec.getBook() == null || rec.getBook().getId() == null) {
+                throw new IllegalArgumentException("book.id is required");
+            }
 
         // Never trust the client-supplied Book sub-object (it can carry arbitrary
         // availableCopies/totalCopies/borrowCount/etc.) - re-fetch the real row instead,

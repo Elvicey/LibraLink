@@ -18,7 +18,10 @@ public class Institution {
     @Column(nullable = false, length = 200)
     private String name;
 
-    @Column(name = "short_name", length = 50)
+    // Medium: shortName is used as a short human-facing code for the institution; nothing
+    // stopped two institutions from being created with the same one. Plain unique columns
+    // allow multiple NULLs, so institutions that don't set a shortName are unaffected.
+    @Column(name = "short_name", length = 50, unique = true)
     private String shortName;
 
     @Column(nullable = false, length = 20)
