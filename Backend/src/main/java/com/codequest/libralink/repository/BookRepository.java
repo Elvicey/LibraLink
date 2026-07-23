@@ -3,6 +3,7 @@ package com.codequest.libralink.repository;
 import com.codequest.libralink.entity.Book;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,8 +12,11 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+// JpaSpecificationExecutor backs NlSearchService's multi-word fallback (Medium: N+1) -
+// it used to run one searchByQuery(word) round trip per word in a loop instead of a
+// single query.
 @Repository
-public interface BookRepository extends JpaRepository<Book, Integer> {
+public interface BookRepository extends JpaRepository<Book, Integer>, JpaSpecificationExecutor<Book> {
 
     List<Book> findByTitleContainingIgnoreCase(String title);
 

@@ -11,6 +11,7 @@ import com.codequest.libralink.repository.UserRepository;
 import com.codequest.libralink.security.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
@@ -48,14 +49,21 @@ public class AuthService {
         return toAuthResponse(user);
     }
 
+    // Medium: registerWithRole does a read (email-exists check), a possible role insert,
+    // and the user insert as separate statements. @Transactional has to go on these public
+    // entry points rather than on registerWithRole itself - Spring's proxy-based
+    // @Transactional has no effect on self-invoked private/internal calls.
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         return registerWithRole(request, "STUDENT");
     }
 
+    @Transactional
     public AuthResponse registerLecturer(RegisterRequest request) {
         return registerWithRole(request, "LECTURER");
     }
 
+    @Transactional
     public AuthResponse registerLibrarian(RegisterRequest request) {
         return registerWithRole(request, "LIBRARIAN");
     }

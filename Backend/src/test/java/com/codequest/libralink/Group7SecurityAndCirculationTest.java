@@ -78,9 +78,16 @@ class Group7SecurityAndCirculationTest extends BaseApiTest {
     void tamperedJwtSignature_isRejected() throws Exception {
         User student = createTestStudent(uniqueEmail("g7tamper"), "pass1234");
         String token = loginAs(student.getEmail(), "pass1234");
-        // Flip the last character of the signature segment so it no longer verifies.
-        String tampered = token.substring(0, token.length() - 1)
-                + (token.charAt(token.length() - 1) == 'a' ? 'b' : 'a');
+        // Flip the second-to-last character of the signature segment so it no longer
+        // verifies. NOTE: flipping the very last character of a base64url string is
+        // flaky - trailing chars can carry unused padding bits (e.g. 'a' and 'b' differ
+        // only in such a bit), so the "tampered" signature can still decode to the same
+        // bytes and pass verification. One character in from the end is never a
+        // padding-only bit.
+        int tamperIdx = token.length() - 2;
+        String tampered = token.substring(0, tamperIdx)
+                + (token.charAt(tamperIdx) == 'a' ? 'b' : 'a')
+                + token.substring(tamperIdx + 1);
 
         mockMvc.perform(get("/api/users/" + student.getId())
                         .header("Authorization", bearerToken(tampered)))

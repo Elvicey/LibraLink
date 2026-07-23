@@ -6,6 +6,7 @@ import com.codequest.libralink.security.CurrentUserProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -84,15 +85,8 @@ public class NotificationService {
         return notificationRepository.save(notification);
     }
 
+    @Transactional
     public int markAllAsRead(Integer userId) {
-        List<Notification> unread = notificationRepository.findByUserIdAndIsRead(userId, false);
-        int count = 0;
-        for (Notification n : unread) {
-            n.setIsRead(true);
-            n.setReadAt(LocalDateTime.now());
-            notificationRepository.save(n);
-            count++;
-        }
-        return count;
+        return notificationRepository.markAllAsReadForUser(userId, LocalDateTime.now());
     }
 }
