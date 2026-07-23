@@ -29,6 +29,19 @@ public class NotificationService {
     }
 
     public Notification createNotification(Notification notification) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        // (Internally-constructed `new Notification()` calls from other services always
+        // have a null id already, so this is a no-op for them.)
+        notification.setId(null);
+        if (notification.getUserId() == null) {
+            throw new IllegalArgumentException("userId is required");
+        }
+        if (notification.getTitle() == null || notification.getTitle().isBlank()) {
+            throw new IllegalArgumentException("title is required");
+        }
+        if (notification.getMessage() == null || notification.getMessage().isBlank()) {
+            throw new IllegalArgumentException("message is required");
+        }
         notification.setCreatedAt(LocalDateTime.now());
         notification.setIsRead(false);
         Notification saved = notificationRepository.save(notification);

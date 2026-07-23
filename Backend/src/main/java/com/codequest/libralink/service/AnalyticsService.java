@@ -18,6 +18,11 @@ public class AnalyticsService {
     }
 
     public SearchLog logSearch(SearchLog log) {
+        // Never trust a client-supplied id/createdAt on create (H7/H6).
+        log.setId(null);
+        if (log.getQuery() == null || log.getQuery().isBlank()) {
+            throw new IllegalArgumentException("query is required");
+        }
         log.setCreatedAt(LocalDateTime.now());
         return searchLogRepository.save(log);
     }

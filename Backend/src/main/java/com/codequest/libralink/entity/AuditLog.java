@@ -1,6 +1,7 @@
 package com.codequest.libralink.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,6 +15,7 @@ public class AuditLog {
     @Column(name = "user_id")
     private Integer userId;
 
+    @NotBlank
     @Column(nullable = false, length = 100)
     private String action;
 

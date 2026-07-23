@@ -14,6 +14,8 @@ public class AuthorService {
     private AuthorRepository authorRepository;
 
     public Author addAuthor(Author author) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        author.setId(null);
         return authorRepository.save(author);
     }
 

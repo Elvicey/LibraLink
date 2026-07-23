@@ -12,7 +12,12 @@ public class RoleService {
     @Autowired private RoleRepository roleRepository;
     @Autowired private UserRepository userRepository;
 
-    public Role saveRole(Role role) { return roleRepository.save(role); }
+    public Role saveRole(Role role) {
+        // Never trust a client-supplied id on create (H7): a forged id could rename an
+        // existing role (e.g. ADMIN) instead of creating a new one.
+        role.setId(null);
+        return roleRepository.save(role);
+    }
 
     public User assignRoleToUser(Integer userId, String roleName) {
         User user = userRepository.findById(userId)

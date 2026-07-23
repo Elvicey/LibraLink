@@ -22,6 +22,8 @@ public class FinePaymentService {
 
     @Transactional
     public FinePayment processPayment(FinePayment payment) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        payment.setId(null);
         if (payment.getFineId() == null) {
             throw new IllegalArgumentException("fineId is required");
         }

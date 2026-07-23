@@ -42,6 +42,8 @@ public class PodcastEpisodeService {
 
     @Transactional
     public PodcastEpisode createEpisode(Integer showId, PodcastEpisode episode) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        episode.setId(null);
         ensureShowExists(showId);
         if (episode.getTitle() == null || episode.getTitle().isBlank()) {
             throw new IllegalArgumentException("title is required");
