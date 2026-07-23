@@ -39,10 +39,11 @@ public class AudioTrackService {
     private String storageBaseUrl;
 
     public AudioTrackService(AudioTrackRepository audioTrackRepository,
-                             BookRepository bookRepository) {
+                             BookRepository bookRepository,
+                             RestTemplate externalApiRestTemplate) {
         this.audioTrackRepository = audioTrackRepository;
         this.bookRepository = bookRepository;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = externalApiRestTemplate;
         this.objectMapper = new ObjectMapper();
     }
 

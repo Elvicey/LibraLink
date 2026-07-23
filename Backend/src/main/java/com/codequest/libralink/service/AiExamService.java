@@ -44,13 +44,14 @@ public class AiExamService {
                          ExamQuestionRepository examQuestionRepository,
                          StudySessionRepository studySessionRepository,
                          BookRepository bookRepository,
-                         CurrentUserProvider currentUserProvider) {
+                         CurrentUserProvider currentUserProvider,
+                         RestTemplate externalApiRestTemplate) {
         this.studySummaryRepository = studySummaryRepository;
         this.examQuestionRepository = examQuestionRepository;
         this.studySessionRepository = studySessionRepository;
         this.bookRepository = bookRepository;
         this.currentUserProvider = currentUserProvider;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = externalApiRestTemplate;
         this.objectMapper = new ObjectMapper();
     }
 
