@@ -23,8 +23,13 @@ public class PickupSlotService {
         this.reservationRepository = reservationRepository;
     }
 
+    // The overlap check below reads all SCHEDULED slots, decides there's no conflict,
+    // then writes a new one - a classic check-then-write race with no single DB row to
+    // lock (H4). `synchronized` serializes it within this JVM, which is sufficient for
+    // the current single-instance deployment; a multi-instance deployment would need a
+    // DB-level exclusion constraint instead.
     @Transactional
-    public PickupSlot scheduleSlot(PickupSlot slot) {
+    public synchronized PickupSlot scheduleSlot(PickupSlot slot) {
         if (slot.getUserId() == null) {
             throw new IllegalStateException("userId is required.");
         }
