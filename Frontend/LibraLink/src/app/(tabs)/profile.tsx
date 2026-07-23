@@ -311,7 +311,8 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
   StyleSheet.create({
     container: {
       backgroundColor: colors.background,
-      paddingBottom: spacing.xxl,
+      // Clear the floating tab bar
+      paddingBottom: 110,
     },
     coverBanner: {
       height: 120, // Reduced height to keep layout compact

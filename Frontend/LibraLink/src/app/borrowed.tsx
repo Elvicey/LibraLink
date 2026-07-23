@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import { FlatList, Modal, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Button from "../../components/common/Button";
-import ScreenWrapper from "../../components/common/ScreenWrapper";
-import { useTheme } from "../../constants/theme";
-import { useAuth } from "../../contexts/AuthContext";
-import { bookAuthorName } from "../../services/books";
-import { borrowsService, BorrowRecord } from "../../services/borrows";
+import Button from "../components/common/Button";
+import ScreenWrapper from "../components/common/ScreenWrapper";
+import { useTheme } from "../constants/theme";
+import { useAuth } from "../contexts/AuthContext";
+import { bookAuthorName } from "../services/books";
+import { borrowsService, BorrowRecord } from "../services/borrows";
+import { Fine, fineAmount, finesService } from "../services/fines";
 
 type LoanView = {
   id: string;
@@ -135,11 +137,13 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn, show
 }
 
 export default function Borrowed() {
+  const router = useRouter();
   const { colors, spacing, borderRadius } = useTheme();
   const { userId, token } = useAuth();
-  const [tab, setTab] = useState<"active" | "history">("active");
+  const [tab, setTab] = useState<"active" | "history" | "fines">("active");
   const [activeLoans, setActiveLoans] = useState<LoanView[]>([]);
   const [historyLoans, setHistoryLoans] = useState<LoanView[]>([]);
+  const [fines, setFines] = useState<Fine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -152,6 +156,7 @@ export default function Borrowed() {
     if (!userId || !token) {
       setActiveLoans([]);
       setHistoryLoans([]);
+      setFines([]);
       setError("Sign in to see your borrowed books and history.");
       setLoading(false);
       return;
@@ -159,16 +164,19 @@ export default function Borrowed() {
     setLoading(true);
     setError(null);
     try {
-      const [current, history] = await Promise.all([
+      const [current, history, userFines] = await Promise.all([
         borrowsService.getCurrent(userId),
         borrowsService.getHistory(userId),
+        finesService.getForUser(userId).catch(() => [] as Fine[]),
       ]);
       setActiveLoans(current.map(mapBorrow));
       setHistoryLoans(history.map(mapBorrow));
+      setFines(userFines);
     } catch (e: any) {
       setError(e?.message || "Could not load borrowed books.");
       setActiveLoans([]);
       setHistoryLoans([]);
+      setFines([]);
     } finally {
       setLoading(false);
     }
@@ -191,10 +199,25 @@ export default function Borrowed() {
   };
 
   const loans = tab === "active" ? activeLoans : historyLoans;
+  const unpaidFines = fines.filter((f) => (f.status || "").toUpperCase() !== "PAID");
+  const unpaidTotal = unpaidFines.reduce((sum, f) => sum + fineAmount(f), 0);
+
+  const segments: { key: typeof tab; label: string }[] = [
+    { key: "active", label: `Active (${activeLoans.length})` },
+    { key: "history", label: `History (${historyLoans.length})` },
+    { key: "fines", label: `Fines (${unpaidFines.length})` },
+  ];
 
   return (
     <ScreenWrapper style={{ backgroundColor: colors.background }}>
       <View style={[styles.container, { padding: spacing.lg }]}>
+        <Pressable
+          onPress={() => router.back()}
+          style={{ flexDirection: "row", alignItems: "center", marginLeft: -spacing.sm, marginBottom: spacing.sm }}
+          hitSlop={8}
+        >
+          <Ionicons name="chevron-back" size={22} color={colors.text} />
+        </Pressable>
         <Text style={{ fontSize: 26, fontWeight: "800", color: colors.text, marginBottom: spacing.xs }}>
           My Borrowed Books
         </Text>
@@ -203,38 +226,31 @@ export default function Borrowed() {
         </Text>
 
         <View style={{ flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg }}>
-          <Pressable
-            onPress={() => setTab("active")}
-            style={{
-              flex: 1,
-              paddingVertical: 10,
-              borderRadius: borderRadius.lg,
-              backgroundColor: tab === "active" ? colors.primary : colors.surface,
-              borderWidth: 1,
-              borderColor: tab === "active" ? colors.primary : colors.border,
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ fontWeight: "700", color: tab === "active" ? colors.textLight : colors.text }}>
-              Active ({activeLoans.length})
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setTab("history")}
-            style={{
-              flex: 1,
-              paddingVertical: 10,
-              borderRadius: borderRadius.lg,
-              backgroundColor: tab === "history" ? colors.primary : colors.surface,
-              borderWidth: 1,
-              borderColor: tab === "history" ? colors.primary : colors.border,
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ fontWeight: "700", color: tab === "history" ? colors.textLight : colors.text }}>
-              History ({historyLoans.length})
-            </Text>
-          </Pressable>
+          {segments.map((segment) => (
+            <Pressable
+              key={segment.key}
+              onPress={() => setTab(segment.key)}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                borderRadius: borderRadius.lg,
+                backgroundColor: tab === segment.key ? colors.primary : colors.surface,
+                borderWidth: 1,
+                borderColor: tab === segment.key ? colors.primary : colors.border,
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  fontWeight: "700",
+                  fontSize: 13,
+                  color: tab === segment.key ? colors.textLight : colors.text,
+                }}
+              >
+                {segment.label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
 
         {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />}
@@ -242,33 +258,113 @@ export default function Borrowed() {
           <Text style={{ color: colors.danger, marginBottom: spacing.md }}>{error}</Text>
         )}
         
-        <FlatList
-          data={loans}
-          keyExtractor={(item) => `${tab}-${item.id}`}
-          renderItem={({ item }) => (
-            <LoanCard
-              loan={item}
-              colors={colors}
-              spacing={spacing}
-              borderRadius={borderRadius}
-              onRenew={handleRenewClick}
-              onReturn={handleReturnClick}
-              showActions={tab === "active" && item.status !== "returned"}
+        {tab === "fines" ? (
+          <>
+            <FlatList
+              data={fines}
+              keyExtractor={(item) => `fine-${item.id}`}
+              renderItem={({ item }) => {
+                const paid = (item.status || "").toUpperCase() === "PAID";
+                return (
+                  <View
+                    style={[
+                      styles.card,
+                      {
+                        backgroundColor: colors.surface,
+                        borderRadius: borderRadius.xl,
+                        padding: spacing.lg,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    <View style={styles.cardHeader}>
+                      <Text style={[styles.cardTitle, { color: colors.text, marginRight: spacing.sm }]}>
+                        GHS {fineAmount(item).toFixed(2)}
+                      </Text>
+                      <View
+                        style={[
+                          styles.statusPill,
+                          { backgroundColor: paid ? colors.successLight : colors.dangerLight },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.statusText,
+                            { color: paid ? colors.success : colors.danger },
+                          ]}
+                        >
+                          {paid ? "PAID" : "UNPAID"}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.cardAuthor, { color: colors.textMuted }]}>
+                      {item.reason || "Late return"}
+                    </Text>
+                    {!!item.dueDate && (
+                      <View style={[styles.dueDetails, { marginTop: spacing.sm }]}>
+                        <Ionicons
+                          name="time-outline"
+                          size={14}
+                          color={colors.textMuted}
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text style={[styles.dueText, { color: colors.textMuted }]}>
+                          Due {item.dueDate}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              }}
+              style={styles.list}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                !loading ? (
+                  <Text style={{ color: colors.textMuted, textAlign: "center", marginTop: spacing.xl }}>
+                    No fines. Nice work.
+                  </Text>
+                ) : null
+              }
             />
-          )}
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            !loading ? (
-              <Text style={{ color: colors.textMuted, textAlign: "center", marginTop: spacing.xl }}>
-                {tab === "active"
-                  ? "No active loans right now."
-                  : "No borrowing history yet. When you borrow books, they will appear here."}
-              </Text>
-            ) : null
-          }
-        />
+            {unpaidTotal > 0 && (
+              <Button
+                title={`Pay GHS ${unpaidTotal.toFixed(2)}`}
+                onPress={() => router.push("/pay-fines" as any)}
+                icon={<Ionicons name="card-outline" size={16} color={colors.textLight} />}
+                style={{ borderRadius: borderRadius.lg, marginTop: spacing.sm }}
+              />
+            )}
+          </>
+        ) : (
+          <FlatList
+            data={loans}
+            keyExtractor={(item) => `${tab}-${item.id}`}
+            renderItem={({ item }) => (
+              <LoanCard
+                loan={item}
+                colors={colors}
+                spacing={spacing}
+                borderRadius={borderRadius}
+                onRenew={handleRenewClick}
+                onReturn={handleReturnClick}
+                showActions={tab === "active" && item.status !== "returned"}
+              />
+            )}
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              !loading ? (
+                <Text style={{ color: colors.textMuted, textAlign: "center", marginTop: spacing.xl }}>
+                  {tab === "active"
+                    ? "No active loans right now."
+                    : "No borrowing history yet. When you borrow books, they will appear here."}
+                </Text>
+              ) : null
+            }
+          />
+        )}
       </View>
 
       {/* 1. STATEFUL RENEW MODAL */}
@@ -377,7 +473,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingBottom: 24,
+    // Clear the floating tab bar
+    paddingBottom: 110,
   },
   card: {
     marginBottom: 16,

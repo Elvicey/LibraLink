@@ -79,6 +79,12 @@ public class ReservationService {
         return reservationRepository.findAll();
     }
 
+    /** A single patron's reservations, newest first. Book is EAGER, so titles come along. */
+    @Transactional(readOnly = true)
+    public List<Reservation> getReservationsForUser(Integer userId) {
+        return reservationRepository.findByUserIdOrderByReservedAtDesc(userId);
+    }
+
     @Transactional
     public Reservation cancelReservation(Integer id) {
         Reservation reservation = reservationRepository.findById(id)
