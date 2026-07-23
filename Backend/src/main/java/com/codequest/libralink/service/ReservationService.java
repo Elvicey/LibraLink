@@ -4,6 +4,7 @@ import com.codequest.libralink.entity.Book;
 import com.codequest.libralink.entity.Notification;
 import com.codequest.libralink.entity.Reservation;
 import com.codequest.libralink.repository.ReservationRepository;
+import com.codequest.libralink.security.CurrentUserProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,13 +17,16 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final BookService bookService;
     private final NotificationService notificationService;
+    private final CurrentUserProvider currentUserProvider;
 
     public ReservationService(ReservationRepository reservationRepository,
                               BookService bookService,
-                              NotificationService notificationService) {
+                              NotificationService notificationService,
+                              CurrentUserProvider currentUserProvider) {
         this.reservationRepository = reservationRepository;
         this.bookService = bookService;
         this.notificationService = notificationService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @Transactional
@@ -72,6 +76,7 @@ public class ReservationService {
     public Reservation cancelReservation(Integer id) {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        currentUserProvider.requireSelfOrAnyRole(reservation.getUserId(), "LIBRARIAN", "ADMIN");
         reservation.setStatus("CANCELLED");
         reservation.setCancelledAt(LocalDateTime.now());
         return reservationRepository.save(reservation);

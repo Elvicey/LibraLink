@@ -61,7 +61,7 @@ public class DatabaseSeeder implements CommandLineRunner {
 
             // 3. Seed Courses
             Course c1 = new Course();
-            c1.setInstitutionId(inst.getInstitutionId());
+            c1.setInstitution(inst);
             c1.setName("Data Structures");
             c1.setCode("CS 301");
             c1.setDescription("Introduction to elementary data structures.");
@@ -69,7 +69,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             c1 = courseRepository.save(c1);
 
             Course c2 = new Course();
-            c2.setInstitutionId(inst.getInstitutionId());
+            c2.setInstitution(inst);
             c2.setName("Algorithms");
             c2.setCode("CS 302");
             c2.setDescription("Design and analysis of computer algorithms.");
@@ -77,7 +77,7 @@ public class DatabaseSeeder implements CommandLineRunner {
             courseRepository.save(c2);
 
             Course c3 = new Course();
-            c3.setInstitutionId(inst.getInstitutionId());
+            c3.setInstitution(inst);
             c3.setName("Database Systems");
             c3.setCode("CS 401");
             c3.setDescription("Relational database concepts and indexing techniques.");

@@ -23,18 +23,21 @@ public class UserController {
         this.roleService = roleService;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
         User registeredUser = userService.registerUser(user);
         return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
 
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#id, 'LIBRARIAN', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable Integer id) {
         return userService.getUserById(id)
@@ -62,6 +65,7 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("@currentUserProvider.isCurrentUser(#id)")
     @PutMapping("/{id}/push-token")
     public ResponseEntity<Map<String, String>> updatePushToken(
             @PathVariable Integer id,
