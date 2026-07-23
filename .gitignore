@@ -18,3 +18,8 @@ Frontend/LibraLink/ios/
 Frontend/LibraLink/android/
 hs_err_pid*.log
 replay_pid*.log
+
+# Local secrets - never commit real environment values (see Backend/.env.example)
+.env
+.env.*
+!.env.example
