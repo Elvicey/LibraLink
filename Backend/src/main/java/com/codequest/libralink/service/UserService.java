@@ -53,6 +53,15 @@ public class UserService {
         user.setInstitution(managedInstitution);
         user.setPasswordHash(passwordEncoder.encode(user.getPasswordHash()));
 
+        // Medium: AuthService's self-registration path normalizes email to lowercase
+        // before saving, but this admin-facing path didn't. Without this, "Foo@x.com" and
+        // "foo@x.com" both pass the DB's case-sensitive unique constraint as distinct
+        // rows, and findByEmailIgnoreCase-based login/duplicate-checks would silently
+        // treat them as two different accounts.
+        if (user.getEmail() != null) {
+            user.setEmail(user.getEmail().trim().toLowerCase());
+        }
+
         if (user.getRoles() == null || user.getRoles().isEmpty()) {
             Role studentRole = roleRepository.findByName("STUDENT")
                     .orElseGet(() -> roleRepository.save(new Role("STUDENT")));

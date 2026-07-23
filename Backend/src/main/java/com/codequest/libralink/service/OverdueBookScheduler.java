@@ -42,7 +42,7 @@ public class OverdueBookScheduler {
 
         LocalDate today = LocalDate.now();
         List<BorrowRecord> overdueRecords =
-                borrowRecordRepository.findByStatusAndDueDateBefore("BORROWED", today);
+                borrowRecordRepository.findByStatusAndDueDateBeforeFetchUserAndBook("BORROWED", today);
 
         // Each record is flagged + notified in its own short transaction (rather than
         // one long transaction wrapping the whole loop + every synchronous push call)

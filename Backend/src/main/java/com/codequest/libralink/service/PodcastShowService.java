@@ -75,8 +75,7 @@ public class PodcastShowService {
     @Transactional
     public void deleteShow(Integer id) {
         PodcastShow show = getShow(id);
-        podcastEpisodeRepository.findByShowIdOrderByEpisodeNumberAsc(id)
-                .forEach(podcastEpisodeRepository::delete);
+        podcastEpisodeRepository.deleteByShowId(id);
         podcastShowRepository.delete(show);
     }
 }
