@@ -24,6 +24,7 @@ import com.codequest.libralink.repository.ReadingListItemRepository;
 import com.codequest.libralink.repository.ReadingListRepository;
 import com.codequest.libralink.repository.RoleRepository;
 import com.codequest.libralink.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -74,6 +75,18 @@ public class DataSeeder implements CommandLineRunner {
     private final ReadingListItemRepository readingListItemRepository;
     private final AudioBookTrackRepository audioBookTrackRepository;
 
+    @Value("${seed.admin.email}")
+    private String seedAdminEmail;
+
+    @Value("${seed.admin.password}")
+    private String seedAdminPassword;
+
+    @Value("${seed.admin.first-name}")
+    private String seedAdminFirstName;
+
+    @Value("${seed.admin.last-name}")
+    private String seedAdminLastName;
+
     public DataSeeder(UserRepository userRepository, RoleRepository roleRepository,
                       PasswordEncoder passwordEncoder,
                       PodcastShowRepository podcastShowRepository,
@@ -116,8 +129,10 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedAdmin() {
-        String adminEmail = "admin@libralink.com";
-        String adminPassword = "admin123";
+        // Sourced from seed.admin.* properties (SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD / etc.
+        // env vars), so deployments can and must override the default demo credentials.
+        String adminEmail = seedAdminEmail;
+        String adminPassword = seedAdminPassword;
 
         Role adminRole = roleRepository.findByName("ADMIN")
                 .orElseGet(() -> roleRepository.save(new Role("ADMIN")));
@@ -126,8 +141,8 @@ public class DataSeeder implements CommandLineRunner {
 
         if (admin == null) {
             admin = new User();
-            admin.setFirstName("Admin");
-            admin.setLastName("User");
+            admin.setFirstName(seedAdminFirstName);
+            admin.setLastName(seedAdminLastName);
             admin.setEmail(adminEmail);
             admin.setPasswordHash(passwordEncoder.encode(adminPassword));
             admin.setActive(true);
