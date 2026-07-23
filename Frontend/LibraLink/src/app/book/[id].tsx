@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../../components/common/Button";
 import Card from "../../components/common/Card";
@@ -7,7 +7,32 @@ import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { bookAuthorName, booksService, Book, isBookAvailable } from "../../services/books";
-import { reservationsService, slotWindowFromLabel } from "../../services/reservations";
+import { reservationsService } from "../../services/reservations";
+
+const HOURS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+const MINUTES = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
+const PERIODS = ["AM", "PM"] as const;
+
+function startOfToday() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function toLocalIso(date: Date, hour: number, minute: number) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(hour)}:${pad(minute)}:00`;
+}
+
+function formatPickupDate(date: Date) {
+  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+function calendarDays(month: Date) {
+  const first = new Date(month.getFullYear(), month.getMonth(), 1);
+  const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  return [...Array(first.getDay()).fill(null), ...Array.from({ length: count }, (_, index) => new Date(month.getFullYear(), month.getMonth(), index + 1))];
+}
 
 export default function BookDetail() {
   const router = useRouter();
@@ -19,8 +44,12 @@ export default function BookDetail() {
   const [reserveVisible, setReserveVisible] = useState(false);
   const [listVisible, setListVisible] = useState(false);
   const [reserving, setReserving] = useState(false);
-  const [pickupDate, setPickupDate] = useState("Tomorrow");
-  const [pickupTime, setPickupTime] = useState("10:00 AM - 12:00 PM");
+  const [pickupDate, setPickupDate] = useState<Date | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState(startOfToday());
+  const [pickupHour, setPickupHour] = useState<string | null>(null);
+  const [pickupMinute, setPickupMinute] = useState<string | null>(null);
+  const [pickupPeriod, setPickupPeriod] = useState<typeof PERIODS[number] | null>(null);
+  const [openPicker, setOpenPicker] = useState<"hour" | "minute" | "period" | null>(null);
   const [pickupCampus, setPickupCampus] = useState("KNUST Main Library");
   const [reservedPass, setReservedPass] = useState<{ date: string; time: string; campus: string; qr?: string } | null>(null);
   const [folders, setFolders] = useState({
@@ -32,6 +61,7 @@ export default function BookDetail() {
   const [apiBook, setApiBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const days = useMemo(() => calendarDays(calendarMonth), [calendarMonth]);
 
   const load = useCallback(async () => {
     const numericId = Number(id);
@@ -212,37 +242,26 @@ export default function BookDetail() {
               </Pressable>
             </View>
 
-            <Text style={[styles.inputLabel, { color: colors.text, marginTop: spacing.md, marginBottom: spacing.sm }]}>Pickup Date</Text>
-            <View style={[styles.choiceRow, { gap: spacing.sm, marginBottom: spacing.md }]}>
-              {["Today", "Tomorrow", "In 2 days"].map((d) => (
-                <Pressable
-                  key={d}
-                  style={[
-                    styles.choiceChip,
-                    { backgroundColor: colors.background, borderColor: colors.border, borderRadius: borderRadius.md },
-                    pickupDate === d && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-                  ]}
-                  onPress={() => setPickupDate(d)}
-                >
-                  <Text style={[styles.choiceText, { color: colors.textMuted }, pickupDate === d && { color: colors.primary, fontWeight: "700" }]}>{d}</Text>
-                </Pressable>
-              ))}
+            <Text style={[styles.inputLabel, { color: colors.text, marginTop: spacing.md, marginBottom: spacing.sm }]}>Pickup Date <Text style={{ color: colors.danger }}>*</Text></Text>
+            <View style={styles.calendarHeader}>
+              <Pressable onPress={() => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))} disabled={calendarMonth.getMonth() === startOfToday().getMonth() && calendarMonth.getFullYear() === startOfToday().getFullYear()}><Text style={{ color: colors.primary, fontSize: 20 }}>‹</Text></Pressable>
+              <Text style={{ color: colors.text, fontWeight: "800" }}>{calendarMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</Text>
+              <Pressable onPress={() => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}><Text style={{ color: colors.primary, fontSize: 20 }}>›</Text></Pressable>
             </View>
+            <View style={styles.calendarGrid}>
+              {days.map((date, index) => date ? <Pressable key={date.toISOString()} disabled={date < startOfToday()} onPress={() => setPickupDate(date)} style={[styles.calendarDay, pickupDate?.toDateString() === date.toDateString() && { backgroundColor: colors.primary }, date < startOfToday() && { opacity: 0.35 }]}><Text style={{ color: pickupDate?.toDateString() === date.toDateString() ? colors.textLight : colors.text, fontSize: 12 }}>{date.getDate()}</Text></Pressable> : <View key={`empty-${index}`} style={styles.calendarDay} />)}
+            </View>
+            <Text style={styles.selectedValue}>{pickupDate ? formatPickupDate(pickupDate) : "Choose a date"}</Text>
 
-            <Text style={[styles.inputLabel, { color: colors.text, marginBottom: spacing.sm }]}>Time Slot</Text>
-            <View style={[styles.choiceRow, { gap: spacing.sm, marginBottom: spacing.md }]}>
-              {["9 AM - 11 AM", "12 PM - 2 PM", "3 PM - 5 PM"].map((t) => (
-                <Pressable
-                  key={t}
-                  style={[
-                    styles.choiceChip,
-                    { backgroundColor: colors.background, borderColor: colors.border, borderRadius: borderRadius.md },
-                    pickupTime === t && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-                  ]}
-                  onPress={() => setPickupTime(t)}
-                >
-                  <Text style={[styles.choiceText, { color: colors.textMuted }, pickupTime === t && { color: colors.primary, fontWeight: "700" }]}>{t}</Text>
-                </Pressable>
+            <Text style={[styles.inputLabel, { color: colors.text, marginTop: spacing.md, marginBottom: spacing.sm }]}>Pickup Time <Text style={{ color: colors.danger }}>*</Text></Text>
+            <View style={styles.timePickerRow}>
+              {([[
+                "hour", "Hour", pickupHour, HOURS,
+              ], ["minute", "Min", pickupMinute, MINUTES], ["period", "AM/PM", pickupPeriod, PERIODS]] as const).map(([type, placeholder, value, options]) => (
+                <View key={type} style={styles.pickerColumn}>
+                  <Pressable style={[styles.dropdownField, { borderColor: colors.border, backgroundColor: colors.background }]} onPress={() => setOpenPicker(openPicker === type ? null : type)}><Text style={{ color: value ? colors.text : colors.textMuted, fontSize: 12, fontWeight: "700" }}>{value || placeholder}</Text><Text style={{ color: colors.textMuted }}>⌄</Text></Pressable>
+                  {openPicker === type && <View style={[styles.dropdownMenu, { backgroundColor: colors.surface, borderColor: colors.border }]}>{options.map((option) => <Pressable key={option} style={styles.dropdownOption} onPress={() => { if (type === "hour") setPickupHour(option); else if (type === "minute") setPickupMinute(option); else setPickupPeriod(option as typeof PERIODS[number]); setOpenPicker(null); }}><Text style={{ color: colors.text, fontSize: 12 }}>{option}</Text></Pressable>)}</View>}
+                </View>
               ))}
             </View>
 
@@ -271,6 +290,10 @@ export default function BookDetail() {
                   Alert.alert("Sign in required", "Please sign in to reserve this book.");
                   return;
                 }
+                if (!pickupDate || !pickupHour || !pickupMinute || !pickupPeriod) {
+                  Alert.alert("Pickup details required", "Choose a Pickup Date, hour, minutes, and AM/PM.");
+                  return;
+                }
                 const bookId = Number(id);
                 if (!Number.isFinite(bookId)) {
                   Alert.alert("Invalid book", "Could not reserve this title.");
@@ -281,18 +304,24 @@ export default function BookDetail() {
                   const reservation = await reservationsService.create(
                     userId,
                     bookId,
-                    `Pickup at ${pickupCampus} · ${pickupDate} · ${pickupTime}`
+                    `Pickup at ${pickupCampus} · ${formatPickupDate(pickupDate)} · ${pickupHour}:${pickupMinute} ${pickupPeriod}`
                   );
-                  const window = slotWindowFromLabel(pickupTime);
+                  const hour12 = Number(pickupHour);
+                  const minute = Number(pickupMinute);
+                  const startHour = pickupPeriod === "PM" ? (hour12 === 12 ? 12 : hour12 + 12) : (hour12 === 12 ? 0 : hour12);
+                  const start = new Date(pickupDate);
+                  start.setHours(startHour, minute, 0, 0);
+                  const end = new Date(start);
+                  end.setHours(end.getHours() + 2);
                   const pickup = await reservationsService.schedulePickup({
                     userId,
                     reservationId: reservation.id,
-                    slotStart: window.slotStart,
-                    slotEnd: window.slotEnd,
+                    slotStart: toLocalIso(start, start.getHours(), start.getMinutes()),
+                    slotEnd: toLocalIso(end, end.getHours(), end.getMinutes()),
                   });
                   setReservedPass({
-                    date: pickupDate,
-                    time: pickupTime,
+                    date: formatPickupDate(pickupDate),
+                    time: `${pickupHour}:${pickupMinute} ${pickupPeriod}`,
                     campus: pickupCampus,
                     qr: pickup.qrCode,
                   });
@@ -564,6 +593,15 @@ const styles = StyleSheet.create({
   choiceText: {
     fontSize: 13,
   },
+  calendarHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+  calendarGrid: { flexDirection: "row", flexWrap: "wrap" },
+  calendarDay: { width: "14.28%", height: 30, alignItems: "center", justifyContent: "center", borderRadius: 8 },
+  selectedValue: { color: "#7C5CFC", fontSize: 12, fontWeight: "700", textAlign: "center", marginTop: 6 },
+  timePickerRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  pickerColumn: { flex: 1, position: "relative" },
+  dropdownField: { minHeight: 42, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  dropdownMenu: { position: "absolute", zIndex: 20, top: 48, left: 0, right: 0, borderWidth: 1, borderRadius: 10, overflow: "hidden", elevation: 5 },
+  dropdownOption: { minHeight: 30, alignItems: "center", justifyContent: "center" },
   // Reading List checklist styles
   checklistRow: {
     flexDirection: "row",
