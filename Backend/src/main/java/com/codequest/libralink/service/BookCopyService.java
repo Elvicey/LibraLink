@@ -36,4 +36,14 @@ public class BookCopyService {
     public Optional<BookCopy> getCopyByBarcode(String barcode) {
         return bookCopyRepository.findByBarcode(barcode);
     }
+
+    /**
+     * Flips a single copy's availability flag. Used by the circulation check-in/check-out
+     * flow (see BorrowRecordService.checkOutCopy/checkInCopy) instead of having callers
+     * mutate the entity and call the create-oriented registerBookCopy directly.
+     */
+    public BookCopy setAvailability(BookCopy copy, boolean available) {
+        copy.setAvailable(available);
+        return bookCopyRepository.save(copy);
+    }
 }
