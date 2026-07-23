@@ -116,6 +116,13 @@ public class BookService {
     }
 
     private void applyRequestFields(Book book, BookRequest request) {
+        // Medium: title is nullable=false in the DB but was never checked here - a
+        // missing/blank title used to fall through to a DataIntegrityViolationException
+        // (misleading 409 "constraint violation") instead of a 400 naming the actual
+        // problem.
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            throw new IllegalArgumentException("title is required");
+        }
         book.setTitle(request.getTitle());
         book.setSubtitle(request.getSubtitle());
         book.setIsbn(request.getIsbn());
