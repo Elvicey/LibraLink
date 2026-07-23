@@ -85,7 +85,7 @@ class BookControllerTest extends BaseApiTest {
                                         "language", "English",
                                         "isActive", true
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Clean Code"))
                 .andExpect(jsonPath("$.isbn").value("978-0-13-235088-4"))
                 .andExpect(jsonPath("$.totalCopies").value(5));

@@ -48,7 +48,7 @@ class CourseControllerTest extends BaseApiTest {
                                         "code", "CS101",
                                         "institution", java.util.Map.of("institutionId", testInstitution.getInstitutionId())
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Introduction to CS"));
     }
 }

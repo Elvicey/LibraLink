@@ -3,6 +3,7 @@ package com.codequest.libralink.service;
 import com.codequest.libralink.entity.Book;
 import com.codequest.libralink.entity.Notification;
 import com.codequest.libralink.entity.Reservation;
+import com.codequest.libralink.exception.ResourceNotFoundException;
 import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.ReservationRepository;
 import com.codequest.libralink.security.CurrentUserProvider;
@@ -81,7 +82,7 @@ public class ReservationService {
     @Transactional
     public Reservation cancelReservation(Integer id) {
         Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
         currentUserProvider.requireSelfOrAnyRole(reservation.getUserId(), "LIBRARIAN", "ADMIN");
         reservation.setStatus("CANCELLED");
         reservation.setCancelledAt(LocalDateTime.now());
@@ -91,7 +92,7 @@ public class ReservationService {
     @Transactional
     public Reservation updateStatus(Integer id, String status) {
         Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
         reservation.setStatus(status);
         return reservationRepository.save(reservation);
     }

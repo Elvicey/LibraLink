@@ -26,7 +26,7 @@ class MetadataControllerTest extends BaseApiTest {
                         .header("Authorization", bearerToken(token))
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of("fullName", "Chinua Achebe"))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.fullName").value("Chinua Achebe"));
     }
 
@@ -47,7 +47,7 @@ class MetadataControllerTest extends BaseApiTest {
                         .header("Authorization", bearerToken(token))
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of("name", "Penguin Books"))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Penguin Books"));
     }
 
@@ -68,7 +68,7 @@ class MetadataControllerTest extends BaseApiTest {
                         .header("Authorization", bearerToken(token))
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of("name", "Fiction"))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Fiction"));
     }
 }

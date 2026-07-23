@@ -87,7 +87,8 @@ public class AudioTrackService {
     @Async
     public CompletableFuture<AudioTrack> processConversion(Integer trackId) {
         AudioTrack track = audioTrackRepository.findById(trackId)
-                .orElseThrow(() -> new RuntimeException("Audio track not found"));
+                .orElseThrow(() -> new com.codequest.libralink.exception.ResourceNotFoundException(
+                        "Audio track not found with id: " + trackId));
 
         track.setStatus("PROCESSING");
         audioTrackRepository.save(track);

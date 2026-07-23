@@ -4,6 +4,7 @@ import com.codequest.libralink.entity.SearchLog;
 import com.codequest.libralink.security.CurrentUserProvider;
 import com.codequest.libralink.service.AnalyticsService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,7 @@ public class AnalyticsController {
     public ResponseEntity<SearchLog> logSearch(@RequestBody SearchLog log) {
         // A search log always records who actually searched, never a client-supplied userId.
         log.setUserId(currentUserProvider.getCurrentUserId());
-        return ResponseEntity.ok(analyticsService.logSearch(log));
+        return new ResponseEntity<>(analyticsService.logSearch(log), HttpStatus.CREATED);
     }
 
     @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#userId, 'LIBRARIAN', 'ADMIN')")

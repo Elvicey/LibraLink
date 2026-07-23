@@ -4,6 +4,7 @@ import com.codequest.libralink.dto.BookRequest;
 import com.codequest.libralink.entity.Book;
 import com.codequest.libralink.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +20,8 @@ public class BookController {
 
     @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
-    public Book createBook(@RequestBody BookRequest request) {
-        return bookService.addBook(request);
+    public ResponseEntity<Book> createBook(@RequestBody BookRequest request) {
+        return new ResponseEntity<>(bookService.addBook(request), HttpStatus.CREATED);
     }
 
     @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")

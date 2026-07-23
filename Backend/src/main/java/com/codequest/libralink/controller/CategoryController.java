@@ -4,6 +4,8 @@ import com.codequest.libralink.entity.Category;
 import com.codequest.libralink.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -17,8 +19,8 @@ public class CategoryController {
 
     @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
-    public Category createCategory(@Valid @RequestBody Category category) {
-        return categoryService.addCategory(category);
+    public ResponseEntity<Category> createCategory(@Valid @RequestBody Category category) {
+        return new ResponseEntity<>(categoryService.addCategory(category), HttpStatus.CREATED);
     }
 
     @GetMapping

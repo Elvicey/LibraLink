@@ -1,5 +1,6 @@
 package com.codequest.libralink.config;
 
+import com.codequest.libralink.exception.ResourceNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,15 @@ public class GlobalExceptionHandler {
                 "error", "Validation failed",
                 "fields", fieldErrors
         ));
+    }
+
+    // Several services used to throw a plain RuntimeException for "not found" instead
+    // of IllegalArgumentException, which this handler had no case for - those calls
+    // silently became unhandled 500s. They've been converted to this typed exception.
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage() != null ? ex.getMessage() : "Resource not found."));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

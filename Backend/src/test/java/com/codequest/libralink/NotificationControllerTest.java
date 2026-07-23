@@ -37,7 +37,7 @@ class NotificationControllerTest extends BaseApiTest {
                                         "title", "Book Due Soon",
                                         "message", "Your book is due in 2 days."
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Book Due Soon"))
                 .andExpect(jsonPath("$.isRead").value(false));
     }
@@ -70,7 +70,7 @@ class NotificationControllerTest extends BaseApiTest {
                                         "title", "Read Test",
                                         "message", "This will be read"
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
         Integer notifId = objectMapper.readTree(createResult).get("id").asInt();
@@ -93,7 +93,7 @@ class NotificationControllerTest extends BaseApiTest {
                                         "title", "Unread 1",
                                         "message", "msg1"
                                 ))))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/notifications")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -105,7 +105,7 @@ class NotificationControllerTest extends BaseApiTest {
                                         "title", "Unread 2",
                                         "message", "msg2"
                                 ))))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         mockMvc.perform(put("/api/notifications/user/" + testStudent.getId() + "/read-all")
                         .header("Authorization", bearerToken(studentToken)))

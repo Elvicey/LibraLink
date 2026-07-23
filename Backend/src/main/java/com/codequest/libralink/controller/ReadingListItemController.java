@@ -2,6 +2,7 @@ package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.ReadingListItem;
 import com.codequest.libralink.service.ReadingListItemService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,7 @@ public class ReadingListItemController {
     @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
     @PostMapping
     public ResponseEntity<ReadingListItem> addItem(@RequestBody ReadingListItem item) {
-        return ResponseEntity.ok(readingListItemService.addItemToList(item));
+        return new ResponseEntity<>(readingListItemService.addItemToList(item), HttpStatus.CREATED);
     }
 
     @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")

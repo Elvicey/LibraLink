@@ -138,6 +138,9 @@ public class ExamController {
             ));
         } catch (AccessDeniedException e) {
             throw e;
+        } catch (com.codequest.libralink.exception.ResourceNotFoundException e) {
+            // Let GlobalExceptionHandler turn this into a proper 404 instead of 400.
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -150,6 +153,9 @@ public class ExamController {
             StudySession session = aiExamService.completeSession(sessionId);
             return ResponseEntity.ok(session);
         } catch (AccessDeniedException e) {
+            throw e;
+        } catch (com.codequest.libralink.exception.ResourceNotFoundException e) {
+            // Let GlobalExceptionHandler turn this into a proper 404 instead of 400.
             throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

@@ -4,12 +4,12 @@ import com.codequest.libralink.entity.PodcastEpisode;
 import com.codequest.libralink.entity.PodcastShow;
 import com.codequest.libralink.service.PodcastEpisodeService;
 import com.codequest.libralink.service.PodcastShowService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/podcasts")
@@ -61,7 +61,7 @@ public class PodcastController {
     @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
     public ResponseEntity<PodcastShow> createShow(@RequestBody PodcastShow show) {
-        return ResponseEntity.ok(podcastShowService.createShow(show));
+        return new ResponseEntity<>(podcastShowService.createShow(show), HttpStatus.CREATED);
     }
 
     @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
@@ -73,16 +73,16 @@ public class PodcastController {
 
     @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @DeleteMapping("/{showId}")
-    public ResponseEntity<?> deleteShow(@PathVariable Integer showId) {
+    public ResponseEntity<Void> deleteShow(@PathVariable Integer showId) {
         podcastShowService.deleteShow(showId);
-        return ResponseEntity.ok(Map.of("message", "Podcast show deleted"));
+        return ResponseEntity.noContent().build();
     }
 
     @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping("/{showId}/episodes")
     public ResponseEntity<PodcastEpisode> createEpisode(@PathVariable Integer showId,
                                                          @RequestBody PodcastEpisode episode) {
-        return ResponseEntity.ok(podcastEpisodeService.createEpisode(showId, episode));
+        return new ResponseEntity<>(podcastEpisodeService.createEpisode(showId, episode), HttpStatus.CREATED);
     }
 
     @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
@@ -94,8 +94,8 @@ public class PodcastController {
 
     @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @DeleteMapping("/episodes/{episodeId}")
-    public ResponseEntity<?> deleteEpisode(@PathVariable Integer episodeId) {
+    public ResponseEntity<Void> deleteEpisode(@PathVariable Integer episodeId) {
         podcastEpisodeService.deleteEpisode(episodeId);
-        return ResponseEntity.ok(Map.of("message", "Podcast episode deleted"));
+        return ResponseEntity.noContent().build();
     }
 }
