@@ -142,6 +142,6 @@ public class AudioController {
         }
         currentUserProvider.requireSelfOrAnyRole(track.getUserId(), "LIBRARIAN", "ADMIN");
         audioTrackService.deleteTrack(id);
-        return ResponseEntity.ok(Map.of("message", "Audio track deleted"));
+        return ResponseEntity.noContent().build();
     }
 }

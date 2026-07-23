@@ -3,6 +3,7 @@ package com.codequest.libralink.service;
 import com.codequest.libralink.entity.Role;
 import com.codequest.libralink.entity.User;
 import com.codequest.libralink.entity.Institution;
+import com.codequest.libralink.exception.ResourceNotFoundException;
 import com.codequest.libralink.repository.RoleRepository;
 import com.codequest.libralink.repository.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -74,7 +75,7 @@ public class UserService {
     @Transactional
     public void updatePushToken(Integer userId, String pushToken) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         user.setPushToken(pushToken);
         userRepository.save(user);
     }

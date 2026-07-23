@@ -217,7 +217,7 @@ class Group1AccessControlTest extends BaseApiTest {
                                         "fineId", fine.getId(),
                                         "amountPaid", new BigDecimal("10.00")
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.userId").value(studentA.getId()));
     }
 
@@ -278,7 +278,7 @@ class Group1AccessControlTest extends BaseApiTest {
                                         "userId", studentB.getId(),
                                         "book", java.util.Map.of("id", book.getId())
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.userId").value(studentA.getId()));
     }
 }

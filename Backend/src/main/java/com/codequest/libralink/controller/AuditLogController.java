@@ -3,6 +3,7 @@ package com.codequest.libralink.controller;
 import com.codequest.libralink.entity.AuditLog;
 import com.codequest.libralink.service.AuditLogService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,7 @@ public class AuditLogController {
 
     @PostMapping
     public ResponseEntity<AuditLog> logAction(@Valid @RequestBody AuditLog log) {
-        return ResponseEntity.ok(auditLogService.saveLog(log));
+        return new ResponseEntity<>(auditLogService.saveLog(log), HttpStatus.CREATED);
     }
 
     @GetMapping("/user/{userId}")

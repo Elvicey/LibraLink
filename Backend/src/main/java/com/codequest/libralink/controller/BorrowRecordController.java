@@ -3,6 +3,8 @@ package com.codequest.libralink.controller;
 import com.codequest.libralink.entity.BorrowRecord;
 import com.codequest.libralink.service.BorrowRecordService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,8 +18,8 @@ public class BorrowRecordController {
     private BorrowRecordService borrowRecordService;
 
     @PostMapping
-    public BorrowRecord createLoan(@RequestBody BorrowRecord record) {
-        return borrowRecordService.saveRecord(record);
+    public ResponseEntity<BorrowRecord> createLoan(@RequestBody BorrowRecord record) {
+        return new ResponseEntity<>(borrowRecordService.saveRecord(record), HttpStatus.CREATED);
     }
 
     @GetMapping

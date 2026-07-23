@@ -62,7 +62,7 @@ class Group5ValidationMassAssignmentTest extends BaseApiTest {
                                         "id", victim.getId(),
                                         "name", "Hijacked Category"
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(org.hamcrest.Matchers.not(victim.getId())))
                 .andExpect(jsonPath("$.name").value("Hijacked Category"));
 
@@ -82,7 +82,7 @@ class Group5ValidationMassAssignmentTest extends BaseApiTest {
                                         "id", victim.getId(),
                                         "fullName", "Hijacked Author"
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(org.hamcrest.Matchers.not(victim.getId())));
 
         Author reloaded = authorRepository.findById(victim.getId()).orElseThrow();
@@ -101,7 +101,7 @@ class Group5ValidationMassAssignmentTest extends BaseApiTest {
                                         "id", victim.getId(),
                                         "name", "Hijacked Publisher"
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(org.hamcrest.Matchers.not(victim.getId())));
 
         Publisher reloaded = publisherRepository.findById(victim.getId()).orElseThrow();
@@ -122,7 +122,7 @@ class Group5ValidationMassAssignmentTest extends BaseApiTest {
                                         "name", "Hijacked Institution",
                                         "tier", "BASIC"
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.institutionId").value(org.hamcrest.Matchers.not(victim.getInstitutionId())));
 
         Institution reloaded = institutionRepository.findById(victim.getInstitutionId()).orElseThrow();
@@ -142,7 +142,7 @@ class Group5ValidationMassAssignmentTest extends BaseApiTest {
                                         "id", adminRole.getId(),
                                         "name", "HIJACKED_ROLE"
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(org.hamcrest.Matchers.not(adminRole.getId())));
 
         Role reloaded = roleRepository.findById(adminRole.getId()).orElseThrow();

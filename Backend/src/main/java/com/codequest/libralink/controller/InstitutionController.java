@@ -4,6 +4,8 @@ import com.codequest.libralink.entity.Institution;
 import com.codequest.libralink.service.InstitutionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -17,8 +19,8 @@ public class InstitutionController {
 
     @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
-    public Institution createInstitution(@Valid @RequestBody Institution institution) {
-        return institutionService.createInstitution(institution);
+    public ResponseEntity<Institution> createInstitution(@Valid @RequestBody Institution institution) {
+        return new ResponseEntity<>(institutionService.createInstitution(institution), HttpStatus.CREATED);
     }
 
     @GetMapping

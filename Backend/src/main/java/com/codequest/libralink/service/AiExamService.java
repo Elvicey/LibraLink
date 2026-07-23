@@ -94,7 +94,8 @@ public class AiExamService {
     @Async
     public CompletableFuture<StudySummary> processSummary(Integer summaryId) {
         StudySummary summary = studySummaryRepository.findById(summaryId)
-                .orElseThrow(() -> new RuntimeException("Study summary not found"));
+                .orElseThrow(() -> new com.codequest.libralink.exception.ResourceNotFoundException(
+                        "Study summary not found with id: " + summaryId));
 
         summary.setStatus("PROCESSING");
         studySummaryRepository.save(summary);
@@ -257,7 +258,8 @@ public class AiExamService {
     @Transactional
     public ExamQuestion submitAnswer(Integer questionId, String userAnswer) {
         ExamQuestion question = examQuestionRepository.findById(questionId)
-                .orElseThrow(() -> new RuntimeException("Question not found with ID: " + questionId));
+                .orElseThrow(() -> new com.codequest.libralink.exception.ResourceNotFoundException(
+                        "Question not found with ID: " + questionId));
         currentUserProvider.requireSelfOrAnyRole(question.getUserId(), "LIBRARIAN", "ADMIN");
 
         question.setUserAnswer(userAnswer);
@@ -268,7 +270,8 @@ public class AiExamService {
     @Transactional
     public StudySession completeSession(Integer sessionId) {
         StudySession session = studySessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found"));
+                .orElseThrow(() -> new com.codequest.libralink.exception.ResourceNotFoundException(
+                        "Session not found with id: " + sessionId));
         currentUserProvider.requireSelfOrAnyRole(session.getUserId(), "LIBRARIAN", "ADMIN");
 
         List<ExamQuestion> questions = examQuestionRepository.findBySessionId(sessionId);

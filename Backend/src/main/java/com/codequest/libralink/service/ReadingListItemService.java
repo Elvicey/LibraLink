@@ -66,7 +66,8 @@ public class ReadingListItemService {
 
     public ReadingListItem getItemById(Integer itemId) {
         return readingListItemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Reading list item not found with id: " + itemId));
+                .orElseThrow(() -> new com.codequest.libralink.exception.ResourceNotFoundException(
+                        "Reading list item not found with id: " + itemId));
     }
 
     public ReadingListItem updateItem(Integer itemId, ReadingListItem updatedItem) {

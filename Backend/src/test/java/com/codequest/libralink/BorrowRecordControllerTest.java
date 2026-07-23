@@ -48,7 +48,7 @@ class BorrowRecordControllerTest extends BaseApiTest {
                                         "status", "BORROWED",
                                         "dueDate", java.time.LocalDate.now().plusDays(14).toString()
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("BORROWED"));
     }
 
