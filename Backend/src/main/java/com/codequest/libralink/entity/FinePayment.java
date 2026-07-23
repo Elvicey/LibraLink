@@ -6,7 +6,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "fine_payments")
+@Table(name = "fine_payments", indexes = {
+        @Index(name = "idx_finepayment_fine_id", columnList = "fine_id"),
+        @Index(name = "idx_finepayment_user_id", columnList = "user_id")
+})
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FinePayment {
 

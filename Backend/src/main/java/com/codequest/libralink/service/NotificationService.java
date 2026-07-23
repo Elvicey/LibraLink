@@ -65,7 +65,7 @@ public class NotificationService {
     }
 
     public List<Notification> getAllNotifications() {
-        return notificationRepository.findAll();
+        return notificationRepository.findTop1000ByOrderByCreatedAtDesc();
     }
 
     public List<Notification> getUserNotifications(Integer userId) {

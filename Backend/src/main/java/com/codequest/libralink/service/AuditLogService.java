@@ -33,6 +33,6 @@ public class AuditLogService {
     }
 
     public List<AuditLog> getLogsByAction(String action) {
-        return auditLogRepository.findByAction(action);
+        return auditLogRepository.findTop1000ByActionOrderByCreatedAtDesc(action);
     }
 }
