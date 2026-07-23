@@ -43,7 +43,15 @@ public class VoiceService {
         this.objectMapper = new ObjectMapper();
     }
 
-    @Transactional
+    // Intentionally NOT @Transactional: handleSummary/handleAudio call an
+    // already-@Transactional creation method (createSummary/initiateConversion)
+    // followed immediately by an @Async processing method (processSummary/
+    // processConversion) that re-queries the row by id on a different thread/
+    // connection. If this whole method were wrapped in one outer transaction, that
+    // row wouldn't be committed/visible yet when the async method runs, causing
+    // intermittent "not found" failures (H1). Leaving this method non-transactional
+    // lets each sub-operation's own @Transactional commit independently before the
+    // next line (including the @Async dispatch) executes.
     public VoiceCommand processVoiceCommand(Integer userId, String transcribedText) {
         VoiceCommand command = new VoiceCommand();
         command.setUserId(userId);
