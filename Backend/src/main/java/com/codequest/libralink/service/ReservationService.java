@@ -3,6 +3,7 @@ package com.codequest.libralink.service;
 import com.codequest.libralink.entity.Book;
 import com.codequest.libralink.entity.Notification;
 import com.codequest.libralink.entity.Reservation;
+import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.ReservationRepository;
 import com.codequest.libralink.security.CurrentUserProvider;
 import org.springframework.stereotype.Service;
@@ -15,16 +16,16 @@ import java.util.List;
 public class ReservationService {
 
     private final ReservationRepository reservationRepository;
-    private final BookService bookService;
+    private final BookRepository bookRepository;
     private final NotificationService notificationService;
     private final CurrentUserProvider currentUserProvider;
 
     public ReservationService(ReservationRepository reservationRepository,
-                              BookService bookService,
+                              BookRepository bookRepository,
                               NotificationService notificationService,
                               CurrentUserProvider currentUserProvider) {
         this.reservationRepository = reservationRepository;
-        this.bookService = bookService;
+        this.bookRepository = bookRepository;
         this.notificationService = notificationService;
         this.currentUserProvider = currentUserProvider;
     }
@@ -37,12 +38,15 @@ public class ReservationService {
         if (res.getBook() == null || res.getBook().getId() == null) {
             throw new IllegalStateException("Book is required for reservation.");
         }
-        Book book = bookService.getBookById(res.getBook().getId())
+        // Lock the book row for the rest of this transaction so a concurrent
+        // borrow/reservation on the same book can't interleave with this
+        // read-then-decide-status check (H4).
+        Book book = bookRepository.findByIdForUpdate(res.getBook().getId())
                 .orElseThrow(() -> new IllegalStateException(
                         "Book not found with id: " + res.getBook().getId()));
         res.setBook(book);
 
-        if (bookService.isBookAvailable(book.getId())) {
+        if (book.getAvailableCopies() != null && book.getAvailableCopies() > 0) {
             res.setStatus("READY");
             res.setReadyAt(LocalDateTime.now());
         } else {

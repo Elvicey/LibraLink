@@ -35,6 +35,16 @@ public class FineService {
                 .orElseThrow(() -> new IllegalArgumentException("Fine not found with id: " + fineId));
     }
 
+    /**
+     * Same as {@link #getFineById}, but takes a DB row lock. Must be called from
+     * within an existing @Transactional method (e.g. FinePaymentService.processPayment)
+     * so the lock is held until that transaction commits/rolls back.
+     */
+    public Fine getFineByIdForUpdate(Integer fineId) {
+        return fineRepository.findByIdForUpdate(fineId)
+                .orElseThrow(() -> new IllegalArgumentException("Fine not found with id: " + fineId));
+    }
+
     public Fine saveFine(Fine fine) {
         return fineRepository.save(fine);
     }

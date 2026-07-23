@@ -28,18 +28,28 @@ public class BorrowRecordService {
 
     @Transactional
     public BorrowRecord saveRecord(BorrowRecord rec) {
-        Book book = rec.getBook();
-        if (book != null && book.getAvailableCopies() <= 0) {
+        if (rec.getBook() == null || rec.getBook().getId() == null) {
+            throw new IllegalArgumentException("book.id is required");
+        }
+
+        // Never trust the client-supplied Book sub-object (it can carry arbitrary
+        // availableCopies/totalCopies/borrowCount/etc.) - re-fetch the real row instead,
+        // with a DB row lock held for the rest of this transaction so a concurrent
+        // borrow of the same book can't also read "available" and double-lend the last
+        // copy (C5).
+        Book book = bookRepository.findByIdForUpdate(rec.getBook().getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Book not found with id: " + rec.getBook().getId()));
+        if (book.getAvailableCopies() == null || book.getAvailableCopies() <= 0) {
             throw new IllegalStateException("Book is not available for borrowing.");
         }
+        rec.setBook(book);
+
+        book.setAvailableCopies(book.getAvailableCopies() - 1);
+        book.setBorrowCount((book.getBorrowCount() == null ? 0 : book.getBorrowCount()) + 1);
+        bookRepository.save(book);
 
         BorrowRecord savedRecord = borrowRecordRepository.save(rec);
-
-        if (book != null) {
-            book.setAvailableCopies(book.getAvailableCopies() - 1);
-            book.setBorrowCount(book.getBorrowCount() + 1);
-            bookRepository.save(book);
-        }
 
         if (rec.getUser() != null) {
             Notification notification = new Notification();

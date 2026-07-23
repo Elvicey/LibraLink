@@ -32,7 +32,9 @@ public class FinePaymentService {
             throw new IllegalArgumentException("amount or amountPaid is required");
         }
 
-        Fine fine = fineService.getFineById(payment.getFineId());
+        // Locked for the rest of this transaction so a concurrent payment attempt on the
+        // same fine can't also read "not yet paid" and double-pay it (H4).
+        Fine fine = fineService.getFineByIdForUpdate(payment.getFineId());
         if (!fine.getUserId().equals(payment.getUserId())) {
             throw new IllegalArgumentException("Fine does not belong to this user");
         }
