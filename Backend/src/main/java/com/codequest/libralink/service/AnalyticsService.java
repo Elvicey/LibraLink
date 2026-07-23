@@ -32,10 +32,10 @@ public class AnalyticsService {
     }
 
     public List<SearchLog> getLogsBySearchType(String searchType) {
-        return searchLogRepository.findBySearchType(searchType);
+        return searchLogRepository.findTop1000BySearchTypeOrderByCreatedAtDesc(searchType);
     }
 
     public List<SearchLog> getLogsByDateRange(LocalDateTime from, LocalDateTime to) {
-        return searchLogRepository.findByCreatedAtBetween(from, to);
+        return searchLogRepository.findTop1000ByCreatedAtBetweenOrderByCreatedAtDesc(from, to);
     }
 }
