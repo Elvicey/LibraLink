@@ -139,7 +139,7 @@ export default function PodcastEpisodeScreen() {
 
       {!loading && error && (
         <View style={styles.centered}>
-          <Text style={[styles.errorText, { color: colors.error || "#c0392b" }]}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>
           <Pressable onPress={load} style={[styles.retryBtn, { backgroundColor: colors.primary }]}>
             <Text style={{ color: colors.textLight || "#fff", fontWeight: "600" }}>Retry</Text>
           </Pressable>
@@ -214,7 +214,7 @@ export default function PodcastEpisodeScreen() {
           )}
 
           {!!playError && (
-            <Text style={[styles.playError, { color: colors.error || "#c0392b" }]}>
+            <Text style={[styles.playError, { color: colors.danger }]}> 
               {playError}
             </Text>
           )}

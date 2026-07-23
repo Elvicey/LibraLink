@@ -63,7 +63,7 @@ export default function PodcastsBrowseScreen() {
 
       {!loading && error && (
         <View style={styles.centered}>
-          <Text style={[styles.errorText, { color: colors.error || "#c0392b" }]}>{error}</Text>
+          <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>
           <Pressable onPress={loadShows} style={[styles.retryBtn, { backgroundColor: colors.primary }]}>
             <Text style={{ color: colors.textLight || "#fff", fontWeight: "600" }}>Retry</Text>
           </Pressable>
