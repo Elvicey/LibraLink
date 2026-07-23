@@ -2,6 +2,7 @@ package com.codequest.libralink.service;
 
 import com.codequest.libralink.entity.*;
 import com.codequest.libralink.repository.*;
+import com.codequest.libralink.security.CurrentUserProvider;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ public class AiExamService {
     private final ExamQuestionRepository examQuestionRepository;
     private final StudySessionRepository studySessionRepository;
     private final BookRepository bookRepository;
+    private final CurrentUserProvider currentUserProvider;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
@@ -41,11 +43,13 @@ public class AiExamService {
     public AiExamService(StudySummaryRepository studySummaryRepository,
                          ExamQuestionRepository examQuestionRepository,
                          StudySessionRepository studySessionRepository,
-                         BookRepository bookRepository) {
+                         BookRepository bookRepository,
+                         CurrentUserProvider currentUserProvider) {
         this.studySummaryRepository = studySummaryRepository;
         this.examQuestionRepository = examQuestionRepository;
         this.studySessionRepository = studySessionRepository;
         this.bookRepository = bookRepository;
+        this.currentUserProvider = currentUserProvider;
         this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
     }
@@ -253,6 +257,7 @@ public class AiExamService {
     public ExamQuestion submitAnswer(Integer questionId, String userAnswer) {
         ExamQuestion question = examQuestionRepository.findById(questionId)
                 .orElseThrow(() -> new RuntimeException("Question not found with ID: " + questionId));
+        currentUserProvider.requireSelfOrAnyRole(question.getUserId(), "LIBRARIAN", "ADMIN");
 
         question.setUserAnswer(userAnswer);
         question.setIsCorrect(userAnswer.trim().equalsIgnoreCase(question.getCorrectAnswer().trim()));
@@ -263,6 +268,7 @@ public class AiExamService {
     public StudySession completeSession(Integer sessionId) {
         StudySession session = studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
+        currentUserProvider.requireSelfOrAnyRole(session.getUserId(), "LIBRARIAN", "ADMIN");
 
         List<ExamQuestion> questions = examQuestionRepository.findBySessionId(sessionId);
         long correct = questions.stream().filter(q -> Boolean.TRUE.equals(q.getIsCorrect())).count();

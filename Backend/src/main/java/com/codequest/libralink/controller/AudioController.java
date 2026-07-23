@@ -1,33 +1,37 @@
 package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.AudioTrack;
+import com.codequest.libralink.security.CurrentUserProvider;
 import com.codequest.libralink.service.AudioTrackService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/audio")
 public class AudioController {
 
     private final AudioTrackService audioTrackService;
+    private final CurrentUserProvider currentUserProvider;
 
-    public AudioController(AudioTrackService audioTrackService) {
+    public AudioController(AudioTrackService audioTrackService, CurrentUserProvider currentUserProvider) {
         this.audioTrackService = audioTrackService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @PostMapping("/convert")
     public ResponseEntity<?> initiateConversion(@RequestBody Map<String, Object> body) {
         try {
             Integer bookId = toInteger(body.get("bookId"));
-            Integer userId = toInteger(body.get("userId"));
+            // Audio conversions are personal; always generated for the caller.
+            Integer userId = currentUserProvider.getCurrentUserId();
             String voiceName = body.get("voiceName") != null ? String.valueOf(body.get("voiceName")) : "en-US-Standard-A";
             String languageCode = body.get("languageCode") != null ? String.valueOf(body.get("languageCode")) : "en-US";
             String content = body.get("content") != null ? String.valueOf(body.get("content")) : null;
@@ -66,11 +70,15 @@ public class AudioController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getTrack(@PathVariable Integer id) {
-        return audioTrackService.getTrack(id)
-                .map(track -> ResponseEntity.ok((Object) track))
-                .orElse(ResponseEntity.notFound().build());
+        AudioTrack track = audioTrackService.getTrack(id).orElse(null);
+        if (track == null) {
+            return ResponseEntity.notFound().build();
+        }
+        currentUserProvider.requireSelfOrAnyRole(track.getUserId(), "LIBRARIAN", "ADMIN");
+        return ResponseEntity.ok(track);
     }
 
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#userId, 'LIBRARIAN', 'ADMIN')")
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<AudioTrack>> getUserTracks(@PathVariable Integer userId) {
         return ResponseEntity.ok(audioTrackService.getUserTracks(userId));
@@ -78,49 +86,62 @@ public class AudioController {
 
     @GetMapping("/book/{bookId}")
     public ResponseEntity<List<AudioTrack>> getBookTracks(@PathVariable Integer bookId) {
-        return ResponseEntity.ok(audioTrackService.getBookTracks(bookId));
+        List<AudioTrack> tracks = audioTrackService.getBookTracks(bookId);
+        // These are personal conversions, not shared catalog content: non-staff
+        // callers only ever see their own tracks for this book.
+        if (!currentUserProvider.hasAnyRole("LIBRARIAN", "ADMIN")) {
+            Integer currentUserId = currentUserProvider.getCurrentUserId();
+            tracks = tracks.stream()
+                    .filter(t -> t.getUserId() != null && t.getUserId().equals(currentUserId))
+                    .collect(Collectors.toList());
+        }
+        return ResponseEntity.ok(tracks);
     }
 
     @GetMapping("/{id}/stream")
     public ResponseEntity<?> streamAudio(@PathVariable Integer id,
                                           @RequestHeader(value = "Range", required = false) String range) {
-        return audioTrackService.getTrack(id)
-                .<ResponseEntity<?>>map(track -> {
-                    if (!"COMPLETED".equals(track.getStatus()) || track.getAudioUrl() == null) {
-                        return ResponseEntity.badRequest().body(Map.of(
-                                "error", "Audio track is not ready to stream",
-                                "trackId", track.getId(),
-                                "status", track.getStatus() != null ? track.getStatus() : "UNKNOWN",
-                                "errorMessage", track.getErrorMessage() != null ? track.getErrorMessage() : ""
-                        ));
-                    }
+        AudioTrack track = audioTrackService.getTrack(id).orElse(null);
+        if (track == null) {
+            return ResponseEntity.notFound().build();
+        }
+        currentUserProvider.requireSelfOrAnyRole(track.getUserId(), "LIBRARIAN", "ADMIN");
 
-                    HttpHeaders headers = new HttpHeaders();
-                    headers.setContentType(MediaType.parseMediaType("audio/" + track.getAudioFormat()));
-                    headers.set("Accept-Ranges", "bytes");
-                    headers.set("Content-Disposition", "inline; filename=\"" + track.getTitle() + "." + track.getAudioFormat() + "\"");
+        if (!"COMPLETED".equals(track.getStatus()) || track.getAudioUrl() == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Audio track is not ready to stream",
+                    "trackId", track.getId(),
+                    "status", track.getStatus() != null ? track.getStatus() : "UNKNOWN",
+                    "errorMessage", track.getErrorMessage() != null ? track.getErrorMessage() : ""
+            ));
+        }
 
-                    if (track.getDurationSeconds() != null) {
-                        headers.set("X-Audio-Duration", String.valueOf(track.getDurationSeconds()));
-                    }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("audio/" + track.getAudioFormat()));
+        headers.set("Accept-Ranges", "bytes");
+        headers.set("Content-Disposition", "inline; filename=\"" + track.getTitle() + "." + track.getAudioFormat() + "\"");
 
-                    return ResponseEntity.ok().headers(headers).body(Map.of(
-                            "trackId", track.getId(),
-                            "title", track.getTitle(),
-                            "audioUrl", track.getAudioUrl(),
-                            "format", track.getAudioFormat(),
-                            "durationSeconds", track.getDurationSeconds() != null ? track.getDurationSeconds() : 0
-                    ));
-                })
-                .orElse(ResponseEntity.notFound().build());
+        if (track.getDurationSeconds() != null) {
+            headers.set("X-Audio-Duration", String.valueOf(track.getDurationSeconds()));
+        }
+
+        return ResponseEntity.ok().headers(headers).body(Map.of(
+                "trackId", track.getId(),
+                "title", track.getTitle(),
+                "audioUrl", track.getAudioUrl(),
+                "format", track.getAudioFormat(),
+                "durationSeconds", track.getDurationSeconds() != null ? track.getDurationSeconds() : 0
+        ));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteTrack(@PathVariable Integer id) {
-        if (audioTrackService.getTrack(id).isPresent()) {
-            audioTrackService.deleteTrack(id);
-            return ResponseEntity.ok(Map.of("message", "Audio track deleted"));
+        AudioTrack track = audioTrackService.getTrack(id).orElse(null);
+        if (track == null) {
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.notFound().build();
+        currentUserProvider.requireSelfOrAnyRole(track.getUserId(), "LIBRARIAN", "ADMIN");
+        audioTrackService.deleteTrack(id);
+        return ResponseEntity.ok(Map.of("message", "Audio track deleted"));
     }
 }

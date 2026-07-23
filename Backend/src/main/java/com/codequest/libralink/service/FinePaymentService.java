@@ -6,6 +6,7 @@ import com.codequest.libralink.repository.FinePaymentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -44,6 +45,15 @@ public class FinePaymentService {
         }
         if (payment.getAmountPaid() == null) {
             payment.setAmountPaid(payment.getAmount());
+        }
+
+        BigDecimal amountPaid = payment.getAmountPaid();
+        if (amountPaid.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Payment amount must be greater than zero");
+        }
+        if (amountPaid.compareTo(fine.getAmount()) < 0) {
+            throw new IllegalArgumentException(
+                    "Payment amount must cover the full fine amount of " + fine.getAmount());
         }
         LocalDateTime now = LocalDateTime.now();
         if (payment.getPaidAt() == null) {

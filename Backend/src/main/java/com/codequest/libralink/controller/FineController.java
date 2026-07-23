@@ -24,6 +24,7 @@ public class FineController {
         return ResponseEntity.ok(fineService.createFine(fine));
     }
 
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#userId, 'LIBRARIAN', 'ADMIN')")
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Fine>> getUserFines(@PathVariable Integer userId) {
         return ResponseEntity.ok(fineService.getFinesByUser(userId));

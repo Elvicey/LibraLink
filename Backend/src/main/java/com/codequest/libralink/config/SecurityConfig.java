@@ -45,15 +45,20 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/register").permitAll()
-                .requestMatchers("/api/auth/register-lecturer").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/authors/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/publishers/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/institutions").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/books/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/audio/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/audio-tracks/**").permitAll()
+                // NOTE: /api/audio/** (AudioController) serves per-user AI audio conversions
+                // (private content + userId ownership) and is intentionally NOT public here;
+                // it requires authentication + ownership checks (see AudioController).
+                .requestMatchers(HttpMethod.GET, "/api/audio-tracks").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/audio-tracks/course/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/audio-tracks/{id:\\d+}").permitAll()
+                // /api/audio-tracks/{id}/progress/user/{userId} is per-user data and is
+                // deliberately excluded from the permitAll patterns above.
                 .requestMatchers(HttpMethod.GET, "/api/podcasts/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ai/suggestions").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/borrow-records").hasRole("LIBRARIAN")

@@ -2,6 +2,7 @@ package com.codequest.libralink.service;
 
 import com.codequest.libralink.entity.Notification;
 import com.codequest.libralink.repository.NotificationRepository;
+import com.codequest.libralink.security.CurrentUserProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,11 +18,14 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final ExpoPushNotificationService expoPushNotificationService;
+    private final CurrentUserProvider currentUserProvider;
 
     public NotificationService(NotificationRepository notificationRepository,
-                               ExpoPushNotificationService expoPushNotificationService) {
+                               ExpoPushNotificationService expoPushNotificationService,
+                               CurrentUserProvider currentUserProvider) {
         this.notificationRepository = notificationRepository;
         this.expoPushNotificationService = expoPushNotificationService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     public Notification createNotification(Notification notification) {
@@ -58,6 +62,8 @@ public class NotificationService {
     public Notification markAsRead(Integer id) {
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Notification not found with id: " + id));
+
+        currentUserProvider.requireSelfOrAnyRole(notification.getUserId(), "LIBRARIAN", "ADMIN");
 
         notification.setIsRead(true);
         notification.setReadAt(LocalDateTime.now());

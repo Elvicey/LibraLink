@@ -2,9 +2,11 @@ package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.AudioBookTrack;
 import com.codequest.libralink.entity.UserAudioProgress;
+import com.codequest.libralink.security.CurrentUserProvider;
 import com.codequest.libralink.service.AudioBookTrackService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,9 +18,11 @@ import java.util.Map;
 public class AudioBookTrackController {
 
     private final AudioBookTrackService audioBookTrackService;
+    private final CurrentUserProvider currentUserProvider;
 
-    public AudioBookTrackController(AudioBookTrackService audioBookTrackService) {
+    public AudioBookTrackController(AudioBookTrackService audioBookTrackService, CurrentUserProvider currentUserProvider) {
         this.audioBookTrackService = audioBookTrackService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     // Get all audio tracks
@@ -53,8 +57,9 @@ public class AudioBookTrackController {
     public ResponseEntity<UserAudioProgress> saveProgress(
             @PathVariable Integer id,
             @RequestBody Map<String, Object> payload) {
-        
-        Integer userId = (Integer) payload.get("userId");
+
+        // Listening progress is personal; always recorded for the caller.
+        Integer userId = currentUserProvider.getCurrentUserId();
         Integer positionSeconds = (Integer) payload.get("positionSeconds");
         Boolean isCompleted = (Boolean) payload.get("isCompleted");
 
@@ -67,6 +72,7 @@ public class AudioBookTrackController {
     }
 
     // Get listening progress for a specific track and user
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#userId, 'LIBRARIAN', 'ADMIN')")
     @GetMapping("/{id}/progress/user/{userId}")
     public ResponseEntity<UserAudioProgress> getProgressForUser(
             @PathVariable Integer id,

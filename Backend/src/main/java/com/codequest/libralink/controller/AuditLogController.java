@@ -3,10 +3,14 @@ package com.codequest.libralink.controller;
 import com.codequest.libralink.entity.AuditLog;
 import com.codequest.libralink.service.AuditLogService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+// Audit logs are a staff-only integrity/forensics tool: they must not be
+// forgeable or readable by regular end users.
+@PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
 @RestController
 @RequestMapping("/api/audit-logs")
 public class AuditLogController {
