@@ -37,8 +37,8 @@ export default function BarcodeScanner() {
   };
 
   const confirmCheckout = () => {
-    // Navigate back to Loans screen
-    router.replace("/(tabs)/borrowed" as any);
+    // Navigate to the borrowed screen (now a stack route, not a tab)
+    router.replace("/borrowed" as any);
   };
 
   return (

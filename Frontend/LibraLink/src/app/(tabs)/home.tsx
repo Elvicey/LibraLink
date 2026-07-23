@@ -1,21 +1,68 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, ScrollView } from "react-native";
+import {
+  ActivityIndicator,
+  Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import Card from "../../components/common/Card";
+import BookGridCard from "../../components/BookGridCard";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
-import { bookAuthorName, booksService, Book } from "../../services/books";
+import { booksService, Book } from "../../services/books";
 import { borrowsService } from "../../services/borrows";
 import { fineAmount, finesService } from "../../services/fines";
 import { notificationsService } from "../../services/users";
 
+const SCREEN_PADDING = 16;
+const SLIDE_WIDTH = Dimensions.get("window").width - SCREEN_PADDING * 2;
+/** Two cards per row, accounting for the spacing.md gap between them. */
+const CARD_WIDTH = (SLIDE_WIDTH - 12) / 2;
+
+type HeroSlide = {
+  eyebrow: string;
+  title: string;
+  body: string;
+  cta: string;
+  route: string;
+};
+
+const HERO_SLIDES: HeroSlide[] = [
+  {
+    eyebrow: "KNUST LIBRARY",
+    title: "Every title,\none search away",
+    body: "Browse the full catalogue and reserve what you need before you walk in.",
+    cta: "Browse catalogue",
+    route: "/search",
+  },
+  {
+    eyebrow: "SELF SERVICE",
+    title: "Scan to borrow\nin seconds",
+    body: "Point your camera at the barcode and check the book out yourself.",
+    cta: "Open scanner",
+    route: "/scan",
+  },
+  {
+    eyebrow: "ASK LIBRA",
+    title: "Stuck on where\nto start?",
+    body: "Describe your assignment in plain English and get a reading list back.",
+    cta: "Ask Libra",
+    route: "/ai",
+  },
+];
+
 export default function Home() {
   const router = useRouter();
   const { firstName, userId, token } = useAuth();
-  const { colors, spacing, borderRadius, typography, isDark } = useTheme();
-  const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
+  const { colors, spacing, borderRadius, isDark } = useTheme();
+  const styles = createStyles(colors, spacing, borderRadius, isDark);
 
   const [recommended, setRecommended] = useState<Book[]>([]);
   const [borrowedCount, setBorrowedCount] = useState(0);
@@ -23,13 +70,7 @@ export default function Home() {
   const [unpaidFineTotal, setUnpaidFineTotal] = useState(0);
   const [unreadNotifs, setUnreadNotifs] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  const getGreeting = () => {
-    const hours = new Date().getHours();
-    if (hours < 12) return "Good morning";
-    if (hours < 17) return "Good afternoon";
-    return "Good evening";
-  };
+  const [heroIndex, setHeroIndex] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,581 +104,388 @@ export default function Home() {
     load();
   }, [load]);
 
-  const displayName = firstName || "Student";
+  const onHeroScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const next = Math.round(event.nativeEvent.contentOffset.x / SLIDE_WIDTH);
+    if (next !== heroIndex) setHeroIndex(next);
+  };
 
-  const highlightsList = [
-    {
-      title: "Fines",
-      value: `GHS ${unpaidFineTotal.toFixed(2)}`,
-      icon: "cash-outline",
-      bg: isDark ? "rgba(220, 38, 38, 0.08)" : "#fff5f5",
-      border: "rgba(220, 38, 38, 0.15)",
-      color: colors.danger,
-    },
-    {
-      title: "Loans",
-      value: String(borrowedCount),
-      icon: "book-outline",
-      bg: isDark ? "rgba(37, 99, 235, 0.08)" : "#f0f7ff",
-      border: "rgba(37, 99, 235, 0.15)",
-      color: colors.primary,
-    },
-  ];
+  const initial = (firstName || "S").charAt(0).toUpperCase();
+  const gridBooks = recommended.slice(0, 6);
 
   return (
     <ScreenWrapper scrollable style={styles.screen} contentContainerStyle={styles.container}>
-      {/* Background Ambient Glow Orbs */}
-      <View
-        style={[
-          styles.orb,
-          {
-            backgroundColor: isDark ? "rgba(59, 130, 246, 0.15)" : "rgba(11, 110, 253, 0.05)",
-            top: "5%",
-            right: "-15%",
-            shadowColor: colors.primary,
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.orb,
-          {
-            backgroundColor: isDark ? "rgba(139, 92, 246, 0.12)" : "rgba(139, 92, 246, 0.04)",
-            bottom: "20%",
-            left: "-15%",
-            shadowColor: "#8b5cf6",
-          },
-        ]}
-      />
-
-      {/* Header Row */}
+      {/* Header */}
       <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.greetingText}>{getGreeting()},</Text>
-          <Text style={styles.userName}>{displayName}</Text>
+        <View style={styles.wordmark}>
+          <Ionicons name="library" size={20} color={colors.primary} />
+          <Text style={styles.wordmarkText}>LibraLink</Text>
         </View>
-        <Pressable
-          style={styles.bellButton}
-          onPress={() => router.push("/notifications" as any)}
-        >
-          <Ionicons name="notifications-outline" size={22} color={colors.text} />
-          {unreadNotifs > 0 && <View style={styles.bellBadge} />}
+        <View style={styles.headerActions}>
+          <Pressable
+            style={styles.bellButton}
+            onPress={() => router.push("/notifications" as any)}
+          >
+            <Ionicons name="notifications-outline" size={20} color={colors.text} />
+            {unreadNotifs > 0 && <View style={styles.bellBadge} />}
+          </Pressable>
+          <Pressable
+            style={styles.avatar}
+            onPress={() => router.push("/profile" as any)}
+          >
+            <Text style={styles.avatarText}>{initial}</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {/* Search row */}
+      <View style={styles.searchRow}>
+        <Pressable style={styles.searchBar} onPress={() => router.push("/search" as any)}>
+          <Ionicons name="search-outline" size={19} color={colors.textMuted} />
+          <Text style={styles.searchPlaceholder}>Search title, author, ISBN</Text>
+        </Pressable>
+        <Pressable style={styles.scanButton} onPress={() => router.push("/scan" as any)}>
+          <Ionicons name="scan-outline" size={21} color={colors.textLight} />
         </Pressable>
       </View>
 
-      {/* Hero Card */}
-      <Card style={styles.heroCard}>
-        <View style={styles.heroTextContainer}>
-          <Text style={styles.heroTitle}>Your Learning Companion</Text>
-          <Text style={styles.subtitle}>Settle fines, reserve items, and check out instantly.</Text>
-        </View>
-        <Text style={styles.heroBadge}>Student</Text>
-      </Card>
-
-      {/* Interactive Search Bar input layout */}
-      <Pressable
-        style={styles.searchBar}
-        onPress={() => router.push("/search" as any)}
+      {/* Hero carousel */}
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={SLIDE_WIDTH}
+        decelerationRate="fast"
+        onScroll={onHeroScroll}
+        scrollEventThrottle={16}
+        style={styles.heroScroll}
       >
-        <Ionicons name="search-outline" size={20} color={colors.textMuted} style={{ marginRight: spacing.sm }} />
-        <Text style={styles.searchPlaceholder}>Search by title, author or subject</Text>
-        <Ionicons name="scan-outline" size={20} color={colors.primary} style={{ marginLeft: "auto" }} />
-      </Pressable>
+        {HERO_SLIDES.map((slide) => (
+          <View key={slide.eyebrow} style={styles.heroSlide}>
+            <View style={styles.heroCard}>
+              <Text style={styles.heroEyebrow}>{slide.eyebrow}</Text>
+              <Text style={styles.heroTitle}>{slide.title}</Text>
+              <Text style={styles.heroBody}>{slide.body}</Text>
+              <Pressable
+                style={styles.heroCta}
+                onPress={() => router.push(slide.route as any)}
+              >
+                <Text style={styles.heroCtaText}>{slide.cta}</Text>
+              </Pressable>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
 
-      {/* Quick Stats Grid */}
+      {/* Carousel dots */}
+      <View style={styles.dotsRow}>
+        {HERO_SLIDES.map((slide, index) => (
+          <View
+            key={slide.eyebrow}
+            style={[styles.dot, index === heroIndex && styles.dotActive]}
+          />
+        ))}
+      </View>
+
+      {/* Fines alert — only when money is owed */}
+      {unpaidFineTotal > 0 && (
+        <Pressable style={styles.fineStrip} onPress={() => router.push("/pay-fines" as any)}>
+          <Ionicons name="alert-circle" size={20} color={colors.danger} />
+          <View style={styles.fineText}>
+            <Text style={styles.fineTitle}>GHS {unpaidFineTotal.toFixed(2)} unpaid</Text>
+            <Text style={styles.fineSubtitle}>
+              {overdueCount === 1 ? "1 book overdue" : `${overdueCount} books overdue`}
+            </Text>
+          </View>
+          <View style={styles.finePill}>
+            <Text style={styles.finePillText}>Pay</Text>
+          </View>
+        </Pressable>
+      )}
+
+      {/* Compact stats */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
-          <Ionicons name="book-outline" size={20} color={colors.primary} style={{ marginBottom: spacing.xs }} />
+          <Ionicons name="book-outline" size={19} color={colors.primary} />
           <Text style={styles.statValue}>{borrowedCount}</Text>
           <Text style={styles.statLabel}>Borrowed</Text>
         </View>
         <View style={styles.statCard}>
-          <Ionicons name="alert-circle-outline" size={20} color={colors.danger} style={{ marginBottom: spacing.xs }} />
-          <Text style={[styles.statValue, { color: colors.danger }]}>{overdueCount}</Text>
+          <Ionicons name="time-outline" size={19} color={colors.warning} />
+          <Text style={[styles.statValue, overdueCount > 0 && { color: colors.danger }]}>
+            {overdueCount}
+          </Text>
           <Text style={styles.statLabel}>Overdue</Text>
         </View>
-        <Pressable style={styles.statCard} onPress={() => router.push("/pay-fines" as any)}>
-          <Ionicons name="cash-outline" size={20} color={colors.warning} style={{ marginBottom: spacing.xs }} />
-          <Text style={styles.statValue}>{unpaidFineTotal.toFixed(0)}</Text>
-          <Text style={styles.statLabel}>Fine GHS</Text>
-        </Pressable>
       </View>
 
-      {/* Quick Actions Header */}
+      {/* Discover books */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Quick actions</Text>
-      </View>
-
-      {/* Quick Actions Buttons */}
-      <View style={styles.quickActions}>
-        <Pressable
-          style={[styles.quickButton, styles.quickPrimary]}
-          onPress={() => router.push("/scan" as any)}
-        >
-          <View style={[styles.quickIconCircle, { backgroundColor: isDark ? "rgba(59, 130, 246, 0.16)" : colors.primaryLight }]}>
-            <Ionicons name="scan-outline" size={22} color={colors.primary} />
-          </View>
-          <View style={styles.quickTextWrapper}>
-            <Text style={styles.quickTitle}>Scan to borrow</Text>
-            <Text style={styles.quickSubtitle}>Self-service checkout</Text>
-          </View>
-        </Pressable>
-        <Pressable
-          style={[styles.quickButton, styles.quickSecondary]}
-          onPress={() => router.push("/ai" as any)}
-        >
-          <View style={[styles.quickIconCircle, { backgroundColor: isDark ? "rgba(139, 92, 246, 0.16)" : "rgba(139, 92, 246, 0.06)" }]}>
-            <Ionicons name="sparkles-outline" size={22} color={isDark ? "#a78bfa" : "#8b5cf6"} />
-          </View>
-          <View style={styles.quickTextWrapper}>
-            <Text style={styles.quickTitle}>Ask Libra</Text>
-            <Text style={styles.quickSubtitle}>Get learning suggestions</Text>
-          </View>
+        <Text style={styles.sectionTitle}>Discover books</Text>
+        <Pressable onPress={() => router.push("/search" as any)}>
+          <Text style={styles.seeMore}>See more</Text>
         </Pressable>
       </View>
 
-      {/* Today's Highlights Section */}
-      <Text style={styles.sectionTitle}>Today's highlights</Text>
-      <View style={styles.highlightRow}>
-        {highlightsList.map((item) => (
-          <View
-            key={item.title}
-            style={[
-              styles.highlightCard,
-              {
-                backgroundColor: item.bg,
-                borderColor: item.border,
-                borderWidth: 1.5,
-              },
-            ]}
-          >
-            <View style={styles.highlightHeader}>
-              <Ionicons name={item.icon as any} size={16} color={item.color} style={{ marginRight: 6 }} />
-              <Text style={[styles.highlightTitle, { color: item.color }]}>{item.title}</Text>
-            </View>
-            <Text style={[styles.highlightValue, { color: colors.text }]}>{item.value}</Text>
-          </View>
-        ))}
-      </View>
-
-      {/* Continue Reading Card */}
-      <Card style={styles.resourcesCard}>
-        <Text style={styles.resourcesTitle}>Library catalogue</Text>
-        <Text style={styles.resourcesSubtitle}>
-          {loading ? "Loading books…" : `${recommended.length} titles ready to explore`}
-        </Text>
-        <View style={styles.resourceInfo}>
-          <View style={{ flex: 1, marginRight: spacing.md }}>
-            <Text style={styles.resourceLabel}>
-              {recommended[0]?.title || "Browse the catalogue"}
-            </Text>
-            <Text style={styles.resourceMeta}>
-              {recommended[0] ? bookAuthorName(recommended[0]) : "Open Search to find books"}
-            </Text>
-          </View>
-          <Pressable onPress={() => router.push("/search" as any)}>
-            <Ionicons name="arrow-forward-circle" size={36} color={colors.primary} />
-          </Pressable>
+      {loading ? (
+        <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.xl }} />
+      ) : gridBooks.length === 0 ? (
+        <Text style={styles.emptyText}>No books in the catalogue yet.</Text>
+      ) : (
+        <View style={styles.grid}>
+          {gridBooks.map((book) => (
+            <BookGridCard key={book.id} book={book} width={CARD_WIDTH} />
+          ))}
         </View>
-      </Card>
-
-      {/* Recommended Section (Horizontal Carousel) */}
-      <View style={styles.recommendedSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recommended for you</Text>
-        </View>
-        {loading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.lg }} />
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.carouselContainer}
-          >
-            {recommended.map((item) => (
-              <Pressable
-                key={item.id}
-                style={styles.carouselCard}
-                onPress={() => router.push(`/book/${item.id}` as any)}
-              >
-                <View style={styles.carouselCardHeader}>
-                  <Text style={styles.carouselEmoji}>📖</Text>
-                  <Text style={styles.carouselTag}>
-                    {(item.availableCopies ?? 0) > 0 ? "Available" : "On loan"}
-                  </Text>
-                </View>
-                <Text style={styles.carouselTitle} numberOfLines={2}>
-                  {item.title}
-                </Text>
-                <Text style={styles.carouselAuthor} numberOfLines={1}>
-                  {bookAuthorName(item)}
-                </Text>
-              </Pressable>
-            ))}
-            {recommended.length === 0 && (
-              <Text style={{ color: colors.textMuted }}>No books found in the catalogue yet.</Text>
-            )}
-          </ScrollView>
-        )}
-      </View>
+      )}
     </ScreenWrapper>
   );
 }
 
-const createStyles = (colors: any, spacing: any, borderRadius: any, typography: any, isDark: boolean) =>
+const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: boolean) =>
   StyleSheet.create({
     screen: {
       backgroundColor: colors.background,
     },
     container: {
-      padding: spacing.lg,
-      position: "relative",
-    },
-    orb: {
-      position: "absolute",
-      width: 200,
-      height: 200,
-      borderRadius: 100,
-      opacity: 0.22,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.6,
-      shadowRadius: 50,
-      elevation: 0,
-      zIndex: 0,
+      paddingHorizontal: SCREEN_PADDING,
+      paddingTop: spacing.sm,
+      // Clear the floating tab bar
+      paddingBottom: 110,
     },
     headerRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       marginBottom: spacing.lg,
-      zIndex: 1,
     },
-    greetingText: {
-      fontSize: 14,
-      color: colors.textMuted,
-      fontWeight: "500",
+    wordmark: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
     },
-    userName: {
-      fontSize: 22,
+    wordmarkText: {
+      fontSize: 20,
       fontWeight: "800",
       color: colors.text,
-      marginTop: 2,
+    },
+    headerActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
     },
     bellButton: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
-      justifyContent: "center",
-      alignItems: "center",
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
       borderWidth: 1,
-      borderColor: colors.border,
-      position: "relative",
-      shadowColor: "#000",
-      shadowOpacity: 0.02,
-      shadowRadius: 4,
-      elevation: 1,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
+      alignItems: "center",
+      justifyContent: "center",
     },
     bellBadge: {
       position: "absolute",
-      top: 10,
-      right: 12,
+      top: 9,
+      right: 10,
       width: 8,
       height: 8,
       borderRadius: 4,
       backgroundColor: colors.danger,
       borderWidth: 1.5,
-      borderColor: isDark ? "#181c33" : colors.surface,
+      borderColor: colors.surface,
     },
-    heroCard: {
-      padding: spacing.lg,
-      marginBottom: spacing.lg,
-      flexDirection: "row",
-      justifyContent: "space-between",
+    avatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primary,
       alignItems: "center",
-      zIndex: 1,
-      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
-      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : "transparent",
-      borderWidth: isDark ? 1 : 0,
+      justifyContent: "center",
     },
-    heroTextContainer: {
-      flex: 1,
-      marginRight: spacing.sm,
-    },
-    heroTitle: {
-      fontSize: 18,
+    avatarText: {
+      color: colors.textLight,
       fontWeight: "800",
-      color: colors.text,
-      marginBottom: spacing.xs,
+      fontSize: 15,
     },
-    subtitle: {
-      color: colors.textMuted,
-      fontSize: 14,
-      lineHeight: 18,
-    },
-    heroBadge: {
-      color: colors.primary,
-      backgroundColor: colors.primaryLight,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      borderRadius: borderRadius.round,
-      fontWeight: "700",
-      fontSize: 12,
-      overflow: "hidden",
+    searchRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      marginBottom: spacing.lg,
     },
     searchBar: {
+      flex: 1,
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
+      gap: spacing.sm,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
       borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
-      borderWidth: 1.2,
-      borderRadius: borderRadius.xl,
+      borderRadius: borderRadius.round,
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
-      marginBottom: spacing.lg,
-      shadowColor: "#000",
-      shadowOpacity: 0.04,
-      shadowRadius: 10,
-      elevation: 2,
-      zIndex: 1,
     },
     searchPlaceholder: {
       color: colors.textMuted,
       fontSize: 15,
     },
+    scanButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    heroScroll: {
+      // Same width as a slide so pagingEnabled snaps exactly, with no peek
+      borderRadius: borderRadius.huge,
+    },
+    heroSlide: {
+      width: SLIDE_WIDTH,
+    },
+    heroCard: {
+      backgroundColor: colors.primary,
+      borderRadius: borderRadius.huge,
+      padding: spacing.xl,
+    },
+    heroEyebrow: {
+      color: colors.textLight,
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1.2,
+      opacity: 0.85,
+      marginBottom: spacing.sm,
+    },
+    heroTitle: {
+      color: colors.textLight,
+      fontSize: 22,
+      fontWeight: "800",
+      lineHeight: 28,
+      marginBottom: spacing.sm,
+    },
+    heroBody: {
+      color: colors.textLight,
+      fontSize: 13,
+      lineHeight: 19,
+      opacity: 0.9,
+      marginBottom: spacing.lg,
+    },
+    heroCta: {
+      alignSelf: "flex-start",
+      backgroundColor: colors.surface,
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.md,
+      borderRadius: borderRadius.round,
+    },
+    heroCtaText: {
+      color: colors.primary,
+      fontWeight: "700",
+      fontSize: 14,
+    },
+    dotsRow: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 6,
+      marginTop: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    dot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.borderDark,
+    },
+    dotActive: {
+      width: 18,
+      backgroundColor: colors.primary,
+    },
+    fineStrip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      backgroundColor: colors.dangerLight,
+      borderWidth: 1,
+      borderColor: colors.danger,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    fineText: {
+      flex: 1,
+    },
+    fineTitle: {
+      color: colors.danger,
+      fontWeight: "800",
+      fontSize: 14,
+    },
+    fineSubtitle: {
+      color: colors.danger,
+      fontSize: 12,
+      marginTop: 2,
+      opacity: 0.85,
+    },
+    finePill: {
+      backgroundColor: colors.danger,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: 6,
+      borderRadius: borderRadius.round,
+    },
+    finePillText: {
+      color: colors.textLight,
+      fontWeight: "700",
+      fontSize: 13,
+    },
     statsRow: {
       flexDirection: "row",
-      justifyContent: "space-between",
+      gap: spacing.md,
       marginBottom: spacing.lg,
-      gap: spacing.sm,
-      zIndex: 1,
     },
     statCard: {
       flex: 1,
-      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
-      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : "transparent",
-      borderWidth: isDark ? 1 : 0,
-      paddingVertical: spacing.md,
-      paddingHorizontal: spacing.sm,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
       borderRadius: borderRadius.lg,
+      paddingVertical: spacing.md,
       alignItems: "center",
-      shadowColor: "#000",
-      shadowOpacity: 0.02,
-      shadowRadius: 6,
-      elevation: 1,
     },
     statValue: {
       fontSize: 20,
       fontWeight: "800",
       color: colors.text,
+      marginTop: spacing.xs,
     },
     statLabel: {
       color: colors.textMuted,
-      marginTop: spacing.xs,
       fontSize: 12,
-      textAlign: "center",
+      marginTop: 2,
     },
     sectionHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: spacing.xs,
-      zIndex: 1,
+      alignItems: "baseline",
+      marginBottom: spacing.md,
     },
     sectionTitle: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: colors.text,
-      marginVertical: spacing.sm,
-      zIndex: 1,
-    },
-    quickActions: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginBottom: spacing.lg,
-      gap: spacing.sm,
-      zIndex: 1,
-    },
-    quickButton: {
-      flex: 1,
-      borderRadius: borderRadius.xl,
-      padding: spacing.md,
-      flexDirection: "row",
-      alignItems: "center",
-      borderWidth: 1,
-    },
-    quickPrimary: {
-      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
-      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
-    },
-    quickSecondary: {
-      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
-      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
-    },
-    quickIconCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      alignItems: "center",
-      justifyContent: "center",
-      marginRight: spacing.sm,
-    },
-    quickTextWrapper: {
-      flex: 1,
-    },
-    quickTitle: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: colors.text,
-    },
-    quickSubtitle: {
-      color: colors.textMuted,
-      fontSize: 11,
-      marginTop: 2,
-    },
-    highlightRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginBottom: spacing.lg,
-      gap: spacing.sm,
-      zIndex: 1,
-    },
-    highlightCard: {
-      flex: 1,
-      borderRadius: borderRadius.xl,
-      padding: spacing.md,
-    },
-    highlightHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginBottom: 6,
-    },
-    highlightTitle: {
-      fontSize: 13,
-      fontWeight: "800",
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
-    },
-    highlightValue: {
-      fontWeight: "700",
-      fontSize: 14,
-    },
-    resourcesCard: {
-      marginBottom: spacing.lg,
-      zIndex: 1,
-      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
-      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : "transparent",
-      borderWidth: isDark ? 1 : 0,
-    },
-    resourcesTitle: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: colors.text,
-      marginBottom: spacing.xs,
-    },
-    resourcesSubtitle: {
-      color: colors.textMuted,
-      fontSize: 13,
-      marginBottom: spacing.md,
-    },
-    resourceInfo: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    resourceLabel: {
-      fontWeight: "700",
-      fontSize: 14,
-      color: colors.text,
-    },
-    resourceMeta: {
-      color: colors.textMuted,
-      marginTop: spacing.xs,
-      fontSize: 12,
-    },
-    // Circular Progress Arc styles
-    circularProgressContainer: {
-      width: 52,
-      height: 52,
-      justifyContent: "center",
-      alignItems: "center",
-      position: "relative",
-    },
-    progressTrack: {
-      position: "absolute",
-      width: "100%",
-      height: "100%",
-      borderRadius: 26,
-      borderWidth: 4.5,
-      borderColor: colors.border,
-    },
-    progressSegment: {
-      position: "absolute",
-      width: "100%",
-      height: "100%",
-      borderRadius: 26,
-      borderWidth: 4.5,
-      borderColor: colors.primary,
-      borderTopColor: "transparent",
-      borderRightColor: "transparent",
-      transform: [{ rotate: "45deg" }],
-    },
-    progressPercent: {
-      fontSize: 12,
+      fontSize: 17,
       fontWeight: "800",
       color: colors.text,
     },
-    recommendedSection: {
-      marginTop: spacing.md,
-      marginBottom: spacing.xl,
-      zIndex: 1,
-    },
-    carouselContainer: {
-      paddingRight: spacing.lg,
-      gap: spacing.md,
-      paddingVertical: spacing.sm,
-    },
-    carouselCard: {
-      width: 170,
-      backgroundColor: isDark ? "rgba(24, 28, 51, 0.85)" : colors.surface,
-      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
-      borderRadius: borderRadius.xl,
-      padding: spacing.md,
-      shadowColor: "#000",
-      shadowOpacity: 0.03,
-      shadowRadius: 8,
-      elevation: 2,
-      borderWidth: 1,
-    },
-    carouselCardHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: spacing.md,
-    },
-    carouselEmoji: {
-      fontSize: 24,
-    },
-    carouselTag: {
-      fontSize: 10,
-      fontWeight: "700",
-      textTransform: "uppercase",
+    seeMore: {
       color: colors.primary,
-      backgroundColor: colors.primaryLight,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 2,
-      borderRadius: borderRadius.sm,
-      overflow: "hidden",
-    },
-    carouselTitle: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: "700",
-      color: colors.text,
-      marginBottom: spacing.xs,
-      lineHeight: 18,
     },
-    carouselAuthor: {
-      fontSize: 12,
+    emptyText: {
       color: colors.textMuted,
+      fontSize: 14,
+      marginVertical: spacing.lg,
+    },
+    grid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: spacing.md,
     },
   });

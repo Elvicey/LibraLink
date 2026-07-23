@@ -15,6 +15,8 @@ export interface Book {
   availableCopies?: number;
   totalCopies?: number;
   coverImageUrl?: string | null;
+  /** Link to a digital/ebook edition. Often null — most titles are print only. */
+  digitalUrl?: string | null;
   authors?: BookAuthor[];
   active?: boolean;
 }

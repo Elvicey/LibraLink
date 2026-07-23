@@ -37,6 +37,12 @@ public class ReservationController {
         return reservationService.getAllReservations();
     }
 
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#userId, 'LIBRARIAN', 'ADMIN')")
+    @GetMapping("/user/{userId}")
+    public List<Reservation> getReservationsForUser(@PathVariable Integer userId) {
+        return reservationService.getReservationsForUser(userId);
+    }
+
     @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelReservation(@PathVariable Integer id) {
         try {
