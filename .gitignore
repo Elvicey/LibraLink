@@ -23,3 +23,6 @@ replay_pid*.log
 .env
 .env.*
 !.env.example
+
+# Maven build output (was previously untracked/uncommitted but not excluded)
+Backend/target/

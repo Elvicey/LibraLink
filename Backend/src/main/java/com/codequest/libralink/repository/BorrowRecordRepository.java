@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Integer> {
@@ -18,4 +19,6 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Inte
     List<BorrowRecord> findByUserIdAndStatus(Integer userId, String status);
 
     List<BorrowRecord> findByUserIdAndStatusIn(Integer userId, List<String> statuses);
+
+    Optional<BorrowRecord> findFirstByBookCopyIdAndStatus(Integer bookCopyId, String status);
 }
