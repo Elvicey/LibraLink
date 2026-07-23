@@ -34,6 +34,9 @@ public class UserService {
 
     @Transactional
     public User registerUser(User user) {
+        // Never trust a client-supplied id on create (H7): a forged id could overwrite
+        // an unrelated existing user's institution/roles/password hash.
+        user.setId(null);
 
         if (user.getInstitution() == null || user.getInstitution().getInstitutionId() == null) {
             throw new IllegalArgumentException(

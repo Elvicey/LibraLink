@@ -25,6 +25,8 @@ public class ReadingListService {
     }
 
     public ReadingList saveReadingList(ReadingList list) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        list.setId(null);
         if (list.getCourseId() == null) {
             throw new IllegalArgumentException("courseId is required");
         }

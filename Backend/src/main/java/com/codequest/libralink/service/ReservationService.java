@@ -32,6 +32,8 @@ public class ReservationService {
 
     @Transactional
     public Reservation createReservation(Reservation res) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        res.setId(null);
         if (res.getUserId() == null) {
             throw new IllegalStateException("userId is required for reservation.");
         }

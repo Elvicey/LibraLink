@@ -28,6 +28,8 @@ public class BorrowRecordService {
 
     @Transactional
     public BorrowRecord saveRecord(BorrowRecord rec) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        rec.setId(null);
         if (rec.getBook() == null || rec.getBook().getId() == null) {
             throw new IllegalArgumentException("book.id is required");
         }

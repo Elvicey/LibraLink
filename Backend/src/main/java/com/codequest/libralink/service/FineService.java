@@ -18,6 +18,14 @@ public class FineService {
     }
 
     public Fine createFine(Fine fine) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        fine.setId(null);
+        if (fine.getUserId() == null) {
+            throw new IllegalArgumentException("userId is required");
+        }
+        if (fine.getAmount() == null) {
+            throw new IllegalArgumentException("amount is required");
+        }
         if (fine.getCreatedAt() == null) {
             fine.setCreatedAt(java.time.LocalDateTime.now());
         }

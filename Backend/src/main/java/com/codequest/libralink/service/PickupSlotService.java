@@ -30,6 +30,8 @@ public class PickupSlotService {
     // DB-level exclusion constraint instead.
     @Transactional
     public synchronized PickupSlot scheduleSlot(PickupSlot slot) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        slot.setId(null);
         if (slot.getUserId() == null) {
             throw new IllegalStateException("userId is required.");
         }

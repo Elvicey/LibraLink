@@ -14,6 +14,10 @@ public class CategoryService {
     private CategoryRepository categoryRepository;
 
     public Category addCategory(Category category) {
+        // Never trust a client-supplied id on create - JPA save() on an entity with an
+        // existing id performs an UPDATE/merge, so a forged id could silently overwrite
+        // an unrelated existing row instead of creating a new one (H7).
+        category.setId(null);
         return categoryRepository.save(category);
     }
 

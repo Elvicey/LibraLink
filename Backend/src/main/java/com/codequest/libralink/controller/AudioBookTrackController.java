@@ -45,7 +45,11 @@ public class AudioBookTrackController {
         return ResponseEntity.ok(audioBookTrackService.getTracksByCourse(courseCode));
     }
 
-    // Create a new audio track
+    // Create a new audio track. Restricted to staff, consistent with the other
+    // catalog-writing endpoints (Category/Author/Publisher/BookCopy/etc.) - this was
+    // previously missing, letting any authenticated user inject arbitrary "official"
+    // course audio tracks.
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
     public ResponseEntity<AudioBookTrack> createTrack(@RequestBody AudioBookTrack track) {
         AudioBookTrack created = audioBookTrackService.saveTrack(track);

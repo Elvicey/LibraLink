@@ -30,6 +30,8 @@ public class ReadingListItemService {
     }
 
     public ReadingListItem addItemToList(ReadingListItem item) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        item.setId(null);
         if (item.getReadingListId() == null) {
             throw new IllegalArgumentException("readingListId is required");
         }

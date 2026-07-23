@@ -34,6 +34,8 @@ public class CourseService {
 
     @Transactional
     public Course saveCourse(Course course) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        course.setId(null);
         if (course.getName() == null || course.getName().isBlank()) {
             throw new IllegalArgumentException("name is required");
         }

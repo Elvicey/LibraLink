@@ -13,6 +13,10 @@ public class BookCopyService {
     @Autowired
     private BookCopyRepository bookCopyRepository;
 
+    // NOTE: this method is shared between BookCopyController's create endpoint and
+    // CirculationController's check-in/check-out flow (which legitimately updates an
+    // existing copy's isAvailable flag), so it cannot blindly null the id here - the
+    // create-only caller is responsible for that (see BookCopyController.createCopy).
     public BookCopy registerBookCopy(BookCopy copy) {
         if (copy.getBarcode() != null && !copy.getBarcode().isBlank()) {
             Optional<BookCopy> existing = bookCopyRepository.findByBarcode(copy.getBarcode());
