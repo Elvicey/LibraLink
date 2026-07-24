@@ -37,7 +37,13 @@
           }
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow LibraLink to use the camera to scan pickup QR codes."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
