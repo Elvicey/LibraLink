@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { API_BASE_URL } from "../config/api";
 
 export interface AudioBookTrackResponse {
   id: number;
@@ -40,7 +41,34 @@ export interface UserAudioProgressResponse {
   lastListenedAt?: string;
 }
 
+/** An on-demand AI (text-to-speech) narration track. */
+export interface TtsTrack {
+  id: number;
+  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | string;
+  durationSeconds?: number;
+  audioFormat?: string;
+  errorMessage?: string;
+}
+
 export const audioService = {
+  /** Kick off AI narration for a book (reads its text). Returns the new track id + status. */
+  generateNarration: (bookId: number, content?: string): Promise<{ trackId: number; status: string }> =>
+    api.post<{ trackId: number; status: string }>(
+      "/api/audio/convert",
+      content ? { bookId, content } : { bookId }
+    ),
+
+  /** Poll a narration track's status while it's being generated. */
+  getTtsTrack: (trackId: number): Promise<TtsTrack> =>
+    api.get<TtsTrack>(`/api/audio/${trackId}`),
+
+  /** Absolute URL for the protected WAV stream (needs an Authorization header to play). */
+  narrationStreamUrl: (trackId: number): string => `${API_BASE_URL}/api/audio/${trackId}/stream`,
+
+  /** The caller's narration tracks for a book — used to reuse an already-generated one. */
+  getBookTracks: (bookId: number): Promise<TtsTrack[]> =>
+    api.get<TtsTrack[]>(`/api/audio/book/${bookId}`),
+
   /**
    * Fetch all audio tracks from backend catalog.
    */

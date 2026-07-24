@@ -107,7 +107,7 @@ public class AudioController {
         }
         currentUserProvider.requireSelfOrAnyRole(track.getUserId(), "LIBRARIAN", "ADMIN");
 
-        if (!"COMPLETED".equals(track.getStatus()) || track.getAudioUrl() == null) {
+        if (!"COMPLETED".equals(track.getStatus())) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "Audio track is not ready to stream",
                     "trackId", track.getId(),
@@ -116,22 +116,28 @@ public class AudioController {
             ));
         }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType("audio/" + track.getAudioFormat()));
-        headers.set("Accept-Ranges", "bytes");
-        headers.set("Content-Disposition", "inline; filename=\"" + track.getTitle() + "." + track.getAudioFormat() + "\"");
+        byte[] audio = audioTrackService.getAudioBytes(id);
+        if (audio == null || audio.length == 0) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Audio bytes are missing for this track", "trackId", id));
+        }
 
+        String format = track.getAudioFormat() != null ? track.getAudioFormat() : "wav";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("audio/" + format));
+        headers.setContentLength(audio.length);
+        headers.set("Accept-Ranges", "bytes");
+        headers.set("Content-Disposition", "inline; filename=\"" + safeFilename(track.getTitle()) + "." + format + "\"");
         if (track.getDurationSeconds() != null) {
             headers.set("X-Audio-Duration", String.valueOf(track.getDurationSeconds()));
         }
+        return new ResponseEntity<>(audio, headers, HttpStatus.OK);
+    }
 
-        return ResponseEntity.ok().headers(headers).body(Map.of(
-                "trackId", track.getId(),
-                "title", track.getTitle(),
-                "audioUrl", track.getAudioUrl(),
-                "format", track.getAudioFormat(),
-                "durationSeconds", track.getDurationSeconds() != null ? track.getDurationSeconds() : 0
-        ));
+    /** Strip anything that could break the Content-Disposition header from a track title. */
+    private String safeFilename(String title) {
+        String cleaned = title == null ? "" : title.replaceAll("[^a-zA-Z0-9 ._-]", "").trim();
+        return cleaned.isEmpty() ? "audio" : cleaned;
     }
 
     @DeleteMapping("/{id}")
