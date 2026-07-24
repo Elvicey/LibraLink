@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,16 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { booksService, Book, bookAuthorName, isBookAvailable } from '../services/books';
 import { usersService, AppUser, primaryRole } from '../services/users';
 import { circulationService, BookCopyResponse } from '../services/circulation';
 import { finesService } from '../services/fines';
+import { useAuth } from '../contexts/AuthContext';
 
 const colors = {
   primary: '#7C5CFC',
@@ -52,6 +54,7 @@ function AvailabilityBadge({ book }: { book: Book }) {
 
 export default function LibrarianScreen() {
   const router = useRouter();
+  const { clearSession } = useAuth();
   const [tab, setTab] = useState<'inventory' | 'members'>('inventory');
   const [query, setQuery] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -94,9 +97,27 @@ export default function LibrarianScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Refetch whenever this screen regains focus (also fires on first mount), so returning
+  // from editing a book's availability/copies reflects the new counts immediately.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  const confirmLogout = () => {
+    Alert.alert('Log out?', 'You will need to sign in again to access the librarian console.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log out',
+        style: 'destructive',
+        onPress: async () => {
+          await clearSession();
+          router.replace('/signin' as any);
+        },
+      },
+    ]);
+  };
 
   const openScanner = async () => {
     if (Platform.OS !== 'web' && !permission?.granted) {
@@ -230,16 +251,10 @@ export default function LibrarianScreen() {
             <Text style={styles.title}>Librarian</Text>
             <Text style={styles.subtitle}>Inventory & circulation</Text>
           </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.scanBtn} onPress={openScanner}>
-              <Ionicons name="qr-code-outline" size={18} color={colors.card} />
-              <Text style={styles.lookupBtnText}>Scan</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.lookupBtn} onPress={() => setTab('members')}>
-              <Ionicons name="people-outline" size={18} color={colors.card} />
-              <Text style={styles.lookupBtnText}>Members</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout} accessibilityLabel="Log out">
+            <Ionicons name="log-out-outline" size={18} color={colors.danger} />
+            <Text style={styles.logoutBtnText}>Log out</Text>
+          </TouchableOpacity>
         </View>
 
         {activeMember && (
@@ -257,15 +272,18 @@ export default function LibrarianScreen() {
           </View>
         )}
 
-        <TouchableOpacity
-          style={styles.listsLink}
-          onPress={() => router.push('/course' as any)}
-          accessibilityLabel="Manage course reading lists"
-        >
-          <Ionicons name="library-outline" size={18} color={colors.primary} />
-          <Text style={styles.listsLinkText}>Manage course reading lists</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.actionsRow}>
+          <TouchableOpacity style={styles.actionCard} onPress={openScanner} accessibilityLabel="Scan a book barcode">
+            <Ionicons name="qr-code-outline" size={22} color={colors.primary} />
+            <Text style={styles.actionCardTitle}>Scan</Text>
+            <Text style={styles.actionCardSub}>Check in / out</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard} onPress={() => setTab('members')} accessibilityLabel="View members">
+            <Ionicons name="people-outline" size={22} color={colors.primary} />
+            <Text style={styles.actionCardTitle}>Members</Text>
+            <Text style={styles.actionCardSub}>Browse & select</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.tabRow}>
           <TouchableOpacity
@@ -304,9 +322,18 @@ export default function LibrarianScreen() {
         ) : tab === 'inventory' ? (
           <View style={styles.card}>
             {filteredBooks.map((book, idx) => (
-              <View key={book.id} style={[styles.bookRow, idx !== filteredBooks.length - 1 && styles.rowDivider]}>
+              <TouchableOpacity
+                key={book.id}
+                style={[styles.bookRow, idx !== filteredBooks.length - 1 && styles.rowDivider]}
+                onPress={() => router.push(`/book/${book.id}` as any)}
+                accessibilityLabel={`View ${book.title}`}
+              >
                 <View style={styles.bookIcon}>
-                  <Ionicons name="book-outline" size={18} color={colors.primary} />
+                  {book.coverImageUrl ? (
+                    <Image source={{ uri: book.coverImageUrl }} style={styles.bookCoverImage} resizeMode="cover" />
+                  ) : (
+                    <Ionicons name="book-outline" size={18} color={colors.primary} />
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.bookTitle}>{book.title}</Text>
@@ -318,7 +345,8 @@ export default function LibrarianScreen() {
                   </Text>
                 </View>
                 <AvailabilityBadge book={book} />
-              </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
             ))}
             {filteredBooks.length === 0 && (
               <Text style={styles.emptyText}>
@@ -472,12 +500,10 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   container: { padding: 20, paddingBottom: 40 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  lookupBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
-  lookupBtnText: { color: colors.card, fontSize: 13, fontWeight: '700' },
-  scanBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryDark, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14 },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.danger + '18', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
+  logoutBtnText: { color: colors.danger, fontSize: 13, fontWeight: '700' },
   activeMemberBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.primaryLight, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 },
   activeMemberText: { flex: 1, fontSize: 13, color: colors.text },
   fineChip: { backgroundColor: colors.warning, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
@@ -492,8 +518,10 @@ const styles = StyleSheet.create({
   modalCancelText: { color: colors.text, fontWeight: '600', fontSize: 14 },
   modalConfirm: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: colors.primary },
   modalConfirmText: { color: colors.card, fontWeight: '700', fontSize: 14 },
-  listsLink: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14 },
-  listsLinkText: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.text },
+  actionsRow: { flexDirection: 'row', gap: 12, marginBottom: 14 },
+  actionCard: { flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 4 },
+  actionCardTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 4 },
+  actionCardSub: { fontSize: 12, color: colors.textMuted },
   tabRow: { flexDirection: 'row', backgroundColor: colors.primaryLight, borderRadius: 14, padding: 4, marginBottom: 14 },
   tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: 'center' },
   tabBtnActive: { backgroundColor: colors.card },
@@ -509,7 +537,8 @@ const styles = StyleSheet.create({
   memberRow: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12, borderRadius: 12 },
   memberRowSelected: { backgroundColor: colors.primaryLight },
   rowDivider: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  bookIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
+  bookIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  bookCoverImage: { width: '100%', height: '100%' },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: colors.primary, fontWeight: '700' },
   bookTitle: { fontSize: 14, fontWeight: '600', color: colors.text },
