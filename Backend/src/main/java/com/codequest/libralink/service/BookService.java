@@ -48,6 +48,40 @@ public class BookService {
         });
     }
 
+    /** Set only the book's full readable text (used by the in-app reader and AI narration). */
+    @Transactional
+    public Optional<Book> updateBookContent(Integer id, String content) {
+        return bookRepository.findById(id).map(book -> {
+            book.setContent(content);
+            return bookRepository.save(book);
+        });
+    }
+
+    /** Set only the book's copy counts (librarian/admin inventory editing). */
+    @Transactional
+    public Optional<Book> updateBookAvailability(Integer id, Integer totalCopies, Integer availableCopies) {
+        return bookRepository.findById(id).map(book -> {
+            if (totalCopies != null) {
+                if (totalCopies < 0) {
+                    throw new IllegalArgumentException("Total copies cannot be negative.");
+                }
+                book.setTotalCopies(totalCopies);
+            }
+            if (availableCopies != null) {
+                if (availableCopies < 0) {
+                    throw new IllegalArgumentException("Available copies cannot be negative.");
+                }
+                book.setAvailableCopies(availableCopies);
+            }
+            int total = book.getTotalCopies() != null ? book.getTotalCopies() : 0;
+            int available = book.getAvailableCopies() != null ? book.getAvailableCopies() : 0;
+            if (available > total) {
+                throw new IllegalArgumentException("Available copies cannot exceed total copies.");
+            }
+            return bookRepository.save(book);
+        });
+    }
+
     private void assertIsbnAvailable(String isbn, String isbn13, Integer excludeBookId) {
         if (isbn != null && !isbn.isBlank()) {
             boolean taken = bookRepository.findByIsbn(isbn).stream()
