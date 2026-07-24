@@ -18,4 +18,12 @@ export const borrowsService = {
 
   getHistory: (userId: number): Promise<BorrowRecord[]> =>
     api.get<BorrowRecord[]>(`/api/borrow-records/user/${userId}`),
+
+  /** Extend the loan by another period (self-service). */
+  renew: (recordId: number): Promise<BorrowRecord> =>
+    api.put<BorrowRecord>(`/api/borrow-records/${recordId}/renew`),
+
+  /** Return a loan by record id (self-service / in-app). */
+  return: (recordId: number): Promise<BorrowRecord> =>
+    api.put<BorrowRecord>(`/api/borrow-records/${recordId}/return`),
 };
