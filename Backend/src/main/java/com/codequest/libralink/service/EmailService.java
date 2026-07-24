@@ -26,7 +26,12 @@ public class EmailService {
     }
 
     public void sendPasswordResetCode(String toEmail, String code) {
-        if (mailConfigured) {
+        if (!mailConfigured) {
+            log.info("[DEV] Password reset code for {}: {}", toEmail, code);
+            return;
+        }
+
+        try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(mailFrom);
             message.setTo(toEmail);
@@ -36,8 +41,12 @@ public class EmailService {
                             + "This code expires in 15 minutes. If you did not request a reset, ignore this email.");
             mailSender.send(message);
             log.info("Password reset code sent to {}", toEmail);
-        } else {
-            log.info("[DEV] Password reset code for {}: {}", toEmail, code);
+        } catch (Exception e) {
+            // Never rethrow: the forgot-password endpoint must stay non-500 and
+            // email-enumeration-safe (it returns the same generic response whether or not
+            // the account exists). A misconfigured/slow SMTP is a server-side concern —
+            // log it so operators can fix it, but don't surface it to the caller.
+            log.error("Failed to send password reset code to {}: {}", toEmail, e.getMessage());
         }
     }
 }
