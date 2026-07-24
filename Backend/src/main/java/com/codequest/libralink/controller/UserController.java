@@ -68,6 +68,17 @@ public class UserController {
         }
     }
 
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#id, 'ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateProfile(
+            @PathVariable Integer id,
+            @RequestBody Map<String, String> body) {
+        User updated = userService.updateProfile(
+                id, body.get("firstName"), body.get("lastName"), body.get("phoneNumber"),
+                body.get("studentId"), body.get("indexNumber"), body.get("programme"));
+        return ResponseEntity.ok(updated);
+    }
+
     @PreAuthorize("@currentUserProvider.isCurrentUser(#id)")
     @PutMapping("/{id}/push-token")
     public ResponseEntity<Map<String, String>> updatePushToken(
