@@ -28,6 +28,11 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Inte
     List<BorrowRecord> findByStatusAndDueDateBeforeFetchUserAndBook(
             @Param("status") String status, @Param("date") LocalDate date);
 
+    /** Ids of still-out loans whose due date has passed — the daily overdue/fine-accrual job. */
+    @Query("SELECT br.id FROM BorrowRecord br WHERE br.status IN :statuses AND br.dueDate < :date")
+    List<Integer> findOverdueUnreturnedIds(@Param("statuses") List<String> statuses,
+                                           @Param("date") LocalDate date);
+
     List<BorrowRecord> findByUserIdAndStatus(Integer userId, String status);
 
     List<BorrowRecord> findByUserIdAndStatusIn(Integer userId, List<String> statuses);

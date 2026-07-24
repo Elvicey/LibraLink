@@ -9,6 +9,7 @@ import com.codequest.libralink.entity.User;
 import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.BorrowRecordRepository;
 import com.codequest.libralink.security.CurrentUserProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,12 +22,18 @@ import java.util.List;
 @Service
 public class BorrowRecordService {
 
-    /** A standard loan (and each renewal) runs 14 days. */
-    private static final int LOAN_PERIOD_DAYS = 14;
     /** How many times a patron may renew before they must return the book. */
     private static final int MAX_RENEWALS = 2;
+
+    /** A standard loan (and each renewal) runs this many days. */
+    @Value("${library.loan-period-days:14}")
+    private int loanPeriodDays;
     /** Overdue fine accrued per day late, in the institution's currency. */
-    private static final BigDecimal FINE_PER_DAY = new BigDecimal("0.50");
+    @Value("${library.fine-per-day:1.00}")
+    private BigDecimal finePerDay;
+    /** Cap on how large an overdue fine can grow. */
+    @Value("${library.fine-max:20.00}")
+    private BigDecimal fineMax;
 
     private final BorrowRecordRepository borrowRecordRepository;
     private final BookRepository bookRepository;
@@ -79,6 +86,10 @@ public class BorrowRecordService {
         book.setAvailableCopies(book.getAvailableCopies() - 1);
         book.setBorrowCount((book.getBorrowCount() == null ? 0 : book.getBorrowCount()) + 1);
         bookRepository.save(book);
+
+        // Server-enforced loan period: every new loan is due in loanPeriodDays regardless of what
+        // the client sent, so self-service borrows can't omit or fake the due date.
+        rec.setDueDate(LocalDate.now().plusDays(loanPeriodDays));
 
         BorrowRecord savedRecord = borrowRecordRepository.save(rec);
 
@@ -143,7 +154,7 @@ public class BorrowRecordService {
         rec.setBookCopy(copy);
         rec.setUser(user);
         rec.setStatus("BORROWED");
-        rec.setDueDate(LocalDate.now().plusDays(14));
+        rec.setDueDate(LocalDate.now().plusDays(loanPeriodDays));
 
         // Delegates to the same locking/decrement/notification logic every other borrow
         // path uses (C5); saveRecord re-fetches and re-assigns the real Book row itself.
@@ -234,7 +245,7 @@ public class BorrowRecordService {
         // doesn't shorten the loan and a just-in-time one still gets a full period.
         LocalDate base = (record.getDueDate() == null || record.getDueDate().isBefore(LocalDate.now()))
                 ? LocalDate.now() : record.getDueDate();
-        record.setDueDate(base.plusDays(LOAN_PERIOD_DAYS));
+        record.setDueDate(base.plusDays(loanPeriodDays));
         record.setRenewalCount((short) (renewals + 1));
         record.setStatus("RENEWED");
         BorrowRecord saved = borrowRecordRepository.save(record);
@@ -299,15 +310,10 @@ public class BorrowRecordService {
         bookRepository.save(book);
 
         if (late && ownerId != null) {
+            // Finalize the (possibly already-accruing) overdue fine to the final lateness — upsert
+            // so the scheduler's daily fine isn't duplicated.
             long daysLate = ChronoUnit.DAYS.between(dueDate, LocalDate.now());
-            Fine fine = new Fine();
-            fine.setUserId(ownerId);
-            fine.setBorrowId(saved.getId());
-            fine.setAmount(FINE_PER_DAY.multiply(BigDecimal.valueOf(daysLate)));
-            fine.setStatus("UNPAID");
-            fine.setReason("Overdue return of \"" + book.getTitle() + "\" (" + daysLate + " day(s) late).");
-            fine.setDueDate(LocalDateTime.now().plusDays(LOAN_PERIOD_DAYS));
-            fineService.createFine(fine);
+            upsertOverdueFine(saved.getId(), ownerId, book.getTitle(), daysLate);
         }
 
         if (ownerId != null) {
@@ -325,5 +331,84 @@ public class BorrowRecordService {
         }
 
         return saved;
+    }
+
+    /** Overdue fine for a given lateness: per-day rate × days, capped at the configured max. */
+    private BigDecimal computeFine(long daysLate) {
+        BigDecimal amount = finePerDay.multiply(BigDecimal.valueOf(Math.max(0, daysLate)));
+        return amount.compareTo(fineMax) > 0 ? fineMax : amount;
+    }
+
+    /**
+     * Keep exactly one overdue fine per loan, set to the current lateness. Reuses the loan's
+     * existing UNPAID fine (so it grows day by day) or creates a new one.
+     */
+    private void upsertOverdueFine(Integer borrowId, Integer userId, String bookTitle, long daysLate) {
+        BigDecimal amount = computeFine(daysLate);
+        String reason = "Overdue: \"" + bookTitle + "\" (" + daysLate + " day(s) late).";
+        Fine existing = fineService.findUnpaidByBorrowId(borrowId).orElse(null);
+        if (existing != null) {
+            existing.setAmount(amount);
+            existing.setReason(reason);
+            existing.setUpdatedAt(LocalDateTime.now());
+            fineService.saveFine(existing);
+        } else {
+            Fine fine = new Fine();
+            fine.setUserId(userId);
+            fine.setBorrowId(borrowId);
+            fine.setAmount(amount);
+            fine.setStatus("UNPAID");
+            fine.setReason(reason);
+            fine.setDueDate(LocalDateTime.now().plusDays(loanPeriodDays));
+            fineService.createFine(fine);
+        }
+    }
+
+    /**
+     * Daily assessment for one loan (called by {@link OverdueBookScheduler}): if it's still out and
+     * past its due date, mark it OVERDUE and grow its fine to the current lateness. The patron is
+     * notified only on the first OVERDUE flag (not every day). Returns true if the loan was overdue.
+     */
+    @Transactional
+    public boolean assessOverdue(Integer recordId) {
+        BorrowRecord record = borrowRecordRepository.findById(recordId).orElse(null);
+        if (record == null) {
+            return false;
+        }
+        String status = record.getStatus();
+        if ("RETURNED".equals(status) || "LOST".equals(status)) {
+            return false;
+        }
+        LocalDate dueDate = record.getDueDate();
+        if (dueDate == null || !dueDate.isBefore(LocalDate.now())) {
+            return false;
+        }
+
+        long daysLate = ChronoUnit.DAYS.between(dueDate, LocalDate.now());
+        boolean firstFlag = !"OVERDUE".equals(status);
+        record.setStatus("OVERDUE");
+        borrowRecordRepository.save(record);
+
+        Integer ownerId = record.getUser() != null ? record.getUser().getId() : null;
+        String title = record.getBook() != null ? record.getBook().getTitle() : "a book";
+        if (ownerId != null) {
+            upsertOverdueFine(record.getId(), ownerId, title, daysLate);
+        }
+
+        if (firstFlag && ownerId != null) {
+            Notification notification = new Notification();
+            notification.setUserId(ownerId);
+            notification.setType("OVERDUE");
+            notification.setTitle("Book Overdue");
+            notification.setMessage("The book \"" + title + "\" was due on " + dueDate
+                    + ". A fine now accrues each day until you return it.");
+            notification.setChannel("PUSH");
+            notification.setReferenceId(record.getId());
+            notification.setReferenceType("BORROW_RECORD");
+            notification.setCreatedAt(LocalDateTime.now());
+            notification.setIsRead(false);
+            notificationService.createNotification(notification);
+        }
+        return true;
     }
 }

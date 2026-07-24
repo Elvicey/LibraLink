@@ -26,4 +26,8 @@ export const borrowsService = {
   /** Return a loan by record id (self-service / in-app). */
   return: (recordId: number): Promise<BorrowRecord> =>
     api.put<BorrowRecord>(`/api/borrow-records/${recordId}/return`),
+
+  /** Run the overdue check now (librarian/admin): flag past-due loans and grow their fines. */
+  runOverdueCheck: (): Promise<{ processed: number }> =>
+    api.post<{ processed: number }>(`/api/borrow-records/run-overdue-check`),
 };

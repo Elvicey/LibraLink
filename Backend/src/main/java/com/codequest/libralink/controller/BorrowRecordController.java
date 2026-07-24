@@ -2,6 +2,7 @@ package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.BorrowRecord;
 import com.codequest.libralink.service.BorrowRecordService;
+import com.codequest.libralink.service.OverdueBookScheduler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,9 +19,20 @@ public class BorrowRecordController {
     @Autowired
     private BorrowRecordService borrowRecordService;
 
+    @Autowired
+    private OverdueBookScheduler overdueBookScheduler;
+
     @PostMapping
     public ResponseEntity<BorrowRecord> createLoan(@RequestBody BorrowRecord record) {
         return new ResponseEntity<>(borrowRecordService.saveRecord(record), HttpStatus.CREATED);
+    }
+
+    /** Run the overdue check now (normally a daily cron): flag past-due loans and grow their fines. */
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PostMapping("/run-overdue-check")
+    public ResponseEntity<Map<String, Object>> runOverdueCheck() {
+        int processed = overdueBookScheduler.runOverdueCheck();
+        return ResponseEntity.ok(Map.of("processed", processed));
     }
 
     @GetMapping
