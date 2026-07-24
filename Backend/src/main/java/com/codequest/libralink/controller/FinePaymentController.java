@@ -20,7 +20,7 @@ public class FinePaymentController {
         this.currentUserProvider = currentUserProvider;
     }
 
-    @PreAuthorize("hasAnyRole('STUDENT', 'LECTURER', 'LIBRARIAN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STUDENT', 'LIBRARIAN', 'ADMIN')")
     @PostMapping
     public ResponseEntity<FinePayment> payFine(@RequestBody FinePayment payment) {
         // A student/lecturer can only ever pay their own fine. A librarian/admin may

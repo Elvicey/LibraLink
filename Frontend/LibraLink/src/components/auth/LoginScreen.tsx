@@ -20,44 +20,38 @@ import { theme } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { authService } from "../../services/auth";
 
-export type LoginRole = "student" | "lecturer" | "librarian" | "admin";
+export type LoginRole = "student" | "librarian" | "admin";
 
 const ROLES: { key: LoginRole; label: string }[] = [
   { key: "student", label: "Student" },
-  { key: "lecturer", label: "Lecturer" },
   { key: "librarian", label: "Librarian" },
   { key: "admin", label: "Admin" },
 ];
 
 const ROLE_HINTS: Record<LoginRole, string> = {
   student: "Log in to your student account",
-  lecturer: "Log in as a lecturer",
   librarian: "Login as a librarian",
   admin: "Login as an admin",
 };
 
 const EMAIL_LABELS: Record<LoginRole, string> = {
   student: "Email or student ID",
-  lecturer: "Email",
   librarian: "Email",
   admin: "Email",
 };
 
 const EMAIL_PLACEHOLDERS: Record<LoginRole, string> = {
   student: "student@university.edu.gh",
-  lecturer: "lecturer@university.edu.gh",
   librarian: "librarian@university.edu.gh",
   admin: "admin@libralink.com",
 };
 
 const SIGNUP_ROUTES: Partial<Record<LoginRole, string>> = {
   student: "/signup",
-  lecturer: "/signup?role=lecturer",
 };
 
 const SHOW_SIGNUP: Record<LoginRole, boolean> = {
   student: true,
-  lecturer: true,
   librarian: false,
   admin: false,
 };
@@ -134,11 +128,6 @@ function validateRoleAccess(role: LoginRole, roles: string[]): void {
         throw new Error("This account does not have student privileges.");
       }
       break;
-    case "lecturer":
-      if (!roles.includes("LECTURER")) {
-        throw new Error("This account does not have lecturer privileges.");
-      }
-      break;
     case "librarian":
       if (!roles.includes("LIBRARIAN")) {
         throw new Error("This account does not have librarian privileges.");
@@ -154,8 +143,6 @@ function validateRoleAccess(role: LoginRole, roles: string[]): void {
 
 function getPostLoginRoute(role: LoginRole): string {
   switch (role) {
-    case "lecturer":
-      return "/lecturer";
     case "librarian":
     case "admin":
       return "/admin";

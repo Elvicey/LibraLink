@@ -19,7 +19,7 @@ public class ReadingListController {
         this.readingListService = readingListService;
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN','ADMIN')")
     @PostMapping
     public ResponseEntity<ReadingList> createReadingList(@RequestBody ReadingList list) {
         return new ResponseEntity<>(readingListService.saveReadingList(list), HttpStatus.CREATED);
@@ -30,7 +30,7 @@ public class ReadingListController {
         return ResponseEntity.ok(readingListService.getReadingListsByCourse(courseId));
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN','ADMIN')")
     @PutMapping("/{id}/publish")
     public ResponseEntity<ReadingList> publishReadingList(
             @PathVariable Integer id,

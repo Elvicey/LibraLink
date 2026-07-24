@@ -49,37 +49,6 @@ class Group1AccessControlTest extends BaseApiTest {
         studentBToken = loginAs(studentB.getEmail(), "pass1234");
     }
 
-    // --- C3: register-lecturer must no longer be publicly self-serve ---
-
-    @Test
-    void registerLecturer_asStudent_returns403() throws Exception {
-        mockMvc.perform(post("/api/auth/register-lecturer")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearerToken(studentAToken))
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "firstName", "Fake",
-                                        "lastName", "Lecturer",
-                                        "email", uniqueEmail("fakelecturer"),
-                                        "password", "pass1234"
-                                ))))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void registerLecturer_anonymous_isRejected() throws Exception {
-        mockMvc.perform(post("/api/auth/register-lecturer")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "firstName", "Fake",
-                                        "lastName", "Lecturer",
-                                        "email", uniqueEmail("fakelecturer2"),
-                                        "password", "pass1234"
-                                ))))
-                .andExpect(status().isUnauthorized());
-    }
-
     // --- C1: POST /api/users privilege escalation ---
 
     @Test

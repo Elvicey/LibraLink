@@ -15,9 +15,37 @@ interface QuizQuestion {
   explanation: string;
 }
 
-const SAMPLE_QUIZ: QuizQuestion = { id: "q1", question: "", options: [], correctIdx: 0, explanation: "" };
+const SAMPLE_QUIZ: QuizQuestion = {
+  id: "q1",
+  question: "Which of the following data structures has an average search time complexity of O(1)?",
+  options: [
+    "A. Binary Search Tree",
+    "B. Singly Linked List",
+    "C. Hash Table",
+    "D. Doubly Linked List",
+  ],
+  correctIdx: 2,
+  explanation: "Correct! Hash Tables map keys to values using a hashing function, yielding average constant time O(1) lookup.",
+};
 
-const SUMMARIES: { course: string; topics: string[] }[] = [];
+const SUMMARIES = [
+  {
+    course: "CS 301 - Algorithms",
+    topics: [
+      "Linked Lists: Sequential access structure. Search is O(n), insertion/deletion is O(1) if node pointer is known.",
+      "Binary Trees: Tree hierarchy. BST search is O(log n) in balanced cases, degrading to O(n) in worst cases.",
+      "Sorting: QuickSort (average O(n log n)) vs MergeSort (guaranteed O(n log n), requires extra memory).",
+    ],
+  },
+  {
+    course: "MATH 201 - Calculus",
+    topics: [
+      "Limits & Continuity: Fundamental limits boundary guidelines and continuity constraints.",
+      "Derivatives: Rates of change formulas, chain rules, implicit derivatives models.",
+      "Integrals: Anti-derivatives tracking, area under curve calculations, substitution methods.",
+    ],
+  },
+];
 
 export default function ExamMode() {
   const router = useRouter();

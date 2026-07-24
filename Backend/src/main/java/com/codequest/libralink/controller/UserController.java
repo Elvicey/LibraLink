@@ -61,6 +61,9 @@ public class UserController {
                     "roles", updated.getRoles().stream().map(r -> r.getName()).toList()
             ));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().contains("no longer supported")) {
+                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            }
             return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         }
     }

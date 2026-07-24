@@ -13,7 +13,7 @@ public class Role {
 
     @NotBlank
     @Column(nullable = false, unique = true, length = 50)
-    private String name; // e.g., STUDENT, LIBRARIAN, ADMIN, LECTURER
+    private String name; // e.g., STUDENT, LIBRARIAN, ADMIN
 
     public Role() {}
 

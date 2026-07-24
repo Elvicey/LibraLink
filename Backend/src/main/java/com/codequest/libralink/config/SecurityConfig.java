@@ -45,6 +45,9 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/register").permitAll()
+                .requestMatchers("/api/auth/forgot-password").permitAll()
+                .requestMatchers("/api/auth/verify-reset-code").permitAll()
+                .requestMatchers("/api/auth/reset-password").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/authors/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/publishers/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
@@ -59,7 +62,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/audio-tracks/{id:\\d+}").permitAll()
                 // /api/audio-tracks/{id}/progress/user/{userId} is per-user data and is
                 // deliberately excluded from the permitAll patterns above.
-                .requestMatchers(HttpMethod.GET, "/api/podcasts/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ai/suggestions").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/borrow-records").hasRole("LIBRARIAN")
                 .requestMatchers(HttpMethod.GET, "/api/borrow-records").hasRole("LIBRARIAN")

@@ -111,22 +111,4 @@ class AuthControllerTest extends BaseApiTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.roles", hasItem("LIBRARIAN")));
     }
-
-    @Test
-    void registerLecturer_asAdmin_createsWithLecturerRole() throws Exception {
-        String adminToken = getAdminToken();
-
-        mockMvc.perform(post("/api/auth/register-lecturer")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearerToken(adminToken))
-                        .content(objectMapper.writeValueAsString(
-                                java.util.Map.of(
-                                        "firstName", "Dr",
-                                        "lastName", "Lecturer",
-                                        "email", "lecturer@test.com",
-                                        "password", "pass1234"
-                                ))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.roles", hasItem("LECTURER")));
-    }
 }

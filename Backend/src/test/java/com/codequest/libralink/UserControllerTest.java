@@ -57,10 +57,21 @@ class UserControllerTest extends BaseApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", bearerToken(adminToken))
                         .content(objectMapper.writeValueAsString(
-                                java.util.Map.of("role", "LECTURER"))))
+                                java.util.Map.of("role", "LIBRARIAN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.roles", hasItem("STUDENT")))
-                .andExpect(jsonPath("$.roles", hasItem("LECTURER")));
+                .andExpect(jsonPath("$.roles", hasItem("LIBRARIAN")));
+    }
+
+    @Test
+    void assignRole_lecturer_rejected() throws Exception {
+        mockMvc.perform(post("/api/users/" + testStudent.getId() + "/roles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(adminToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of("role", "LECTURER"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Lecturer role is no longer supported"));
     }
 
     @Test
