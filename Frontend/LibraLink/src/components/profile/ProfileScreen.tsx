@@ -455,7 +455,8 @@ function createStyles(c: ProfileColors) {
     scrollContent: {
       paddingHorizontal: 20,
       paddingTop: 16,
-      paddingBottom: 40,
+      // Clears the floating tab bar (same value used in home.tsx/reading-lists.tsx)
+      paddingBottom: 110,
     },
     headerRow: {
       flexDirection: "row",

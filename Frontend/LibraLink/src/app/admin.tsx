@@ -185,15 +185,6 @@ export default function AdminScreen() {
                 <Text style={styles.toolTitle}>Reports</Text>
                 <Text style={styles.toolSub}>Analytics & insights</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.toolCard}
-                onPress={() => router.push('/course' as any)}
-                accessibilityLabel="Courses and reading lists"
-              >
-                <Ionicons name="library-outline" size={22} color={colors.primary} />
-                <Text style={styles.toolTitle}>Courses</Text>
-                <Text style={styles.toolSub}>Reading lists</Text>
-              </TouchableOpacity>
             </View>
 
             <View style={styles.sectionHeaderRow}>
