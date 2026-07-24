@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
   ActivityIndicator,
   Dimensions,
@@ -100,9 +100,13 @@ export default function Home() {
     }
   }, [userId, token]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Reload whenever the tab regains focus (also fires on first mount), so returning from
+  // Pay Fines / after a borrow reflects the new fine total and counts without a manual refresh.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const onHeroScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const next = Math.round(event.nativeEvent.contentOffset.x / SLIDE_WIDTH);
