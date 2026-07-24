@@ -11,7 +11,8 @@ public class ExamQuestion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "book_id", nullable = false)
+    // Nullable: questions can be generated from a pasted topic/text with no source book.
+    @Column(name = "book_id")
     private Integer bookId;
 
     @Column(name = "user_id", nullable = false)

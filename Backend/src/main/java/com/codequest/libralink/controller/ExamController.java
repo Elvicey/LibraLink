@@ -80,8 +80,12 @@ public class ExamController {
                     ? String.valueOf(body.get("difficulty")) : "MEDIUM";
             String content = extractContent(body);
 
-            if (bookId == null || userId == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "bookId and userId are required."));
+            if (userId == null) {
+                return ResponseEntity.status(401).body(Map.of("error", "Authentication required."));
+            }
+            // Either a source book OR a pasted topic/text is required (paste-a-topic flow).
+            if (bookId == null && (content == null || content.isBlank())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Provide a topic to generate questions from."));
             }
 
             List<ExamQuestion> questions = aiExamService.generateQuestions(

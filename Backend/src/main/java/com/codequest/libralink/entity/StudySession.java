@@ -14,7 +14,8 @@ public class StudySession {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
-    @Column(name = "book_id", nullable = false)
+    // Nullable: a practice session can be built from a pasted topic/text with no source book.
+    @Column(name = "book_id")
     private Integer bookId;
 
     @Column(name = "session_type", length = 30)
