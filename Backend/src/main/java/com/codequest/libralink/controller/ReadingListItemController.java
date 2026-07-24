@@ -25,13 +25,13 @@ public class ReadingListItemController {
         return ResponseEntity.ok(readingListItemService.getItemsByReadingList(readingListId));
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN','ADMIN')")
     @PostMapping
     public ResponseEntity<ReadingListItem> addItem(@RequestBody ReadingListItem item) {
         return new ResponseEntity<>(readingListItemService.addItemToList(item), HttpStatus.CREATED);
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN','ADMIN')")
     @PostMapping("/bulk")
     public ResponseEntity<?> addItemsBulk(@RequestBody Map<String, Object> body) {
         Integer readingListId = body.get("readingListId") != null

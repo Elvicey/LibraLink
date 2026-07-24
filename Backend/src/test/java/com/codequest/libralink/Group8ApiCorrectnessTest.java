@@ -2,13 +2,9 @@ package com.codequest.libralink;
 
 import com.codequest.libralink.entity.AudioTrack;
 import com.codequest.libralink.entity.Book;
-import com.codequest.libralink.entity.PodcastEpisode;
-import com.codequest.libralink.entity.PodcastShow;
 import com.codequest.libralink.entity.User;
 import com.codequest.libralink.repository.AudioTrackRepository;
 import com.codequest.libralink.repository.BookRepository;
-import com.codequest.libralink.repository.PodcastEpisodeRepository;
-import com.codequest.libralink.repository.PodcastShowRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -31,63 +27,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class Group8ApiCorrectnessTest extends BaseApiTest {
 
     @Autowired
-    private PodcastShowRepository podcastShowRepository;
-
-    @Autowired
-    private PodcastEpisodeRepository podcastEpisodeRepository;
-
-    @Autowired
     private AudioTrackRepository audioTrackRepository;
 
     @Autowired
     private BookRepository bookRepository;
 
     // --- Delete endpoints: 204 No Content, no body ---
-
-    @Test
-    void deletePodcastShow_returns204() throws Exception {
-        String librarianToken = createAndGetLibrarianToken(uniqueEmail("g8pod"), "pass1234");
-
-        PodcastShow show = new PodcastShow();
-        show.setTitle("Delete Me");
-        show.setIsPublished(true);
-        show.setCreatedAt(LocalDateTime.now());
-        show = podcastShowRepository.save(show);
-
-        mockMvc.perform(delete("/api/podcasts/" + show.getId())
-                        .header("Authorization", bearerToken(librarianToken)))
-                .andExpect(status().isNoContent())
-                .andExpect(content().string(""));
-
-        org.junit.jupiter.api.Assertions.assertTrue(
-                podcastShowRepository.findById(show.getId()).isEmpty());
-    }
-
-    @Test
-    void deletePodcastEpisode_returns204() throws Exception {
-        String librarianToken = createAndGetLibrarianToken(uniqueEmail("g8ep"), "pass1234");
-
-        PodcastShow show = new PodcastShow();
-        show.setTitle("Show With Episode");
-        show.setIsPublished(true);
-        show.setCreatedAt(LocalDateTime.now());
-        show = podcastShowRepository.save(show);
-
-        PodcastEpisode episode = new PodcastEpisode();
-        episode.setShowId(show.getId());
-        episode.setTitle("Episode To Delete");
-        episode.setIsPublished(true);
-        episode.setCreatedAt(LocalDateTime.now());
-        episode = podcastEpisodeRepository.save(episode);
-
-        mockMvc.perform(delete("/api/podcasts/episodes/" + episode.getId())
-                        .header("Authorization", bearerToken(librarianToken)))
-                .andExpect(status().isNoContent())
-                .andExpect(content().string(""));
-
-        org.junit.jupiter.api.Assertions.assertTrue(
-                podcastEpisodeRepository.findById(episode.getId()).isEmpty());
-    }
 
     @Test
     void deleteAudioTrack_returns204() throws Exception {

@@ -20,7 +20,7 @@ public class CourseController {
         this.courseService = courseService;
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN','ADMIN')")
     @PostMapping
     public ResponseEntity<Course> createCourse(@RequestBody Course course) {
         return new ResponseEntity<>(courseService.saveCourse(course), HttpStatus.CREATED);
@@ -36,7 +36,7 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getCourseById(courseId));
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN','ADMIN')")
     @PutMapping("/{courseId}/books")
     public ResponseEntity<?> addBooksToCourse(@PathVariable Integer courseId,
                                                @RequestBody Map<String, Object> body) {
@@ -53,7 +53,7 @@ public class CourseController {
         }
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN','ADMIN')")
     @DeleteMapping("/{courseId}/books/{bookId}")
     public ResponseEntity<?> removeBookFromCourse(@PathVariable Integer courseId,
                                                    @PathVariable Integer bookId) {
