@@ -4,18 +4,31 @@ import com.codequest.libralink.entity.PickupSlot;
 import com.codequest.libralink.entity.Reservation;
 import com.codequest.libralink.repository.PickupSlotRepository;
 import com.codequest.libralink.repository.ReservationRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class PickupSlotService {
 
+    // The library only accepts pickups during opening hours, Monday–Friday 09:00–17:00.
+    private static final LocalTime OPEN = LocalTime.of(9, 0);
+    private static final LocalTime CLOSE = LocalTime.of(17, 0);
+
     private final PickupSlotRepository pickupSlotRepository;
     private final ReservationRepository reservationRepository;
+
+    // Length of a pickup window in minutes. The slot end is derived from this server-side
+    // (single source of truth), so the whole window is guaranteed to fit inside opening
+    // hours. Configurable via PICKUP_WINDOW_MINUTES; defaults to a 30-minute window.
+    @Value("${pickup.window-minutes:30}")
+    private int pickupWindowMinutes;
 
     public PickupSlotService(PickupSlotRepository pickupSlotRepository,
                               ReservationRepository reservationRepository) {
@@ -38,13 +51,28 @@ public class PickupSlotService {
         if (slot.getReservationId() == null) {
             throw new IllegalStateException("reservationId is required.");
         }
-        if (slot.getSlotStart() == null || slot.getSlotEnd() == null) {
+        if (slot.getSlotStart() == null) {
             throw new IllegalStateException(
-                    "slotStart and slotEnd are required (ISO-8601, e.g. 2026-07-25T10:00:00).");
+                    "slotStart is required (ISO-8601, e.g. 2026-07-27T10:00:00).");
         }
 
-        if (slot.getSlotStart().isAfter(slot.getSlotEnd()) || slot.getSlotStart().isEqual(slot.getSlotEnd())) {
-            throw new IllegalStateException("slotStart must be before slotEnd.");
+        // The pickup window is fixed server-side, so any client-supplied slotEnd is ignored:
+        // the end is always start + the configured window. This keeps the duration a single
+        // source of truth and guarantees the whole slot is checked against opening hours.
+        slot.setSlotEnd(slot.getSlotStart().plusMinutes(pickupWindowMinutes));
+
+        // Only approve pickups Monday–Friday. The window is well under a day, so it can't
+        // cross midnight — checking the start's day is sufficient.
+        DayOfWeek day = slot.getSlotStart().getDayOfWeek();
+        if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
+            throw new IllegalStateException("Pickups are only available Monday to Friday.");
+        }
+
+        // Only approve pickups fully inside opening hours (09:00–17:00).
+        LocalTime start = slot.getSlotStart().toLocalTime();
+        LocalTime end = slot.getSlotEnd().toLocalTime();
+        if (start.isBefore(OPEN) || end.isAfter(CLOSE)) {
+            throw new IllegalStateException("Pickups must be scheduled between 9:00 AM and 5:00 PM.");
         }
 
         List<PickupSlot> existingSlots = pickupSlotRepository.findByStatus("SCHEDULED");
