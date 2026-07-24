@@ -15,10 +15,14 @@ public class RoleService {
     public Role saveRole(Role role) { return roleRepository.save(role); }
 
     public User assignRoleToUser(Integer userId, String roleName) {
+        String normalized = roleName != null ? roleName.trim().toUpperCase() : "";
+        if ("LECTURER".equals(normalized)) {
+            throw new IllegalArgumentException("Lecturer role is no longer supported");
+        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        Role role = roleRepository.findByName(roleName.toUpperCase())
-                .orElseGet(() -> roleRepository.save(new Role(roleName.toUpperCase())));
+        Role role = roleRepository.findByName(normalized)
+                .orElseGet(() -> roleRepository.save(new Role(normalized)));
         user.getRoles().add(role);
         return userRepository.save(user);
     }

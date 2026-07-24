@@ -3,13 +3,17 @@ import { ImageBackground, StyleSheet, View } from "react-native";
 const LIBRARY_BG = require("../../../assets/images/onboarding-library-bg.png");
 
 /** Deep navy scrim — sharp photo underneath, inputs stay readable. */
-const OVERLAY = "rgba(10, 22, 40, 0.70)";
+export const AUTH_LIBRARY_OVERLAY = "rgba(10, 22, 40, 0.70)";
 
 /**
- * Full-screen library photo with deep navy overlay (no blur).
+ * Full-screen library photo with overlay (no blur).
  * Sit behind SafeAreaView content (absolute fill).
  */
-export function AuthLibraryBackground() {
+export function AuthLibraryBackground({
+  overlayColor = AUTH_LIBRARY_OVERLAY,
+}: {
+  overlayColor?: string;
+}) {
   return (
     <ImageBackground
       source={LIBRARY_BG}
@@ -17,7 +21,7 @@ export function AuthLibraryBackground() {
       resizeMode="cover"
       pointerEvents="none"
     >
-      <View style={styles.overlay} />
+      <View style={[styles.overlay, { backgroundColor: overlayColor }]} />
     </ImageBackground>
   );
 }
@@ -25,6 +29,5 @@ export function AuthLibraryBackground() {
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: OVERLAY,
   },
 });

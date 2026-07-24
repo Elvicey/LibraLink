@@ -22,18 +22,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import { authService } from "../../services/auth";
 import { coursesService, Institution } from "../../services/courses";
 
-export type SignupRole = "student" | "lecturer";
-
-const ROLES: { key: SignupRole; label: string }[] = [
-  { key: "student", label: "Student" },
-  { key: "lecturer", label: "Lecturer" },
-];
-
-const ROLE_HINTS: Record<SignupRole, string> = {
-  student: "Register your student profile to start borrowing books",
-  lecturer: "Create your lecturer account",
-};
-
 function EmailIcon() {
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -97,14 +85,9 @@ function getBorderStyle(hasError: boolean, isFocused: boolean): string {
   return Colors.borderDefault;
 }
 
-interface SignupScreenProps {
-  initialRole?: SignupRole | null;
-}
-
-export default function SignupScreen({ initialRole = null }: SignupScreenProps) {
+export default function SignupScreen() {
   const router = useRouter();
   const { setSession } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<SignupRole | null>(initialRole);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -123,8 +106,6 @@ export default function SignupScreen({ initialRole = null }: SignupScreenProps) 
   const [lastNameFocused, setLastNameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-
-  const formVisible = selectedRole !== null;
 
   useEffect(() => {
     coursesService
@@ -147,18 +128,8 @@ export default function SignupScreen({ initialRole = null }: SignupScreenProps) 
     setInstitutionError(null);
   };
 
-  const handleRoleSelect = (role: SignupRole) => {
-    setSelectedRole(role);
-    clearAllErrors();
-  };
-
   const handleSignUp = async () => {
     clearAllErrors();
-
-    if (!selectedRole) {
-      setBannerError("Choose a role to continue.");
-      return;
-    }
 
     const cleanFirst = firstName.trim();
     const cleanLast = lastName.trim();
@@ -181,7 +152,7 @@ export default function SignupScreen({ initialRole = null }: SignupScreenProps) 
       setPasswordError("Enter a password.");
       hasError = true;
     }
-    if (selectedRole === "student" && institutionId == null) {
+    if (institutionId == null) {
       setInstitutionError("Select your institution.");
       hasError = true;
     }
@@ -194,60 +165,31 @@ export default function SignupScreen({ initialRole = null }: SignupScreenProps) 
     setLoading(true);
 
     try {
-      if (selectedRole === "student") {
-        const data = await authService.register({
-          firstName: cleanFirst,
-          lastName: cleanLast,
-          email: cleanEmail,
-          passwordHash: password,
-          institutionId: institutionId!,
-        });
+      const data = await authService.register({
+        firstName: cleanFirst,
+        lastName: cleanLast,
+        email: cleanEmail,
+        passwordHash: password,
+        institutionId: institutionId!,
+      });
 
-        await setSession({
-          token: data.token,
-          userId: data.userId,
-          roles: data.roles || [],
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          institutionId: data.institutionId,
-        });
+      await setSession({
+        token: data.token,
+        userId: data.userId,
+        roles: data.roles || [],
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        institutionId: data.institutionId,
+      });
 
-        router.replace("/(tabs)/home" as any);
-        return;
-      }
-
-      const data = await authService.registerLecturer(
-        cleanFirst,
-        cleanLast,
-        cleanEmail,
-        password,
-        institutionId,
-      );
-
-      if (data.token) {
-        await setSession({
-          token: data.token,
-          userId: data.userId,
-          roles: data.roles || [],
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          institutionId: data.institutionId ?? null,
-        });
-        router.replace("/lecturer" as any);
-      } else {
-        router.replace("/lecturer-signin" as any);
-      }
+      router.replace("/(tabs)/home" as any);
     } catch (e: any) {
       setBannerError(e.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-
-  const showInstitution = institutions.length > 0 && selectedRole !== null;
-  const institutionRequired = selectedRole === "student";
 
   return (
     <View style={styles.screen}>
@@ -267,31 +209,8 @@ export default function SignupScreen({ initialRole = null }: SignupScreenProps) 
 
             <Text style={styles.heading}>Create an account</Text>
             <Text style={styles.subheading}>
-              {selectedRole ? ROLE_HINTS[selectedRole] : "Choose a role to get started"}
+              Register your student profile to start borrowing books
             </Text>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.roleRow}
-              style={[styles.roleScroll, !bannerError && styles.roleScrollSpaced]}
-            >
-              {ROLES.map((role) => {
-                const active = selectedRole === role.key;
-                return (
-                  <TouchableOpacity
-                    key={role.key}
-                    style={[styles.roleChip, active && styles.roleChipActive]}
-                    onPress={() => handleRoleSelect(role.key)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.roleChipText, active && styles.roleChipTextActive]}>
-                      {role.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
 
             {bannerError && (
               <View style={styles.bannerToast}>
@@ -300,169 +219,159 @@ export default function SignupScreen({ initialRole = null }: SignupScreenProps) 
               </View>
             )}
 
-            {formVisible && selectedRole && (
-              <>
-                <View style={styles.fieldGroup}>
-                  <View style={styles.nameRow}>
-                    <View style={[styles.field, styles.nameField]}>
-                      <Text style={styles.fieldLabel}>First name</Text>
-                      <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!firstNameError, firstNameFocused) }]}>
-                        <UserIcon />
-                        <TextInput
-                          style={styles.input}
-                          placeholder="Esther"
-                          placeholderTextColor={Colors.textPlaceholder}
-                          value={firstName}
-                          onChangeText={(text) => {
-                            setFirstName(text);
-                            if (firstNameError) setFirstNameError(null);
-                            if (bannerError) setBannerError(null);
-                          }}
-                          onFocus={() => setFirstNameFocused(true)}
-                          onBlur={() => setFirstNameFocused(false)}
-                          autoCapitalize="words"
-                          returnKeyType="next"
-                        />
-                        {firstNameError ? <ErrorIcon /> : null}
-                      </View>
-                      {firstNameError ? <Text style={styles.fieldError}>{firstNameError}</Text> : null}
-                    </View>
-
-                    <View style={[styles.field, styles.nameField]}>
-                      <Text style={styles.fieldLabel}>Last name</Text>
-                      <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!lastNameError, lastNameFocused) }]}>
-                        <UserIcon />
-                        <TextInput
-                          style={styles.input}
-                          placeholder="Asamoah"
-                          placeholderTextColor={Colors.textPlaceholder}
-                          value={lastName}
-                          onChangeText={(text) => {
-                            setLastName(text);
-                            if (lastNameError) setLastNameError(null);
-                            if (bannerError) setBannerError(null);
-                          }}
-                          onFocus={() => setLastNameFocused(true)}
-                          onBlur={() => setLastNameFocused(false)}
-                          autoCapitalize="words"
-                          returnKeyType="next"
-                        />
-                        {lastNameError ? <ErrorIcon /> : null}
-                      </View>
-                      {lastNameError ? <Text style={styles.fieldError}>{lastNameError}</Text> : null}
-                    </View>
+            <View style={styles.fieldGroup}>
+              <View style={styles.nameRow}>
+                <View style={[styles.field, styles.nameField]}>
+                  <Text style={styles.fieldLabel}>First name</Text>
+                  <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!firstNameError, firstNameFocused) }]}>
+                    <UserIcon />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Esther"
+                      placeholderTextColor={Colors.textPlaceholder}
+                      value={firstName}
+                      onChangeText={(text) => {
+                        setFirstName(text);
+                        if (firstNameError) setFirstNameError(null);
+                        if (bannerError) setBannerError(null);
+                      }}
+                      onFocus={() => setFirstNameFocused(true)}
+                      onBlur={() => setFirstNameFocused(false)}
+                      autoCapitalize="words"
+                      returnKeyType="next"
+                    />
+                    {firstNameError ? <ErrorIcon /> : null}
                   </View>
-
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Email</Text>
-                    <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!emailError, emailFocused) }]}>
-                      <EmailIcon />
-                      <TextInput
-                        style={styles.input}
-                        placeholder={
-                          selectedRole === "student"
-                            ? "student@university.edu.gh"
-                            : "lecturer@university.edu.gh"
-                        }
-                        placeholderTextColor={Colors.textPlaceholder}
-                        value={email}
-                        onChangeText={(text) => {
-                          setEmail(text);
-                          if (emailError) setEmailError(null);
-                          if (bannerError) setBannerError(null);
-                        }}
-                        onFocus={() => setEmailFocused(true)}
-                        onBlur={() => setEmailFocused(false)}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        returnKeyType="next"
-                      />
-                      {emailError ? <ErrorIcon /> : null}
-                    </View>
-                    {emailError ? <Text style={styles.fieldError}>{emailError}</Text> : null}
-                  </View>
-
-                  {showInstitution && (
-                    <View style={styles.field}>
-                      <Text style={styles.fieldLabel}>
-                        Institution{institutionRequired ? "" : " (optional)"}
-                      </Text>
-                      <View style={styles.institutionRow}>
-                        {institutions.map((inst) => {
-                          const active = inst.institutionId === institutionId;
-                          return (
-                            <Pressable
-                              key={inst.institutionId}
-                              onPress={() => {
-                                setInstitutionId(inst.institutionId);
-                                if (institutionError) setInstitutionError(null);
-                                if (bannerError) setBannerError(null);
-                              }}
-                              style={[styles.institutionChip, active && styles.institutionChipActive]}
-                            >
-                              <Text style={[styles.institutionChipText, active && styles.institutionChipTextActive]}>
-                                {inst.shortName || inst.name}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
-                      </View>
-                      {institutionError ? <Text style={styles.fieldError}>{institutionError}</Text> : null}
-                    </View>
-                  )}
-
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Password</Text>
-                    <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!passwordError, passwordFocused) }]}>
-                      <LockIcon />
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Create a password"
-                        placeholderTextColor={Colors.textPlaceholder}
-                        value={password}
-                        onChangeText={(text) => {
-                          setPassword(text);
-                          if (passwordError) setPasswordError(null);
-                          if (bannerError) setBannerError(null);
-                        }}
-                        onFocus={() => setPasswordFocused(true)}
-                        onBlur={() => setPasswordFocused(false)}
-                        secureTextEntry={!showPassword}
-                        returnKeyType="done"
-                        onSubmitEditing={handleSignUp}
-                      />
-                      {passwordError ? <ErrorIcon /> : null}
-                      <TouchableOpacity
-                        onPress={() => setShowPassword(!showPassword)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <EyeIcon visible={showPassword} />
-                      </TouchableOpacity>
-                    </View>
-                    {passwordError ? <Text style={styles.fieldError}>{passwordError}</Text> : null}
-                  </View>
+                  {firstNameError ? <Text style={styles.fieldError}>{firstNameError}</Text> : null}
                 </View>
 
-                <TouchableOpacity
-                  style={[styles.btnPrimary, loading && styles.btnPrimaryLoading]}
-                  onPress={handleSignUp}
-                  activeOpacity={0.85}
-                  disabled={loading}
-                >
-                  <Text style={styles.btnPrimaryText}>
-                    {loading ? "Creating account..." : "Create account"}
-                  </Text>
-                </TouchableOpacity>
+                <View style={[styles.field, styles.nameField]}>
+                  <Text style={styles.fieldLabel}>Last name</Text>
+                  <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!lastNameError, lastNameFocused) }]}>
+                    <UserIcon />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Asamoah"
+                      placeholderTextColor={Colors.textPlaceholder}
+                      value={lastName}
+                      onChangeText={(text) => {
+                        setLastName(text);
+                        if (lastNameError) setLastNameError(null);
+                        if (bannerError) setBannerError(null);
+                      }}
+                      onFocus={() => setLastNameFocused(true)}
+                      onBlur={() => setLastNameFocused(false)}
+                      autoCapitalize="words"
+                      returnKeyType="next"
+                    />
+                    {lastNameError ? <ErrorIcon /> : null}
+                  </View>
+                  {lastNameError ? <Text style={styles.fieldError}>{lastNameError}</Text> : null}
+                </View>
+              </View>
 
-                <View style={styles.footer}>
-                  <Text style={styles.footerText}>Already have an account? </Text>
-                  <TouchableOpacity onPress={() => router.replace("/signin" as any)}>
-                    <Text style={styles.footerLink}>Log in</Text>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Email</Text>
+                <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!emailError, emailFocused) }]}>
+                  <EmailIcon />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="student@university.edu.gh"
+                    placeholderTextColor={Colors.textPlaceholder}
+                    value={email}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      if (emailError) setEmailError(null);
+                      if (bannerError) setBannerError(null);
+                    }}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                  />
+                  {emailError ? <ErrorIcon /> : null}
+                </View>
+                {emailError ? <Text style={styles.fieldError}>{emailError}</Text> : null}
+              </View>
+
+              {institutions.length > 0 && (
+                <View style={styles.field}>
+                  <Text style={styles.fieldLabel}>Institution</Text>
+                  <View style={styles.institutionRow}>
+                    {institutions.map((inst) => {
+                      const active = inst.institutionId === institutionId;
+                      return (
+                        <Pressable
+                          key={inst.institutionId}
+                          onPress={() => {
+                            setInstitutionId(inst.institutionId);
+                            if (institutionError) setInstitutionError(null);
+                            if (bannerError) setBannerError(null);
+                          }}
+                          style={[styles.institutionChip, active && styles.institutionChipActive]}
+                        >
+                          <Text style={[styles.institutionChipText, active && styles.institutionChipTextActive]}>
+                            {inst.shortName || inst.name}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  {institutionError ? <Text style={styles.fieldError}>{institutionError}</Text> : null}
+                </View>
+              )}
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Password</Text>
+                <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!passwordError, passwordFocused) }]}>
+                  <LockIcon />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Create a password"
+                    placeholderTextColor={Colors.textPlaceholder}
+                    value={password}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      if (passwordError) setPasswordError(null);
+                      if (bannerError) setBannerError(null);
+                    }}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                    secureTextEntry={!showPassword}
+                    returnKeyType="done"
+                    onSubmitEditing={handleSignUp}
+                  />
+                  {passwordError ? <ErrorIcon /> : null}
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <EyeIcon visible={showPassword} />
                   </TouchableOpacity>
                 </View>
-              </>
-            )}
+                {passwordError ? <Text style={styles.fieldError}>{passwordError}</Text> : null}
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.btnPrimary, loading && styles.btnPrimaryLoading]}
+              onPress={handleSignUp}
+              activeOpacity={0.85}
+              disabled={loading}
+            >
+              <Text style={styles.btnPrimaryText}>
+                {loading ? "Creating account..." : "Create account"}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => router.replace("/signin" as any)}>
+                <Text style={styles.footerLink}>Log in</Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -498,37 +407,6 @@ const styles = StyleSheet.create({
   logoWrap: {
     marginBottom: 24,
   },
-  roleScroll: {
-    flexGrow: 0,
-  },
-  roleScrollSpaced: {
-    marginBottom: 24,
-  },
-  roleRow: {
-    flexDirection: "row",
-    gap: 8,
-    paddingRight: 8,
-  },
-  roleChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Colors.borderDefault,
-    backgroundColor: "rgba(255,255,255,0.04)",
-  },
-  roleChipActive: {
-    backgroundColor: Colors.teal,
-    borderColor: Colors.teal,
-  },
-  roleChipText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: Colors.textSecondary,
-  },
-  roleChipTextActive: {
-    color: Colors.tealDark,
-  },
   heading: {
     fontSize: 22,
     fontWeight: "500",
@@ -539,7 +417,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   fieldGroup: {
     gap: 12,
@@ -634,7 +512,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: 12,
     marginBottom: 20,
     paddingHorizontal: 14,
     paddingVertical: 12,

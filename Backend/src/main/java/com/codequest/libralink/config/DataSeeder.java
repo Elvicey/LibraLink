@@ -6,8 +6,6 @@ import com.codequest.libralink.entity.Book;
 import com.codequest.libralink.entity.BorrowRecord;
 import com.codequest.libralink.entity.Course;
 import com.codequest.libralink.entity.Institution;
-import com.codequest.libralink.entity.PodcastEpisode;
-import com.codequest.libralink.entity.PodcastShow;
 import com.codequest.libralink.entity.ReadingList;
 import com.codequest.libralink.entity.ReadingListItem;
 import com.codequest.libralink.entity.Role;
@@ -18,8 +16,6 @@ import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.BorrowRecordRepository;
 import com.codequest.libralink.repository.CourseRepository;
 import com.codequest.libralink.repository.InstitutionRepository;
-import com.codequest.libralink.repository.PodcastEpisodeRepository;
-import com.codequest.libralink.repository.PodcastShowRepository;
 import com.codequest.libralink.repository.ReadingListItemRepository;
 import com.codequest.libralink.repository.ReadingListRepository;
 import com.codequest.libralink.repository.RoleRepository;
@@ -37,34 +33,9 @@ import java.util.Set;
 @Component
 public class DataSeeder implements CommandLineRunner {
 
-    private static final String TFA_EPISODE_1_SCRIPT =
-            "Welcome to LibraLink Literary Voices. Today's episode is about Chinua Achebe's novel Things Fall Apart, "
-                    + "a cornerstone of African literature and a frequent campus reading-list title. "
-                    + "Achebe follows Okonkwo, a driven Igbo leader whose personal ambition collides with the arrival of "
-                    + "colonial authority and Christian missions in his community. "
-                    + "The novel matters because it refuses the idea that African societies were silent before Europe arrived. "
-                    + "Instead, Achebe shows a complex world of custom, status, family duty, and debate. "
-                    + "As students, listen for how fear of weakness shapes Okonkwo's choices, and how the community itself "
-                    + "is changed when outsiders redefine power and belief. "
-                    + "If Things Fall Apart is on your course list, borrow it through LibraLink and read with those questions in mind. "
-                    + "This has been Literary Voices. Thanks for listening.";
-
-    private static final String TFA_EPISODE_2_SCRIPT =
-            "Welcome back to LibraLink Literary Voices. We continue with Things Fall Apart by Chinua Achebe, "
-                    + "focusing on Ikemefuna and what the story teaches about belonging. "
-                    + "Ikemefuna arrives in Umuofia as a settlement for a dispute, grows close to Okonkwo's household, "
-                    + "and then becomes the tragic centre of a decision that reveals the cost of rigid honour. "
-                    + "Achebe asks whether tradition that cannot bend will break the people who live inside it. "
-                    + "For campus readers, this episode is a reminder that the novel is not only about colonial encounter; "
-                    + "it is also about how a community treats its own children, and how silence can become violence. "
-                    + "Open Things Fall Apart in LibraLink, revisit the Ikemefuna chapters, and notice whose voice Achebe "
-                    + "gives space to at each turn. Thanks for listening to Literary Voices.";
-
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final PodcastShowRepository podcastShowRepository;
-    private final PodcastEpisodeRepository podcastEpisodeRepository;
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
     private final BorrowRecordRepository borrowRecordRepository;
@@ -76,8 +47,6 @@ public class DataSeeder implements CommandLineRunner {
 
     public DataSeeder(UserRepository userRepository, RoleRepository roleRepository,
                       PasswordEncoder passwordEncoder,
-                      PodcastShowRepository podcastShowRepository,
-                      PodcastEpisodeRepository podcastEpisodeRepository,
                       BookRepository bookRepository,
                       AuthorRepository authorRepository,
                       BorrowRecordRepository borrowRecordRepository,
@@ -89,8 +58,6 @@ public class DataSeeder implements CommandLineRunner {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
-        this.podcastShowRepository = podcastShowRepository;
-        this.podcastEpisodeRepository = podcastEpisodeRepository;
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
         this.borrowRecordRepository = borrowRecordRepository;
@@ -105,12 +72,10 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         seedAdmin();
         seedDemoStudent();
-        Institution knust = seedInstitutionAndLecturer();
+        Institution knust = seedInstitution();
         seedCatalogBooks();
         tagExistingLiteratureBooks();
         seedDemoBorrows();
-        seedPodcasts();
-        upgradePlaceholderPodcastAudio();
         seedLectureCourses(knust);
         seedAudioBookTracks();
     }
@@ -295,80 +260,7 @@ public class DataSeeder implements CommandLineRunner {
         });
     }
 
-    private void seedPodcasts() {
-        if (podcastShowRepository.count() > 0) {
-            return;
-        }
-
-        PodcastShow show = new PodcastShow();
-        show.setTitle("LibraLink Literary Voices");
-        show.setDescription("Spoken episodes about books in the LibraLink collection — start with Chinua Achebe's Things Fall Apart.");
-        show.setHostName("LibraLink Library");
-        show.setCoverImageUrl("https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800");
-        show.setIsPublished(true);
-        show = podcastShowRepository.save(show);
-
-        podcastEpisodeRepository.save(buildThingsFallApartEpisode(show.getId(), 1,
-                "Why Things Fall Apart Still Matters", TFA_EPISODE_1_SCRIPT, 95));
-        podcastEpisodeRepository.save(buildThingsFallApartEpisode(show.getId(), 2,
-                "Ikemefuna and the Cost of Belonging", TFA_EPISODE_2_SCRIPT, 90));
-    }
-
-    private void upgradePlaceholderPodcastAudio() {
-        List<PodcastEpisode> episodes = podcastEpisodeRepository.findAll();
-        for (PodcastEpisode episode : episodes) {
-            String url = episode.getAudioUrl();
-            boolean placeholder = url != null && url.toLowerCase().contains("soundhelix");
-            boolean missingBookScript = episode.getBookId() == null
-                    || episode.getDescription() == null
-                    || episode.getDescription().length() < 200;
-            if (!placeholder && !missingBookScript) {
-                continue;
-            }
-
-            if (episode.getEpisodeNumber() != null && episode.getEpisodeNumber() == 2
-                    && (episode.getTitle() == null || episode.getTitle().toLowerCase().contains("reading habit"))) {
-                episode.setTitle("Ikemefuna and the Cost of Belonging");
-                episode.setDescription(TFA_EPISODE_2_SCRIPT);
-                episode.setDurationSeconds(90);
-            } else {
-                episode.setTitle(episode.getTitle() != null && episode.getTitle().toLowerCase().contains("things fall apart")
-                        ? episode.getTitle()
-                        : "Why Things Fall Apart Still Matters");
-                episode.setDescription(TFA_EPISODE_1_SCRIPT);
-                episode.setDurationSeconds(95);
-            }
-            episode.setBookId(3);
-            episode.setAudioUrl(null);
-            episode.setIsPublished(true);
-            podcastEpisodeRepository.save(episode);
-        }
-
-        podcastShowRepository.findAll().forEach(show -> {
-            if ("Integration Test Show".equals(show.getTitle())) {
-                show.setTitle("Things Fall Apart Companion");
-                show.setDescription("Short spoken companion episodes for Chinua Achebe's Things Fall Apart in the LibraLink catalog.");
-                show.setHostName("LibraLink Library");
-                podcastShowRepository.save(show);
-            }
-        });
-    }
-
-    private PodcastEpisode buildThingsFallApartEpisode(Integer showId, int number, String title,
-                                                       String script, int durationSeconds) {
-        PodcastEpisode episode = new PodcastEpisode();
-        episode.setShowId(showId);
-        episode.setTitle(title);
-        episode.setDescription(script);
-        episode.setAudioUrl(null);
-        episode.setDurationSeconds(durationSeconds);
-        episode.setEpisodeNumber(number);
-        episode.setBookId(3);
-        episode.setIsPublished(true);
-        return episode;
-    }
-
-    private Institution seedInstitutionAndLecturer() {
+    private Institution seedInstitution() {
         Institution knust = institutionRepository.findAll().stream()
                 .filter(i -> "KNUST".equalsIgnoreCase(i.getShortName())
                         || (i.getName() != null && i.getName().toLowerCase().contains("kwame nkrumah")))
@@ -381,23 +273,6 @@ public class DataSeeder implements CommandLineRunner {
                         "library@knust.edu.gh",
                         "+233322060000"
                 )));
-
-        String lecturerEmail = "lecturer@knust.edu.gh";
-        if (userRepository.findByEmailIgnoreCase(lecturerEmail).isEmpty()) {
-            Role lecturerRole = roleRepository.findByName("LECTURER")
-                    .orElseGet(() -> roleRepository.save(new Role("LECTURER")));
-            User lecturer = new User();
-            lecturer.setFirstName("Kwesi");
-            lecturer.setLastName("Lecturer");
-            lecturer.setEmail(lecturerEmail);
-            lecturer.setPasswordHash(passwordEncoder.encode("lecturer123"));
-            lecturer.setActive(true);
-            lecturer.setInstitution(knust);
-            Set<Role> roles = new HashSet<>();
-            roles.add(lecturerRole);
-            lecturer.setRoles(roles);
-            userRepository.save(lecturer);
-        }
 
         userRepository.findByEmailIgnoreCase("student@libralink.com").ifPresent(student -> {
             if (student.getInstitution() == null) {
@@ -417,14 +292,14 @@ public class DataSeeder implements CommandLineRunner {
             return;
         }
 
-        User lecturer = userRepository.findByEmailIgnoreCase("lecturer@knust.edu.gh").orElse(null);
-        Integer lecturerId = lecturer != null ? lecturer.getId() : null;
+        User admin = userRepository.findByEmailIgnoreCase("admin@libralink.com").orElse(null);
+        Integer createdBy = admin != null ? admin.getId() : null;
 
         Course literature = new Course();
         literature.setInstitution(institution);
         literature.setName("African Literature");
         literature.setCode("ENGL 301");
-        literature.setDescription("Lecture-to-Library sample course linking classroom texts to the catalogue.");
+        literature.setDescription("Sample course linking classroom texts to the catalogue.");
         literature.setStatus("ACTIVE");
         literature = courseRepository.save(literature);
 
@@ -457,7 +332,7 @@ public class DataSeeder implements CommandLineRunner {
 
         ReadingList litList = new ReadingList();
         litList.setCourseId(literature.getId());
-        litList.setCreatedBy(lecturerId);
+        litList.setCreatedBy(createdBy);
         litList.setTitle("ENGL 301 Required Reading — Semester 1");
         litList.setDescription("Official published reading list for African Literature.");
         litList.setSemester("Semester 1");
@@ -476,7 +351,7 @@ public class DataSeeder implements CommandLineRunner {
 
         ReadingList compList = new ReadingList();
         compList.setCourseId(computing.getId());
-        compList.setCreatedBy(lecturerId);
+        compList.setCreatedBy(createdBy);
         compList.setTitle("COE 252 Recommended Texts");
         compList.setDescription("Recommended computing titles from the library catalogue.");
         compList.setSemester("Semester 1");
