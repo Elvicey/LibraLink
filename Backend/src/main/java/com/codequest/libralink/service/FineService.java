@@ -5,6 +5,7 @@ import com.codequest.libralink.repository.FineRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 // Lombok removed: @RequiredArgsConstructor is gone
@@ -59,5 +60,15 @@ public class FineService {
 
     public List<Fine> getFinesByUser(Integer userId) {
         return fineRepository.findByUserId(userId);
+    }
+
+    /** The still-unpaid fine for a borrow record, if any — used to grow one overdue fine per loan. */
+    public Optional<Fine> findUnpaidByBorrowId(Integer borrowId) {
+        if (borrowId == null) {
+            return Optional.empty();
+        }
+        return fineRepository.findByBorrowId(borrowId).stream()
+                .filter(f -> "UNPAID".equalsIgnoreCase(f.getStatus()))
+                .findFirst();
     }
 }

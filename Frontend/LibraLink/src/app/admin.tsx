@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { usersService, AppUser, primaryRole } from '../services/users';
 import { booksService } from '../services/books';
+import { borrowsService } from '../services/borrows';
 
 const colors = {
   primary: '#7C5CFC',
@@ -71,6 +72,25 @@ export default function AdminScreen() {
   const [bookCount, setBookCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [runningOverdue, setRunningOverdue] = useState(false);
+
+  const runOverdueCheck = async () => {
+    if (runningOverdue) return;
+    setRunningOverdue(true);
+    try {
+      const { processed } = await borrowsService.runOverdueCheck();
+      Alert.alert(
+        'Overdue check complete',
+        processed > 0
+          ? `${processed} overdue loan(s) were flagged and their fines updated.`
+          : 'No overdue loans found — everything is on time.'
+      );
+    } catch (e: any) {
+      Alert.alert('Could not run overdue check', e?.message || 'Please try again.');
+    } finally {
+      setRunningOverdue(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setError(null);
@@ -184,6 +204,21 @@ export default function AdminScreen() {
                 <Ionicons name="bar-chart-outline" size={22} color={colors.primary} />
                 <Text style={styles.toolTitle}>Reports</Text>
                 <Text style={styles.toolSub}>Analytics & insights</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.toolCard}
+                onPress={runOverdueCheck}
+                disabled={runningOverdue}
+                accessibilityLabel="Run the overdue check"
+              >
+                {runningOverdue ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <Ionicons name="time-outline" size={22} color={colors.primary} />
+                )}
+                <Text style={styles.toolTitle}>Overdue check</Text>
+                <Text style={styles.toolSub}>{runningOverdue ? 'Running…' : 'Flag late loans & fines'}</Text>
               </TouchableOpacity>
             </View>
 

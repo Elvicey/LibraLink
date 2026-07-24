@@ -1,14 +1,10 @@
 package com.codequest.libralink.service;
 
-import com.codequest.libralink.entity.BorrowRecord;
-import com.codequest.libralink.entity.Notification;
 import com.codequest.libralink.repository.BorrowRecordRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,70 +15,48 @@ public class OverdueBookScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(OverdueBookScheduler.class);
 
+    /** Active loan states that can still be overdue (i.e. the book hasn't been returned/lost). */
+    private static final List<String> UNRETURNED = List.of("BORROWED", "RENEWED", "OVERDUE");
+
     private final BorrowRecordRepository borrowRecordRepository;
-    private final NotificationService notificationService;
-    private final TransactionTemplate transactionTemplate;
+    private final BorrowRecordService borrowRecordService;
 
     public OverdueBookScheduler(BorrowRecordRepository borrowRecordRepository,
-                                 NotificationService notificationService,
-                                 PlatformTransactionManager transactionManager) {
+                                BorrowRecordService borrowRecordService) {
         this.borrowRecordRepository = borrowRecordRepository;
-        this.notificationService = notificationService;
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.borrowRecordService = borrowRecordService;
     }
 
-    // NOTE: this job has no distributed lock, so if this service is ever scaled to
-    // multiple instances, each instance's scheduler will independently run this same
-    // cron job and send duplicate overdue notifications. Out of scope for this fix
-    // (would need e.g. a ShedLock/Postgres-advisory-lock dependency); flagging as a
+    // NOTE: this job has no distributed lock, so if this service is ever scaled to multiple
+    // instances, each instance's scheduler will independently run this same cron job. Out of
+    // scope here (would need e.g. a ShedLock/Postgres-advisory-lock dependency); flagging as a
     // follow-up for whenever horizontal scaling is planned.
     @Scheduled(cron = "0 0 0 * * ?")
     public void flagOverdueBooks() {
-        log.info("Running overdue book check at {}", LocalDateTime.now());
-
-        LocalDate today = LocalDate.now();
-        List<BorrowRecord> overdueRecords =
-                borrowRecordRepository.findByStatusAndDueDateBeforeFetchUserAndBook("BORROWED", today);
-
-        // Each record is flagged + notified in its own short transaction (rather than
-        // one long transaction wrapping the whole loop + every synchronous push call)
-        // so that a slow/hung push call or a single bad record can't hold a DB
-        // connection open for the whole job, and can't roll back or block every other
-        // record in the batch (H3).
-        int updated = 0;
-        for (BorrowRecord record : overdueRecords) {
-            try {
-                transactionTemplate.executeWithoutResult(status -> flagOneRecord(record));
-                updated++;
-            } catch (Exception e) {
-                log.error("Failed to flag borrow record {} as OVERDUE: {}",
-                        record.getId(), e.getMessage(), e);
-            }
-        }
-
-        log.info("Overdue book check complete. {}/{} records updated.", updated, overdueRecords.size());
+        int processed = runOverdueCheck();
+        log.info("Overdue check complete: {} loan(s) assessed", processed);
     }
 
-    private void flagOneRecord(BorrowRecord record) {
-        record.setStatus("OVERDUE");
-        borrowRecordRepository.save(record);
+    /**
+     * Assess every still-out, past-due loan: flags it OVERDUE and grows its per-day fine. Each loan
+     * is handled in its own transaction (assessOverdue is @Transactional) so one bad record can't
+     * roll back or block the rest of the batch. Returns how many loans were assessed as overdue.
+     * Also invoked on demand by the admin "run overdue check" endpoint.
+     */
+    public int runOverdueCheck() {
+        log.info("Running overdue check at {}", LocalDateTime.now());
+        List<Integer> ids = borrowRecordRepository.findOverdueUnreturnedIds(UNRETURNED, LocalDate.now());
 
-        if (record.getUser() != null) {
-            Notification notification = new Notification();
-            notification.setUserId(record.getUser().getId());
-            notification.setType("OVERDUE");
-            notification.setTitle("Book Overdue");
-            notification.setMessage("The book \"" + record.getBook().getTitle()
-                    + "\" was due on " + record.getDueDate() + ". Please return it as soon as possible.");
-            notification.setChannel("PUSH");
-            notification.setReferenceId(record.getId());
-            notification.setReferenceType("BORROW_RECORD");
-            notification.setCreatedAt(LocalDateTime.now());
-            notification.setIsRead(false);
-            notificationService.createNotification(notification);
+        int count = 0;
+        for (Integer id : ids) {
+            try {
+                if (borrowRecordService.assessOverdue(id)) {
+                    count++;
+                }
+            } catch (Exception e) {
+                log.error("Failed to assess overdue borrow record {}: {}", id, e.getMessage(), e);
+            }
         }
-
-        log.info("Marked borrow record {} as OVERDUE for user {}",
-                record.getId(), record.getUser() != null ? record.getUser().getId() : "unknown");
+        return count;
     }
 }
