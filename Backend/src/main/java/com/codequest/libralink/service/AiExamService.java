@@ -122,10 +122,18 @@ public class AiExamService {
     public List<ExamQuestion> generateQuestions(Integer bookId, Integer userId,
                                                  Integer count, String difficulty,
                                                  String contentOverride) {
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new IllegalArgumentException("Book not found with ID: " + bookId));
-
-        String content = resolveBookContent(book, contentOverride, "generate questions from");
+        String content;
+        if (bookId != null) {
+            Book book = bookRepository.findById(bookId)
+                    .orElseThrow(() -> new IllegalArgumentException("Book not found with ID: " + bookId));
+            content = resolveBookContent(book, contentOverride, "generate questions from");
+        } else {
+            // Topic/text-based quiz: no source book, so a non-empty topic/text is required.
+            if (contentOverride == null || contentOverride.isBlank()) {
+                throw new IllegalArgumentException("Provide a topic or text to generate questions from.");
+            }
+            content = contentOverride.trim();
+        }
 
         int questionCount = (count != null && count > 0) ? Math.min(count, 20) : 5;
         String diff = (difficulty != null && !difficulty.isBlank()) ? difficulty : "MEDIUM";
@@ -174,12 +182,15 @@ public class AiExamService {
 
     private String buildQuestionPrompt(String content, int count, String difficulty) {
         String truncated = content.length() > 4000 ? content.substring(0, 4000) + "..." : content;
-        return "Generate " + count + " exam questions at " + difficulty + " difficulty level "
-                + "based on the following academic text. "
-                + "Return a JSON array where each object has: "
-                + "\"question\", \"correctAnswer\", \"optionA\", \"optionB\", \"optionC\", \"optionD\", "
-                + "\"questionType\" (MULTIPLE_CHOICE, TRUE_FALSE, or SHORT_ANSWER), "
-                + "\"explanation\".\n\nText:\n" + truncated;
+        return "Generate " + count + " multiple-choice exam questions at " + difficulty
+                + " difficulty about the following topic or text. "
+                + "Return a JSON array where each object has exactly these fields: "
+                + "\"question\" (string), "
+                + "\"optionA\", \"optionB\", \"optionC\", \"optionD\" (the four answer choices, plain text with no letter prefixes), "
+                + "\"correctAnswer\" (exactly one of the letters \"A\", \"B\", \"C\", or \"D\"), "
+                + "\"questionType\" (always \"MULTIPLE_CHOICE\"), "
+                + "\"explanation\" (one sentence explaining why the answer is correct)."
+                + "\n\nTopic/text:\n" + truncated;
     }
 
     private List<ExamQuestion> parseQuestionsFromAi(String aiResponse, Integer bookId,

@@ -18,6 +18,13 @@ const DESTINATIONS = [
     tint: "violet",
   },
   {
+    route: "/exam-mode",
+    icon: "school-outline",
+    title: "AI Exam Mode",
+    subtitle: "Practice quizzes from any topic",
+    tint: "warning",
+  },
+  {
     route: "/audio",
     icon: "headset-outline",
     title: "Audiobooks",
