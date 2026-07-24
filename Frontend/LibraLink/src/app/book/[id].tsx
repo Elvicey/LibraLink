@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -18,6 +18,8 @@ import ScreenWrapper from "../../components/common/ScreenWrapper";
 import { useTheme } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { audioService, AudioBookTrackResponse } from "../../services/audio";
+import BookNarration from "../../components/BookNarration";
+import { useBookNarration } from "../../hooks/useBookNarration";
 import { bookAuthorName, booksService, Book, isBookAvailable } from "../../services/books";
 import { bookmarksService } from "../../services/bookmarks";
 
@@ -39,7 +41,8 @@ function formatDuration(seconds?: number): string {
 export default function BookDetail() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { userId, token } = useAuth();
+  const { userId, token, roles } = useAuth();
+  const canEditText = roles.includes("LIBRARIAN") || roles.includes("ADMIN");
   const { colors, spacing, borderRadius, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, isDark);
 
@@ -53,6 +56,7 @@ export default function BookDetail() {
   const [error, setError] = useState<string | null>(null);
 
   const bookId = Number(id);
+  const narration = useBookNarration(bookId);
 
   const load = useCallback(async () => {
     if (!Number.isFinite(bookId)) {
@@ -85,9 +89,13 @@ export default function BookDetail() {
     }
   }, [bookId, userId, token]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Refetch whenever this screen regains focus (also fires on first mount), so returning
+  // from "Edit book" reflects the new availability/copy counts immediately.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   /** Optimistic, reverting on failure — same approach as the notifications screen. */
   const toggleBookmark = async () => {
@@ -269,6 +277,7 @@ export default function BookDetail() {
             )}
           </View>
         )}
+        {book && <BookNarration narration={narration} />}
       </ScrollView>
 
       {/* Persistent action bar */}
@@ -277,17 +286,21 @@ export default function BookDetail() {
           <Text style={styles.readButtonText}>READ BOOK</Text>
         </Pressable>
         <Pressable
-          style={[styles.playButton, !track && styles.playButtonDisabled]}
-          onPress={() => router.push({ pathname: "/audio", params: { trackId: String(track?.id) } } as any)}
-          disabled={!track}
+          style={styles.playButton}
+          onPress={narration.activate}
+          disabled={narration.phase === "generating"}
         >
           <Ionicons
-            name="headset-outline"
+            name={narration.playing ? "pause" : "headset-outline"}
             size={17}
-            color={track ? colors.primary : colors.textMuted}
+            color={colors.primary}
           />
-          <Text style={[styles.playButtonText, !track && { color: colors.textMuted }]}>
-            PLAY BOOK
+          <Text style={styles.playButtonText}>
+            {narration.phase === "generating"
+              ? "GENERATING…"
+              : narration.playing
+              ? "PAUSE"
+              : "PLAY BOOK"}
           </Text>
         </Pressable>
       </View>
@@ -314,7 +327,24 @@ export default function BookDetail() {
             <Text style={styles.sheetTitle}>How do you want to read it?</Text>
 
             <Pressable
-              style={[styles.sheetRow, !book.digitalUrl && styles.sheetRowDisabled]}
+              style={styles.sheetRow}
+              onPress={() => {
+                setReadSheet(false);
+                router.push({ pathname: "/reader", params: { bookId: String(bookId), title: book.title } } as any);
+              }}
+            >
+              <View style={[styles.sheetIcon, { backgroundColor: colors.primaryLight }]}>
+                <Ionicons name="book-outline" size={20} color={colors.primary} />
+              </View>
+              <View style={styles.sheetText}>
+                <Text style={styles.sheetRowTitle}>Read in the app</Text>
+                <Text style={styles.sheetRowSubtitle}>Opens the book&apos;s text in a clean reader</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </Pressable>
+
+            <Pressable
+              style={[styles.sheetRow, styles.sheetRowDivider, !book.digitalUrl && styles.sheetRowDisabled]}
               onPress={openEbook}
               disabled={!book.digitalUrl}
             >
@@ -348,6 +378,25 @@ export default function BookDetail() {
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </Pressable>
+
+            {canEditText && (
+              <Pressable
+                style={[styles.sheetRow, styles.sheetRowDivider]}
+                onPress={() => {
+                  setReadSheet(false);
+                  router.push({ pathname: "/edit-book-text", params: { bookId: String(bookId), title: book.title } } as any);
+                }}
+              >
+                <View style={[styles.sheetIcon, { backgroundColor: colors.warningLight }]}>
+                  <Ionicons name="create-outline" size={20} color={colors.warning} />
+                </View>
+                <View style={styles.sheetText}>
+                  <Text style={styles.sheetRowTitle}>Edit book</Text>
+                  <Text style={styles.sheetRowSubtitle}>Update text, availability & copies (librarian/admin)</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </Pressable>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
