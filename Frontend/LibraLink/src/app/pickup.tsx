@@ -18,12 +18,36 @@ import {
   PickupSlotResponse,
   ReservationResponse,
   reservationsService,
-  slotWindowFromLabel,
 } from "../services/reservations";
 
-const DATES = ["Today", "Tomorrow", "In 2 days"];
-const TIMES = ["9 AM - 11 AM", "12 PM - 2 PM", "3 PM - 5 PM"];
 const DESKS = ["Main Library", "Engineering", "Science Library"];
+const HOURS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+const MINUTES = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
+const PERIODS = ["AM", "PM"] as const;
+
+function startOfToday() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function toLocalIso(date: Date, hour: number, minute: number) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(hour)}:${pad(minute)}:00`;
+}
+
+function formatDate(date: Date) {
+  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+function getCalendarDays(month: Date) {
+  const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
+  const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  return [
+    ...Array(firstDay.getDay()).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, index) => new Date(month.getFullYear(), month.getMonth(), index + 1)),
+  ];
+}
 
 export default function BookPickup() {
   const router = useRouter();
@@ -39,10 +63,15 @@ export default function BookPickup() {
 
   // Scheduling state — only relevant when arriving with a bookId.
   const [pendingBook, setPendingBook] = useState<Book | null>(null);
-  const [date, setDate] = useState(DATES[1]);
-  const [time, setTime] = useState(TIMES[0]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState(startOfToday());
+  const [selectedHour, setSelectedHour] = useState<string | null>(null);
+  const [selectedMinute, setSelectedMinute] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<typeof PERIODS[number] | null>(null);
+  const [openPicker, setOpenPicker] = useState<"hour" | "minute" | "period" | null>(null);
   const [desk, setDesk] = useState(DESKS[0]);
   const [confirming, setConfirming] = useState(false);
+  const calendarDays = useMemo(() => getCalendarDays(calendarMonth), [calendarMonth]);
 
   // Set once the incoming book has been scheduled, so the card collapses. Clearing
   // the route param itself is unreliable, so track it locally.
@@ -105,19 +134,35 @@ export default function BookPickup() {
       Alert.alert("Invalid book", "Could not reserve this title.");
       return;
     }
+    if (!selectedDate || !selectedHour || !selectedMinute || !selectedPeriod) {
+      Alert.alert("Pickup details required", "Choose a Pickup Date, hour, minutes, and AM/PM.");
+      return;
+    }
     setConfirming(true);
     try {
+      const hour12 = Number(selectedHour);
+      const minute = Number(selectedMinute);
+      const startHour =
+        selectedPeriod === "PM"
+          ? hour12 === 12
+            ? 12
+            : hour12 + 12
+          : hour12 === 12
+          ? 0
+          : hour12;
+      const end = new Date(selectedDate);
+      end.setHours(startHour, minute, 0, 0);
+      end.setHours(end.getHours() + 2);
       const reservation = await reservationsService.create(
         userId,
         numericBookId,
-        `Pickup at ${desk} · ${date} · ${time}`
+        `Pickup at ${desk} · ${formatDate(selectedDate)} · ${selectedHour}:${selectedMinute} ${selectedPeriod}`
       );
-      const window = slotWindowFromLabel(time);
       const pickup = await reservationsService.schedulePickup({
         userId,
         reservationId: reservation.id,
-        slotStart: window.slotStart,
-        slotEnd: window.slotEnd,
+        slotStart: toLocalIso(selectedDate, startHour, minute),
+        slotEnd: toLocalIso(end, end.getHours(), end.getMinutes()),
       });
 
       // Collapse the scheduling card, then show the newly created slot.
@@ -178,10 +223,123 @@ export default function BookPickup() {
             </Text>
 
             <Text style={styles.fieldLabel}>Pickup date</Text>
-            {chipRow(DATES, date, setDate)}
+            <View style={styles.calendarHeader}>
+              <Pressable
+                style={styles.monthButton}
+                onPress={() =>
+                  setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))
+                }
+                disabled={
+                  calendarMonth.getFullYear() === startOfToday().getFullYear() &&
+                  calendarMonth.getMonth() === startOfToday().getMonth()
+                }
+              >
+                <Ionicons name="chevron-back" size={18} color={colors.primary} />
+              </Pressable>
+              <Text style={styles.monthTitle}>
+                {calendarMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
+              </Text>
+              <Pressable
+                style={styles.monthButton}
+                onPress={() =>
+                  setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))
+                }
+              >
+                <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+              </Pressable>
+            </View>
+            <View style={styles.weekRow}>
+              {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+                <Text key={`${day}-${index}`} style={styles.weekLabel}>
+                  {day}
+                </Text>
+              ))}
+            </View>
+            <View style={styles.calendarGrid}>
+              {calendarDays.map((day, index) => {
+                if (!day) return <View key={`empty-${index}`} style={styles.calendarDay} />;
+                const isPast = day < startOfToday();
+                const selected = selectedDate ? selectedDate.toDateString() === day.toDateString() : false;
+                return (
+                  <Pressable
+                    key={day.toISOString()}
+                    disabled={isPast}
+                    onPress={() => setSelectedDate(day)}
+                    style={[
+                      styles.calendarDay,
+                      selected && { backgroundColor: colors.primary },
+                      isPast && styles.pastDay,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.calendarDayText,
+                        { color: colors.text },
+                        isPast && { color: colors.textMuted },
+                        selected && { color: colors.textLight, fontWeight: "800" },
+                      ]}
+                    >
+                      {day.getDate()}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.selectedValue}>
+              {selectedDate ? formatDate(selectedDate) : "Choose a date"}
+            </Text>
 
             <Text style={styles.fieldLabel}>Time slot</Text>
-            {chipRow(TIMES, time, setTime)}
+            <View style={styles.timePickerRow}>
+              {(
+                [
+                  ["hour", "Hour", selectedHour, HOURS, setSelectedHour],
+                  ["minute", "Min", selectedMinute, MINUTES, setSelectedMinute],
+                  ["period", "AM/PM", selectedPeriod, PERIODS, setSelectedPeriod],
+                ] as const
+              ).map(([type, placeholder, value, options, setValue]) => (
+                <View key={type} style={styles.pickerColumn}>
+                  <Pressable
+                    style={styles.dropdownField}
+                    onPress={() => setOpenPicker(openPicker === type ? null : type)}
+                  >
+                    <Text style={[styles.dropdownValue, { color: value ? colors.text : colors.textMuted }]}>
+                      {value || placeholder}
+                    </Text>
+                    <Ionicons
+                      name={openPicker === type ? "chevron-up" : "chevron-down"}
+                      size={15}
+                      color={colors.textMuted}
+                    />
+                  </Pressable>
+                  {openPicker === type && (
+                    <View style={[styles.dropdownMenu, type === "minute" && styles.minuteMenu]}>
+                      <ScrollView>
+                        {options.map((option) => (
+                          <Pressable
+                            key={option}
+                            onPress={() => {
+                              (setValue as (v: string) => void)(option);
+                              setOpenPicker(null);
+                            }}
+                            style={[styles.dropdownOption, value === option && { backgroundColor: colors.primaryLight }]}
+                          >
+                            <Text style={[styles.pickerOptionText, { color: value === option ? colors.primary : colors.text }]}>
+                              {option}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+            <Text style={styles.selectedValue}>
+              {selectedHour && selectedMinute && selectedPeriod
+                ? `${selectedHour}:${selectedMinute} ${selectedPeriod}`
+                : "Choose hour, minutes, and AM/PM"}
+            </Text>
 
             <Text style={styles.fieldLabel}>Campus desk</Text>
             {chipRow(DESKS, desk, setDesk)}
@@ -366,6 +524,111 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       color: colors.textLight,
       fontWeight: "800",
       fontSize: 15,
+    },
+    calendarHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: spacing.sm,
+    },
+    monthButton: {
+      width: 34,
+      height: 34,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.primaryLight,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    monthTitle: {
+      fontSize: 14,
+      fontWeight: "800",
+      color: colors.text,
+    },
+    weekRow: {
+      flexDirection: "row",
+      marginBottom: spacing.xs,
+    },
+    weekLabel: {
+      width: "14.28%",
+      textAlign: "center",
+      color: colors.textMuted,
+      fontSize: 11,
+      fontWeight: "700",
+    },
+    calendarGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+    },
+    calendarDay: {
+      width: "14.28%",
+      height: 34,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: borderRadius.md,
+    },
+    calendarDayText: {
+      fontSize: 12,
+    },
+    pastDay: {
+      opacity: 0.35,
+    },
+    selectedValue: {
+      color: colors.primary,
+      fontSize: 12,
+      fontWeight: "700",
+      textAlign: "center",
+      marginTop: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    timePickerRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+    },
+    pickerColumn: {
+      flex: 1,
+      position: "relative",
+    },
+    dropdownField: {
+      minHeight: 44,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255,255,255,0.08)" : colors.border,
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.sm,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    dropdownValue: {
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    dropdownMenu: {
+      position: "absolute",
+      zIndex: 20,
+      top: 48,
+      left: 0,
+      right: 0,
+      maxHeight: 160,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255,255,255,0.08)" : colors.border,
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.md,
+      overflow: "hidden",
+      elevation: 5,
+    },
+    minuteMenu: {
+      maxHeight: 180,
+    },
+    dropdownOption: {
+      minHeight: 32,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: spacing.sm,
+    },
+    pickerOptionText: {
+      fontSize: 12,
+      fontWeight: "600",
     },
     infoCard: {
       flexDirection: "row",
