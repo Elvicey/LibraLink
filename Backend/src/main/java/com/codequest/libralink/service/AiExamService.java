@@ -7,12 +7,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -28,30 +25,24 @@ public class AiExamService {
     private final StudySessionRepository studySessionRepository;
     private final BookRepository bookRepository;
     private final CurrentUserProvider currentUserProvider;
-    private final RestTemplate restTemplate;
+    private final LlmClient llmClient;
     private final ObjectMapper objectMapper;
 
-    @Value("${ai.api.url:https://api.openai.com/v1/chat/completions}")
-    private String aiApiUrl;
-
-    @Value("${ai.api.key:}")
-    private String aiApiKey;
-
-    @Value("${ai.api.model:gpt-4o-mini}")
-    private String aiModel;
+    private static final String TUTOR_SYSTEM =
+            "You are an expert academic tutor. Provide clear, accurate, and educational responses.";
 
     public AiExamService(StudySummaryRepository studySummaryRepository,
                          ExamQuestionRepository examQuestionRepository,
                          StudySessionRepository studySessionRepository,
                          BookRepository bookRepository,
                          CurrentUserProvider currentUserProvider,
-                         RestTemplate externalApiRestTemplate) {
+                         LlmClient llmClient) {
         this.studySummaryRepository = studySummaryRepository;
         this.examQuestionRepository = examQuestionRepository;
         this.studySessionRepository = studySessionRepository;
         this.bookRepository = bookRepository;
         this.currentUserProvider = currentUserProvider;
-        this.restTemplate = externalApiRestTemplate;
+        this.llmClient = llmClient;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -102,7 +93,7 @@ public class AiExamService {
 
         try {
             String prompt = buildSummaryPrompt(summary.getOriginalText(), summary.getSummaryType());
-            String aiResponse = callAiApi(prompt);
+            String aiResponse = llmClient.generateText(TUTOR_SYSTEM, prompt);
 
             summary.setSummaryText(aiResponse);
             summary.setStatus("COMPLETED");
@@ -152,50 +143,20 @@ public class AiExamService {
     private List<ExamQuestion> generateQuestionsFromAi(String bookContent, int count,
                                                         String difficulty, Integer bookId,
                                                         Integer userId, Integer sessionId) {
-        if (aiApiKey == null || aiApiKey.isBlank()) {
+        if (!llmClient.isConfigured()) {
             throw new RuntimeException("AI API key not configured. Question generation is unavailable.");
         }
 
         try {
             String prompt = buildQuestionPrompt(bookContent, count, difficulty);
-            String aiResponse = callAiApi(prompt);
+            // JSON mode: Gemini returns a strict JSON array so parsing is reliable.
+            String aiResponse = llmClient.generateJson(TUTOR_SYSTEM, prompt);
             return parseQuestionsFromAi(aiResponse, bookId, userId, sessionId);
 
         } catch (Exception e) {
             log.error("AI question generation failed: {}", e.getMessage());
             throw new RuntimeException("AI exam generation is unavailable. Please try again later.", e);
         }
-    }
-
-    private String callAiApi(String prompt) throws Exception {
-        if (aiApiKey == null || aiApiKey.isBlank()) {
-            throw new RuntimeException("AI API key not configured.");
-        }
-
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", aiModel);
-        requestBody.put("messages", List.of(
-                Map.of("role", "system", "content", "You are an expert academic tutor. Provide clear, accurate, and educational responses."),
-                Map.of("role", "user", "content", prompt)
-        ));
-        requestBody.put("temperature", 0.7);
-        requestBody.put("max_tokens", 2000);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + aiApiKey);
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(aiApiUrl, request, String.class);
-
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            JsonNode json = objectMapper.readTree(response.getBody());
-            if (json.has("choices") && json.get("choices").size() > 0) {
-                return json.get("choices").get(0).get("message").get("content").asText();
-            }
-        }
-
-        throw new RuntimeException("AI API call failed with status: " + response.getStatusCode());
     }
 
     private String buildSummaryPrompt(String content, String type) {
