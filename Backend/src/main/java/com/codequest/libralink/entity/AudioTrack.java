@@ -1,5 +1,6 @@
 package com.codequest.libralink.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -25,6 +26,13 @@ public class AudioTrack {
 
     @Column(name = "audio_url", length = 1000)
     private String audioUrl;
+
+    // The generated audio bytes, streamed back by /api/audio/{id}/stream. Plain byte[] (no @Lob)
+    // maps to Postgres bytea rather than a large-object OID. @JsonIgnore keeps it out of the
+    // track JSON so list/detail responses stay small; the bytes go out only via /stream.
+    @JsonIgnore
+    @Column(name = "audio_data")
+    private byte[] audioData;
 
     @Column(name = "audio_format", length = 20)
     private String audioFormat = "mp3";
@@ -69,6 +77,9 @@ public class AudioTrack {
 
     public String getAudioUrl() { return audioUrl; }
     public void setAudioUrl(String audioUrl) { this.audioUrl = audioUrl; }
+
+    public byte[] getAudioData() { return audioData; }
+    public void setAudioData(byte[] audioData) { this.audioData = audioData; }
 
     public String getAudioFormat() { return audioFormat; }
     public void setAudioFormat(String audioFormat) { this.audioFormat = audioFormat; }
