@@ -32,6 +32,20 @@ export interface NewFine {
   borrowId?: number | null;
 }
 
+/** Response from starting a Paystack checkout for one fine. */
+export interface PaymentInit {
+  authorizationUrl: string;
+  reference: string;
+  publicKey: string;
+}
+
+/** Response from verifying a Paystack transaction server-side. */
+export interface PaymentVerify {
+  paid: boolean;
+  status: string;
+  message: string;
+}
+
 export const finesService = {
   getForUser: (userId: number): Promise<Fine[]> =>
     api.get<Fine[]>(`/api/fines/user/${userId}`),
@@ -42,4 +56,12 @@ export const finesService = {
   /** Issue a fine to a user (LIBRARIAN/ADMIN). */
   create: (fine: NewFine): Promise<Fine> =>
     api.post<Fine>("/api/fines", { ...fine, status: "UNPAID" }),
+
+  /** Start a real Paystack checkout for a single fine. */
+  initializePayment: (fineId: number): Promise<PaymentInit> =>
+    api.post<PaymentInit>("/api/fine-payments/initialize", { fineId }),
+
+  /** Confirm a Paystack transaction; the fine is only marked paid if it succeeded. */
+  verifyPayment: (reference: string): Promise<PaymentVerify> =>
+    api.post<PaymentVerify>("/api/fine-payments/verify", { reference }),
 };

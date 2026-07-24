@@ -7,11 +7,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useAuth } from "../contexts/AuthContext";
 import { finesService, fineAmount, Fine as ApiFine } from "../services/fines";
 
@@ -27,14 +27,6 @@ const colors = {
   danger: "#FF5A5F",
   border: "#ECEAF5",
 };
-
-type PaymentMethod = "mtn" | "telecel" | "airteltigo";
-
-const PAYMENT_METHODS: { id: PaymentMethod; label: string; color: string }[] = [
-  { id: "mtn", label: "MTN Mobile Money", color: "#F6B800" },
-  { id: "telecel", label: "Telecel Cash", color: "#E52B38" },
-  { id: "airteltigo", label: "AirtelTigo Money", color: "#E94C9B" },
-];
 
 function isOutstanding(fine: ApiFine): boolean {
   return (fine.status || "").toUpperCase() !== "PAID";
@@ -65,8 +57,6 @@ export default function PayFinesScreen() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [method, setMethod] = useState<PaymentMethod>("mtn");
-  const [phone, setPhone] = useState("");
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
   const [paidTotal, setPaidTotal] = useState(0);
@@ -118,27 +108,23 @@ export default function PayFinesScreen() {
       Alert.alert("Select a fine", "Choose at least one fine to pay.");
       return;
     }
-    if (phone.replace(/\D/g, "").length < 9) {
-      Alert.alert("Mobile money number required", "Enter the 9-digit number linked to your mobile money account.");
-      return;
-    }
     const selected = fines.filter((f) => selectedIds.includes(f.id));
-    const methodLabel = PAYMENT_METHODS.find((m) => m.id === method)?.label || method;
     setPaying(true);
     const failures: string[] = [];
     let charged = 0;
-    // Each fine must be paid in full individually (the backend rejects a combined amount
-    // spread across fines), so pay them one at a time and report any that failed.
+    // Each fine is a separate Paystack transaction (the backend rejects a combined amount
+    // spread across fines), so run one hosted checkout per fine. After the browser closes
+    // we verify server-side — the fine is only marked paid if Paystack reports "success".
     for (const fine of selected) {
       try {
-        await finesService.pay({
-          fineId: fine.id,
-          userId,
-          amount: fineAmount(fine),
-          paymentMethod: methodLabel,
-          transactionRef: `SIM-${Date.now()}-${fine.id}`,
-        });
-        charged += fineAmount(fine);
+        const init = await finesService.initializePayment(fine.id);
+        await WebBrowser.openBrowserAsync(init.authorizationUrl);
+        const result = await finesService.verifyPayment(init.reference);
+        if (result.paid) {
+          charged += fineAmount(fine);
+        } else {
+          failures.push(`Fine #${fine.id}: ${result.message || "payment not completed"}`);
+        }
       } catch (e: any) {
         failures.push(`Fine #${fine.id}: ${e?.message || "payment failed"}`);
       }
@@ -146,7 +132,7 @@ export default function PayFinesScreen() {
     setPaying(false);
     await load();
     if (failures.length > 0) {
-      Alert.alert("Some payments failed", failures.join("\n"));
+      Alert.alert("Some payments were not completed", failures.join("\n"));
     }
     if (charged > 0) {
       setPaidTotal(charged);
@@ -161,7 +147,7 @@ export default function PayFinesScreen() {
           <View style={styles.successIcon}><Ionicons name="checkmark" size={38} color={colors.card} /></View>
           <Text style={styles.successTitle}>Payment successful</Text>
           <Text style={styles.successBody}>
-            GHS {paidTotal.toFixed(2)} paid via {PAYMENT_METHODS.find((item) => item.id === method)?.label}. Your account is now in good standing.
+            GHS {paidTotal.toFixed(2)} paid via Paystack. Your account is now in good standing.
           </Text>
           <Pressable style={styles.confirmBtn} onPress={() => setPaid(false)}>
             <Text style={styles.confirmBtnText}>Back to fines</Text>
@@ -223,27 +209,15 @@ export default function PayFinesScreen() {
 
         {fines.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>Choose mobile money</Text>
-            <View style={styles.providerGrid}>
-              {PAYMENT_METHODS.map((provider) => {
-                const selected = method === provider.id;
-                return (
-                  <Pressable key={provider.id} style={[styles.providerCard, selected && styles.providerCardSelected]} onPress={() => setMethod(provider.id)}>
-                    <View style={[styles.providerLogo, { backgroundColor: provider.color }]}><Text style={styles.providerLogoText}>{provider.label.charAt(0)}</Text></View>
-                    <Text style={styles.providerLabel}>{provider.label}</Text>
-                    <View style={[styles.radio, selected && styles.radioSelected]}>{selected && <View style={styles.radioDot} />}</View>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View style={styles.inputCard}>
-              <View style={styles.inputHeader}><Text style={styles.inputLabel}>Mobile money number</Text><Text style={styles.required}>Required</Text></View>
-              <View style={styles.phoneField}>
-                <Text style={styles.countryCode}>+233</Text>
-                <TextInput style={styles.phoneInput} value={phone} onChangeText={setPhone} placeholder="24 000 0000" placeholderTextColor={colors.textMuted} keyboardType="phone-pad" maxLength={9} />
+            <View style={styles.paystackCard}>
+              <View style={styles.paystackIcon}><Ionicons name="card-outline" size={20} color={colors.primaryDark} /></View>
+              <View style={styles.paystackCopy}>
+                <Text style={styles.paystackTitle}>Secure checkout with Paystack</Text>
+                <Text style={styles.paystackHint}>
+                  You'll be taken to Paystack's secure page to pay by card or mobile money. Each fine
+                  is paid separately. Close the page when you're done and we'll confirm the payment.
+                </Text>
               </View>
-              <Text style={styles.inputHint}>Enter the number linked to your {PAYMENT_METHODS.find((item) => item.id === method)?.label} account.</Text>
             </View>
 
             <View style={styles.summaryCard}>
@@ -255,7 +229,7 @@ export default function PayFinesScreen() {
               <Ionicons name="lock-closed-outline" size={18} color={colors.card} />
               <Text style={styles.confirmBtnText}>{paying ? "Processing payment..." : `Pay GHS ${total.toFixed(2)}`}</Text>
             </Pressable>
-            <Text style={styles.footerNote}>Simulated payment — records the payment and clears the fine. No real money moves.</Text>
+            <Text style={styles.footerNote}>Payments are processed securely by Paystack. In test mode no real money moves.</Text>
           </>
         )}
       </ScrollView>
@@ -297,23 +271,11 @@ const styles = StyleSheet.create({
   fineTitle: { fontSize: 14, fontWeight: "700", color: colors.text },
   fineReason: { fontSize: 11, color: colors.textMuted, marginTop: 3 },
   fineAmount: { fontSize: 13, fontWeight: "800", color: colors.text },
-  providerGrid: { flexDirection: "row", gap: 9, marginBottom: 20 },
-  providerCard: { flex: 1, backgroundColor: colors.card, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 11, minHeight: 107 },
-  providerCardSelected: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  providerLogo: { width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center", marginBottom: 9 },
-  providerLogoText: { color: colors.card, fontSize: 15, fontWeight: "900" },
-  providerLabel: { color: colors.text, fontSize: 11, fontWeight: "700", lineHeight: 15, minHeight: 31 },
-  radio: { width: 17, height: 17, borderRadius: 9, borderWidth: 1.5, borderColor: colors.border, alignItems: "center", justifyContent: "center", marginTop: 7 },
-  radioSelected: { borderColor: colors.primary },
-  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
-  inputCard: { backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 15, marginBottom: 20 },
-  inputHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 9 },
-  inputLabel: { color: colors.text, fontSize: 13, fontWeight: "800" },
-  required: { color: colors.textMuted, fontSize: 11 },
-  phoneField: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.border, borderRadius: 12, height: 49, paddingHorizontal: 13 },
-  countryCode: { color: colors.text, fontSize: 15, fontWeight: "700", paddingRight: 12, borderRightWidth: 1, borderRightColor: colors.border },
-  phoneInput: { flex: 1, color: colors.text, fontSize: 15, paddingHorizontal: 12 },
-  inputHint: { color: colors.textMuted, fontSize: 11, marginTop: 9, lineHeight: 16 },
+  paystackCard: { flexDirection: "row", backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 15, marginBottom: 20, gap: 12 },
+  paystackIcon: { width: 38, height: 38, borderRadius: 11, backgroundColor: colors.primaryLight, alignItems: "center", justifyContent: "center" },
+  paystackCopy: { flex: 1 },
+  paystackTitle: { color: colors.text, fontSize: 13, fontWeight: "800", marginBottom: 4 },
+  paystackHint: { color: colors.textMuted, fontSize: 11, lineHeight: 16 },
   summaryCard: { backgroundColor: colors.primaryLight, borderRadius: 18, padding: 16, marginBottom: 15 },
   summaryRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 7 },
   summaryLabel: { color: colors.textMuted, fontSize: 12 },
