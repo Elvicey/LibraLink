@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,13 @@ import {
   TextInput,
   TouchableOpacity,
   SafeAreaView,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { usersService, AppUser, primaryRole } from '../services/users';
+import { booksService } from '../services/books';
 
 const colors = {
   primary: '#7C5CFC',
@@ -25,33 +29,11 @@ const colors = {
   border: '#ECEAF5',
 };
 
-type Role = 'Student' | 'Librarian' | 'Admin';
-type UserRow = {
-  id: string;
-  name: string;
-  email: string;
-  role: Role;
-  status: 'Active' | 'Suspended';
-};
+const ROLE_LABEL: Record<string, string> = { ADMIN: 'Admin', LIBRARIAN: 'Librarian', STUDENT: 'Student' };
 
-type ModerationItem = {
-  id: string;
-  type: 'Review' | 'Reading List' | 'Comment';
-  submittedBy: string;
-  preview: string;
-};
-
-const USERS: UserRow[] = [
-  { id: '1', name: 'Sophia Alvarez', email: 'sophia.a@mail.com', role: 'Student', status: 'Active' },
-  { id: '2', name: 'Marcus Reed', email: 'marcus.r@mail.com', role: 'Librarian', status: 'Active' },
-  { id: '3', name: 'Elena Kim', email: 'elena.k@mail.com', role: 'Student', status: 'Suspended' },
-  { id: '4', name: 'Jonah Price', email: 'jonah.p@mail.com', role: 'Student', status: 'Active' },
-];
-
-const MODERATION: ModerationItem[] = [
-  { id: 'm1', type: 'Review', submittedBy: 'Elena Kim', preview: 'This book was way overrated, honestly not worth the hype...' },
-  { id: 'm2', type: 'Reading List', submittedBy: 'Jonah Price', preview: 'Flagged for possible spam link in description' },
-];
+function displayName(u: AppUser): string {
+  return `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || `User #${u.id}`;
+}
 
 function StatCard({ label, value, icon, tint }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap; tint: string }) {
   return (
@@ -63,21 +45,21 @@ function StatCard({ label, value, icon, tint }: { label: string; value: string; 
   );
 }
 
-function RoleBadge({ role }: { role: Role }) {
-  const tint = role === 'Admin' ? colors.primary : role === 'Librarian' ? colors.warning : colors.textMuted;
+function RoleBadge({ role }: { role: string }) {
+  const tint = role === 'ADMIN' ? colors.primary : role === 'LIBRARIAN' ? colors.warning : colors.textMuted;
   return (
     <View style={[styles.badge, { backgroundColor: tint + '22' }]}>
-      <Text style={[styles.badgeText, { color: tint }]}>{role}</Text>
+      <Text style={[styles.badgeText, { color: tint }]}>{ROLE_LABEL[role] || role}</Text>
     </View>
   );
 }
 
-function StatusDot({ status }: { status: UserRow['status'] }) {
-  const color = status === 'Active' ? colors.success : colors.danger;
+function StatusDot({ active }: { active: boolean }) {
+  const color = active ? colors.success : colors.danger;
   return (
     <View style={styles.statusRow}>
       <View style={[styles.dot, { backgroundColor: color }]} />
-      <Text style={[styles.statusText, { color }]}>{status}</Text>
+      <Text style={[styles.statusText, { color }]}>{active ? 'Active' : 'Suspended'}</Text>
     </View>
   );
 }
@@ -85,6 +67,30 @@ function StatusDot({ status }: { status: UserRow['status'] }) {
 export default function AdminScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [bookCount, setBookCount] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const [userList, books] = await Promise.all([
+        usersService.list(),
+        booksService.list().catch(() => []),
+      ]);
+      setUsers(userList);
+      setBookCount(books.length);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load admin data.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -94,13 +100,40 @@ export default function AdminScreen() {
     }
   };
 
-  const filteredUsers = useMemo(() => {
-    if (!query.trim()) return USERS;
-    const q = query.toLowerCase();
-    return USERS.filter(
-      (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+  const assignRole = (user: AppUser) => {
+    const apply = async (role: string) => {
+      try {
+        await usersService.assignRole(user.id, role);
+        await load();
+      } catch (e: any) {
+        Alert.alert('Could not update role', e?.message || 'Please try again.');
+      }
+    };
+    Alert.alert(
+      `Manage ${displayName(user)}`,
+      'Grant a role to this user.',
+      [
+        { text: 'Student', onPress: () => apply('STUDENT') },
+        { text: 'Librarian', onPress: () => apply('LIBRARIAN') },
+        { text: 'Admin', onPress: () => apply('ADMIN') },
+        { text: 'Cancel', style: 'cancel' },
+      ],
     );
-  }, [query]);
+  };
+
+  const filteredUsers = useMemo(() => {
+    if (!query.trim()) return users;
+    const q = query.toLowerCase();
+    return users.filter(
+      (u) => displayName(u).toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)
+    );
+  }, [query, users]);
+
+  const librarianCount = useMemo(
+    () => users.filter((u) => primaryRole(u) === 'LIBRARIAN' || primaryRole(u) === 'ADMIN').length,
+    [users]
+  );
+  const suspendedCount = useMemo(() => users.filter((u) => u.active === false).length, [users]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -112,93 +145,103 @@ export default function AdminScreen() {
               <Text style={styles.backBtnText}>Back</Text>
             </TouchableOpacity>
             <View>
-            <Text style={styles.title}>Admin</Text>
-            <Text style={styles.subtitle}>Library overview & controls</Text>
+              <Text style={styles.title}>Admin</Text>
+              <Text style={styles.subtitle}>Library overview & controls</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.statsRow}>
-          <StatCard label="Total Users" value="1,204" icon="people-outline" tint={colors.primary} />
-          <StatCard label="Books in Catalog" value="8,530" icon="book-outline" tint={colors.primaryDark} />
-        </View>
-        <View style={styles.statsRow}>
-          <StatCard label="Active Loans" value="342" icon="swap-horizontal-outline" tint="#9B7BFF" />
-          <StatCard label="Overdue" value="27" icon="alert-circle-outline" tint={colors.danger} />
-        </View>
-
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>User Management</Text>
-          <TouchableOpacity>
-            <Text style={styles.sectionAction}>View all</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color={colors.textMuted} />
-          <TextInput
-            placeholder="Search users by name or email"
-            placeholderTextColor={colors.textMuted}
-            value={query}
-            onChangeText={setQuery}
-            style={styles.searchInput}
-          />
-        </View>
-
-        <View style={styles.card}>
-          {filteredUsers.map((user, idx) => (
-            <View
-              key={user.id}
-              style={[styles.userRow, idx !== filteredUsers.length - 1 && styles.rowDivider]}
-            >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{user.name.charAt(0)}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.userName}>{user.name}</Text>
-                <Text style={styles.userEmail}>{user.email}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end', gap: 6 }}>
-                <RoleBadge role={user.role} />
-                <StatusDot status={user.status} />
-              </View>
-            </View>
-          ))}
-          {filteredUsers.length === 0 && (
-            <Text style={styles.emptyText}>No users match "{query}"</Text>
-          )}
-        </View>
-
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Content Moderation</Text>
-          <View style={styles.pendingPill}>
-            <Text style={styles.pendingPillText}>{MODERATION.length} pending</Text>
+        {loading ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
-        </View>
+        ) : (
+          <>
+            {error && (
+              <TouchableOpacity style={styles.errorBox} onPress={load}>
+                <Text style={styles.errorText}>{error} — tap to retry</Text>
+              </TouchableOpacity>
+            )}
 
-        <View style={styles.card}>
-          {MODERATION.map((item, idx) => (
-            <View
-              key={item.id}
-              style={[styles.modRow, idx !== MODERATION.length - 1 && styles.rowDivider]}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.modType}>{item.type} · {item.submittedBy}</Text>
-                <Text style={styles.modPreview} numberOfLines={2}>{item.preview}</Text>
-              </View>
-              <View style={styles.modActions}>
-                <TouchableOpacity style={[styles.modBtn, { backgroundColor: colors.success + '22' }]}>
-                  <Ionicons name="checkmark" size={16} color={colors.success} />
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.modBtn, { backgroundColor: colors.danger + '22' }]}>
-                  <Ionicons name="close" size={16} color={colors.danger} />
-                </TouchableOpacity>
-              </View>
+            <View style={styles.statsRow}>
+              <StatCard label="Total Users" value={String(users.length)} icon="people-outline" tint={colors.primary} />
+              <StatCard label="Books in Catalog" value={bookCount == null ? '—' : String(bookCount)} icon="book-outline" tint={colors.primaryDark} />
             </View>
-          ))}
-        </View>
+            <View style={styles.statsRow}>
+              <StatCard label="Staff" value={String(librarianCount)} icon="shield-checkmark-outline" tint="#9B7BFF" />
+              <StatCard label="Suspended" value={String(suspendedCount)} icon="alert-circle-outline" tint={colors.danger} />
+            </View>
+
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Admin Tools</Text>
+            </View>
+            <View style={styles.toolsRow}>
+              <TouchableOpacity
+                style={styles.toolCard}
+                onPress={() => router.push('/reports' as any)}
+                accessibilityLabel="Reports and analytics"
+              >
+                <Ionicons name="bar-chart-outline" size={22} color={colors.primary} />
+                <Text style={styles.toolTitle}>Reports</Text>
+                <Text style={styles.toolSub}>Analytics & insights</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.toolCard}
+                onPress={() => router.push('/course' as any)}
+                accessibilityLabel="Courses and reading lists"
+              >
+                <Ionicons name="library-outline" size={22} color={colors.primary} />
+                <Text style={styles.toolTitle}>Courses</Text>
+                <Text style={styles.toolSub}>Reading lists</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>User Management</Text>
+              <Text style={styles.sectionAction}>{users.length} total</Text>
+            </View>
+
+            <View style={styles.searchBar}>
+              <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+              <TextInput
+                placeholder="Search users by name or email"
+                placeholderTextColor={colors.textMuted}
+                value={query}
+                onChangeText={setQuery}
+                style={styles.searchInput}
+              />
+            </View>
+
+            <View style={styles.card}>
+              {filteredUsers.map((user, idx) => (
+                <TouchableOpacity
+                  key={user.id}
+                  style={[styles.userRow, idx !== filteredUsers.length - 1 && styles.rowDivider]}
+                  onPress={() => assignRole(user)}
+                  accessibilityLabel={`Manage ${displayName(user)}`}
+                >
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{displayName(user).charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.userName}>{displayName(user)}</Text>
+                    <Text style={styles.userEmail}>{user.email}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                    <RoleBadge role={primaryRole(user)} />
+                    <StatusDot active={user.active !== false} />
+                  </View>
+                </TouchableOpacity>
+              ))}
+              {filteredUsers.length === 0 && (
+                <Text style={styles.emptyText}>
+                  {query ? `No users match "${query}"` : 'No users found.'}
+                </Text>
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
-
     </SafeAreaView>
   );
 }
@@ -212,6 +255,9 @@ const styles = StyleSheet.create({
   backBtnText: { color: colors.primaryDark, fontSize: 13, fontWeight: '800' },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },
   subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  loadingBox: { paddingVertical: 60, alignItems: 'center' },
+  errorBox: { backgroundColor: colors.danger + '18', borderRadius: 12, padding: 12, marginBottom: 12 },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center' },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   statCard: { flex: 1, borderRadius: 18, padding: 16 },
   statValue: { fontSize: 22, fontWeight: '700', color: colors.card },
@@ -219,6 +265,10 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginBottom: 10 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
   sectionAction: { fontSize: 13, fontWeight: '600', color: colors.primary },
+  toolsRow: { flexDirection: 'row', gap: 12 },
+  toolCard: { flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 4 },
+  toolTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 6 },
+  toolSub: { fontSize: 12, color: colors.textMuted },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 14, paddingHorizontal: 14, height: 44, borderWidth: 1, borderColor: colors.border, gap: 8, marginBottom: 12 },
   searchInput: { flex: 1, fontSize: 14, color: colors.text },
   card: { backgroundColor: colors.card, borderRadius: 18, padding: 6, borderWidth: 1, borderColor: colors.border },
@@ -234,11 +284,4 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3 },
   statusText: { fontSize: 11, fontWeight: '600' },
   emptyText: { textAlign: 'center', color: colors.textMuted, padding: 20, fontSize: 13 },
-  pendingPill: { backgroundColor: colors.primaryLight, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  pendingPillText: { fontSize: 11, fontWeight: '700', color: colors.primary },
-  modRow: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
-  modType: { fontSize: 12, fontWeight: '700', color: colors.text, marginBottom: 3 },
-  modPreview: { fontSize: 12, color: colors.textMuted, lineHeight: 17 },
-  modActions: { flexDirection: 'row', gap: 8 },
-  modBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
 });

@@ -1,4 +1,3 @@
-import { API_BASE_URL } from "../config/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
@@ -13,25 +12,98 @@ import Card from "../components/common/Card";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { useTheme } from "../constants/theme";
+import { usersService } from "../services/users";
 
 /** Light scrim so dark text / light cards stay readable over the library photo. */
 const LIGHT_LIBRARY_OVERLAY = "rgba(240, 245, 250, 0.78)";
 
 export default function ProfileDetails() {
   const router = useRouter();
+  const { userId, token, roles, firstName, lastName, email: sessionEmail, institutionId, setSession } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [indexNumber, setIndexNumber] = useState("");
+  const [programme, setProgramme] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [msg, setMsg] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
 
-  const handleSave = () => {
+  // Seed from the cached session immediately, then hydrate the extra fields (which the
+  // session doesn't carry) from the full user record.
+  useEffect(() => {
+    setName([firstName, lastName].filter(Boolean).join(" "));
+    setEmail(sessionEmail || "");
+  }, [firstName, lastName, sessionEmail]);
+
+  useEffect(() => {
+    if (!userId) return;
+    usersService
+      .getById(userId)
+      .then((user) => {
+        setName([user.firstName, user.lastName].filter(Boolean).join(" ") || "");
+        setEmail(user.email || "");
+        setPhone(user.phoneNumber || "");
+        setStudentId(user.studentId || "");
+        setIndexNumber(user.indexNumber || "");
+        setProgramme(user.programme || "");
+      })
+      .catch(() => {
+        /* keep session-seeded values */
+      });
+  }, [userId]);
+
+  const handleSave = async () => {
+    if (!userId || !token) {
+      setErrorMsg("You need to be signed in to update your profile.");
+      return;
+    }
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setErrorMsg("Enter your name.");
+      return;
+    }
+    const cleanStudentId = studentId.replace(/\D/g, "");
+    const cleanIndex = indexNumber.replace(/\D/g, "");
+    if (cleanStudentId && cleanStudentId.length !== 8) {
+      setErrorMsg("Student ID must be 8 digits.");
+      return;
+    }
+    if (cleanIndex && cleanIndex.length !== 7) {
+      setErrorMsg("Index number must be 7 digits.");
+      return;
+    }
+    const [first, ...rest] = trimmed.split(/\s+/);
+    const last = rest.join(" ");
     setIsUpdating(true);
     setMsg("");
-    setTimeout(() => {
-      setIsUpdating(false);
+    setErrorMsg("");
+    try {
+      const updated = await usersService.updateProfile(userId, {
+        firstName: first,
+        lastName: last,
+        phoneNumber: phone.trim(),
+        studentId: cleanStudentId,
+        indexNumber: cleanIndex,
+        programme: programme.trim(),
+      });
+      await setSession({
+        token,
+        userId,
+        roles,
+        firstName: updated.firstName || first,
+        lastName: updated.lastName || last,
+        email: sessionEmail || undefined,
+        institutionId,
+      });
       setMsg("Profile updated successfully!");
-    }, 1500);
+    } catch (e: any) {
+      setErrorMsg(e?.message || "Could not update your profile.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -70,6 +142,15 @@ export default function ProfileDetails() {
           </View>
         ) : null}
 
+        {errorMsg ? (
+          <View style={[styles.successMsgContainer, { backgroundColor: colors.dangerLight, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.md }]}>
+            <Ionicons name="alert-circle" size={18} color={colors.danger} style={{ marginRight: spacing.xs }} />
+            <Text style={[styles.successMsgText, { color: colors.danger }]}>
+              {errorMsg}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Styled Form Card */}
         <Card style={[styles.formCard, isDark ? styles.formCardDark : null, { marginBottom: spacing.xl }]}>
           <Input
@@ -82,9 +163,45 @@ export default function ProfileDetails() {
           <Input
             label="Student Email"
             value={email}
-            onChangeText={setEmail}
+            editable={false}
             keyboardType="email-address"
             leftIcon={<Ionicons name="mail-outline" size={20} color={colors.textMuted} />}
+            variant={isDark ? "glass" : "light"}
+          />
+          <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: -spacing.xs, marginBottom: spacing.sm }}>
+            Email can't be changed here — contact the library to update it.
+          </Text>
+          <Input
+            label="Phone number"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            leftIcon={<Ionicons name="call-outline" size={20} color={colors.textMuted} />}
+            variant={isDark ? "glass" : "light"}
+          />
+          <Input
+            label="Student ID (8 digits)"
+            value={studentId}
+            onChangeText={(v) => setStudentId(v.replace(/\D/g, "").slice(0, 8))}
+            keyboardType="number-pad"
+            maxLength={8}
+            leftIcon={<Ionicons name="card-outline" size={20} color={colors.textMuted} />}
+            variant={isDark ? "glass" : "light"}
+          />
+          <Input
+            label="Index number (7 digits)"
+            value={indexNumber}
+            onChangeText={(v) => setIndexNumber(v.replace(/\D/g, "").slice(0, 7))}
+            keyboardType="number-pad"
+            maxLength={7}
+            leftIcon={<Ionicons name="finger-print-outline" size={20} color={colors.textMuted} />}
+            variant={isDark ? "glass" : "light"}
+          />
+          <Input
+            label="Programme"
+            value={programme}
+            onChangeText={setProgramme}
+            leftIcon={<Ionicons name="school-outline" size={20} color={colors.textMuted} />}
             variant={isDark ? "glass" : "light"}
           />
         </Card>

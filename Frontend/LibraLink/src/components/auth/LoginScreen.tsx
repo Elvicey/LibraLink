@@ -144,6 +144,7 @@ function validateRoleAccess(role: LoginRole, roles: string[]): void {
 function getPostLoginRoute(role: LoginRole): string {
   switch (role) {
     case "librarian":
+      return "/librarian";
     case "admin":
       return "/admin";
     default:
@@ -398,17 +399,6 @@ export default function LoginScreen({ initialRole = null }: LoginScreenProps) {
                   disabled={loading}
                 >
                   <Text style={styles.btnPrimaryText}>{loading ? "Logging in..." : "Log in"}</Text>
-                </TouchableOpacity>
-
-                <View style={styles.dividerRow}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or continue with</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                <TouchableOpacity style={styles.btnGoogle} activeOpacity={0.75}>
-                  <GoogleIcon />
-                  <Text style={styles.btnGoogleText}>Continue with Google</Text>
                 </TouchableOpacity>
 
                 {showSignup && signupRoute && (

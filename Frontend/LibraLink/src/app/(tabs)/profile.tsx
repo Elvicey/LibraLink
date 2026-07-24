@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import ProfileScreen from "../../components/profile/ProfileScreen";
 import { useAuth } from "../../contexts/AuthContext";
 import { borrowsService } from "../../services/borrows";
@@ -28,6 +28,10 @@ export default function Profile() {
   const [displayLastName, setDisplayLastName] = useState(lastName);
   const [displayEmail, setDisplayEmail] = useState(email);
   const [institutionName, setInstitutionName] = useState<string | null>(null);
+  const [phone, setPhone] = useState<string | null>(null);
+  const [studentId, setStudentId] = useState<string | null>(null);
+  const [indexNumber, setIndexNumber] = useState<string | null>(null);
+  const [programme, setProgramme] = useState<string | null>(null);
   const [booksBorrowed, setBooksBorrowed] = useState(0);
   const [activeHolds, setActiveHolds] = useState(0);
 
@@ -45,6 +49,10 @@ export default function Profile() {
         setDisplayLastName(user.lastName ?? null);
         setDisplayEmail(user.email ?? null);
         setInstitutionName(user.institution?.name ?? null);
+        setPhone(user.phoneNumber ?? null);
+        setStudentId(user.studentId ?? null);
+        setIndexNumber(user.indexNumber ?? null);
+        setProgramme(user.programme ?? null);
         await setSession({
           token,
           userId,
@@ -74,6 +82,14 @@ export default function Profile() {
     load();
   }, [firstName, lastName, email, load]);
 
+  // The tab stays mounted, so refetch whenever it regains focus (e.g. returning from the
+  // edit screen) to reflect newly-saved phone / student details.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
   const fullName = [displayFirstName, displayLastName].filter(Boolean).join(" ").trim();
   const isPopulated = Boolean(fullName || displayEmail);
 
@@ -89,10 +105,10 @@ export default function Profile() {
         activeHolds: isPopulated ? activeHolds : "-",
         daysActive: "-",
         email: displayEmail || "Not set",
-        phone: "Not set",
-        studentId: userId != null ? String(userId) : "Not set",
-        programme: "Not set",
-        indexNumber: "Not set",
+        phone: phone || "Not set",
+        studentId: studentId || "Not set",
+        programme: programme || "Not set",
+        indexNumber: indexNumber || "Not set",
         institution: institutionName || "Not linked",
         lastPasswordChange: "Update your credentials",
       }}

@@ -21,9 +21,38 @@ import {
 } from "../services/reservations";
 
 const DESKS = ["Main Library", "Engineering", "Science Library"];
-const HOURS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
-const MINUTES = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
-const PERIODS = ["AM", "PM"] as const;
+
+// Pickups are only accepted Monday–Friday, 09:00–17:00, and the whole window must fit
+// inside those hours. Mirrors the backend PICKUP_WINDOW_MINUTES (default 30).
+const PICKUP_WINDOW_MINUTES = 30;
+const OPEN_MINUTES = 9 * 60; // 09:00
+const CLOSE_MINUTES = 17 * 60; // 17:00
+
+type TimeOption = { label: string; hour: number; minute: number };
+
+/** Valid pickup start times, in PICKUP_WINDOW_MINUTES steps, that end by closing time. */
+function buildTimeOptions(): TimeOption[] {
+  const options: TimeOption[] = [];
+  for (let m = OPEN_MINUTES; m + PICKUP_WINDOW_MINUTES <= CLOSE_MINUTES; m += PICKUP_WINDOW_MINUTES) {
+    const hour = Math.floor(m / 60);
+    const minute = m % 60;
+    const period = hour >= 12 ? "PM" : "AM";
+    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+    options.push({
+      label: `${hour12}:${String(minute).padStart(2, "0")} ${period}`,
+      hour,
+      minute,
+    });
+  }
+  return options;
+}
+
+const TIME_OPTIONS = buildTimeOptions();
+
+function isWeekend(date: Date) {
+  const day = date.getDay();
+  return day === 0 || day === 6;
+}
 
 function startOfToday() {
   const date = new Date();
@@ -65,10 +94,8 @@ export default function BookPickup() {
   const [pendingBook, setPendingBook] = useState<Book | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(startOfToday());
-  const [selectedHour, setSelectedHour] = useState<string | null>(null);
-  const [selectedMinute, setSelectedMinute] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<typeof PERIODS[number] | null>(null);
-  const [openPicker, setOpenPicker] = useState<"hour" | "minute" | "period" | null>(null);
+  const [selectedTime, setSelectedTime] = useState<TimeOption | null>(null);
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
   const [desk, setDesk] = useState(DESKS[0]);
   const [confirming, setConfirming] = useState(false);
   const calendarDays = useMemo(() => getCalendarDays(calendarMonth), [calendarMonth]);
@@ -134,29 +161,32 @@ export default function BookPickup() {
       Alert.alert("Invalid book", "Could not reserve this title.");
       return;
     }
-    if (!selectedDate || !selectedHour || !selectedMinute || !selectedPeriod) {
-      Alert.alert("Pickup details required", "Choose a Pickup Date, hour, minutes, and AM/PM.");
+    if (!selectedDate || !selectedTime) {
+      Alert.alert("Pickup details required", "Choose a pickup date and time.");
+      return;
+    }
+    // Safety net mirroring the backend rule — the UI already prevents these, but guard
+    // in case of stale state.
+    if (isWeekend(selectedDate)) {
+      Alert.alert("Weekdays only", "Pickups are only available Monday to Friday.");
+      return;
+    }
+    const startMinutes = selectedTime.hour * 60 + selectedTime.minute;
+    if (startMinutes < OPEN_MINUTES || startMinutes + PICKUP_WINDOW_MINUTES > CLOSE_MINUTES) {
+      Alert.alert("Outside opening hours", "Pickups must be scheduled between 9:00 AM and 5:00 PM.");
       return;
     }
     setConfirming(true);
     try {
-      const hour12 = Number(selectedHour);
-      const minute = Number(selectedMinute);
-      const startHour =
-        selectedPeriod === "PM"
-          ? hour12 === 12
-            ? 12
-            : hour12 + 12
-          : hour12 === 12
-          ? 0
-          : hour12;
+      const startHour = selectedTime.hour;
+      const minute = selectedTime.minute;
       const end = new Date(selectedDate);
       end.setHours(startHour, minute, 0, 0);
-      end.setHours(end.getHours() + 2);
+      end.setMinutes(end.getMinutes() + PICKUP_WINDOW_MINUTES);
       const reservation = await reservationsService.create(
         userId,
         numericBookId,
-        `Pickup at ${desk} · ${formatDate(selectedDate)} · ${selectedHour}:${selectedMinute} ${selectedPeriod}`
+        `Pickup at ${desk} · ${formatDate(selectedDate)} · ${selectedTime.label}`
       );
       const pickup = await reservationsService.schedulePickup({
         userId,
@@ -259,23 +289,25 @@ export default function BookPickup() {
               {calendarDays.map((day, index) => {
                 if (!day) return <View key={`empty-${index}`} style={styles.calendarDay} />;
                 const isPast = day < startOfToday();
+                const weekend = isWeekend(day);
+                const disabled = isPast || weekend;
                 const selected = selectedDate ? selectedDate.toDateString() === day.toDateString() : false;
                 return (
                   <Pressable
                     key={day.toISOString()}
-                    disabled={isPast}
+                    disabled={disabled}
                     onPress={() => setSelectedDate(day)}
                     style={[
                       styles.calendarDay,
                       selected && { backgroundColor: colors.primary },
-                      isPast && styles.pastDay,
+                      disabled && styles.pastDay,
                     ]}
                   >
                     <Text
                       style={[
                         styles.calendarDayText,
                         { color: colors.text },
-                        isPast && { color: colors.textMuted },
+                        disabled && { color: colors.textMuted },
                         selected && { color: colors.textLight, fontWeight: "800" },
                       ]}
                     >
@@ -289,56 +321,47 @@ export default function BookPickup() {
               {selectedDate ? formatDate(selectedDate) : "Choose a date"}
             </Text>
 
-            <Text style={styles.fieldLabel}>Time slot</Text>
-            <View style={styles.timePickerRow}>
-              {(
-                [
-                  ["hour", "Hour", selectedHour, HOURS, setSelectedHour],
-                  ["minute", "Min", selectedMinute, MINUTES, setSelectedMinute],
-                  ["period", "AM/PM", selectedPeriod, PERIODS, setSelectedPeriod],
-                ] as const
-              ).map(([type, placeholder, value, options, setValue]) => (
-                <View key={type} style={styles.pickerColumn}>
-                  <Pressable
-                    style={styles.dropdownField}
-                    onPress={() => setOpenPicker(openPicker === type ? null : type)}
-                  >
-                    <Text style={[styles.dropdownValue, { color: value ? colors.text : colors.textMuted }]}>
-                      {value || placeholder}
-                    </Text>
-                    <Ionicons
-                      name={openPicker === type ? "chevron-up" : "chevron-down"}
-                      size={15}
-                      color={colors.textMuted}
-                    />
-                  </Pressable>
-                  {openPicker === type && (
-                    <View style={[styles.dropdownMenu, type === "minute" && styles.minuteMenu]}>
-                      <ScrollView>
-                        {options.map((option) => (
-                          <Pressable
-                            key={option}
-                            onPress={() => {
-                              (setValue as (v: string) => void)(option);
-                              setOpenPicker(null);
-                            }}
-                            style={[styles.dropdownOption, value === option && { backgroundColor: colors.primaryLight }]}
-                          >
-                            <Text style={[styles.pickerOptionText, { color: value === option ? colors.primary : colors.text }]}>
-                              {option}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  )}
+            <Text style={styles.fieldLabel}>Pickup time</Text>
+            <View style={styles.pickerColumn}>
+              <Pressable
+                style={styles.dropdownField}
+                onPress={() => setTimePickerOpen((open) => !open)}
+              >
+                <Text style={[styles.dropdownValue, { color: selectedTime ? colors.text : colors.textMuted }]}>
+                  {selectedTime ? selectedTime.label : "Choose a time"}
+                </Text>
+                <Ionicons
+                  name={timePickerOpen ? "chevron-up" : "chevron-down"}
+                  size={15}
+                  color={colors.textMuted}
+                />
+              </Pressable>
+              {timePickerOpen && (
+                <View style={styles.dropdownMenu}>
+                  <ScrollView>
+                    {TIME_OPTIONS.map((option) => {
+                      const active = selectedTime?.label === option.label;
+                      return (
+                        <Pressable
+                          key={option.label}
+                          onPress={() => {
+                            setSelectedTime(option);
+                            setTimePickerOpen(false);
+                          }}
+                          style={[styles.dropdownOption, active && { backgroundColor: colors.primaryLight }]}
+                        >
+                          <Text style={[styles.pickerOptionText, { color: active ? colors.primary : colors.text }]}>
+                            {option.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
                 </View>
-              ))}
+              )}
             </View>
             <Text style={styles.selectedValue}>
-              {selectedHour && selectedMinute && selectedPeriod
-                ? `${selectedHour}:${selectedMinute} ${selectedPeriod}`
-                : "Choose hour, minutes, and AM/PM"}
+              Mon–Fri, 9:00 AM–5:00 PM · {PICKUP_WINDOW_MINUTES}-minute pickup window
             </Text>
 
             <Text style={styles.fieldLabel}>Campus desk</Text>

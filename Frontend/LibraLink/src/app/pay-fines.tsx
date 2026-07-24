@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   SafeAreaView,
@@ -11,6 +12,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useAuth } from "../contexts/AuthContext";
+import { finesService, fineAmount, Fine as ApiFine } from "../services/fines";
 
 const colors = {
   primary: "#7C5CFC",
@@ -25,20 +28,7 @@ const colors = {
   border: "#ECEAF5",
 };
 
-type Fine = {
-  id: string;
-  bookTitle: string;
-  reason: "Overdue" | "Lost Item" | "Damaged Item";
-  daysOverdue?: number;
-  amount: number;
-};
-
 type PaymentMethod = "mtn" | "telecel" | "airteltigo";
-
-const FINES: Fine[] = [
-  { id: "f1", bookTitle: "Atomic Habits", reason: "Overdue", daysOverdue: 5, amount: 2.5 },
-  { id: "f2", bookTitle: "The Midnight Library", reason: "Overdue", daysOverdue: 2, amount: 1 },
-];
 
 const PAYMENT_METHODS: { id: PaymentMethod; label: string; color: string }[] = [
   { id: "mtn", label: "MTN Mobile Money", color: "#F6B800" },
@@ -46,7 +36,11 @@ const PAYMENT_METHODS: { id: PaymentMethod; label: string; color: string }[] = [
   { id: "airteltigo", label: "AirtelTigo Money", color: "#E94C9B" },
 ];
 
-function FineRow({ fine, selected, onToggle }: { fine: Fine; selected: boolean; onToggle: () => void }) {
+function isOutstanding(fine: ApiFine): boolean {
+  return (fine.status || "").toUpperCase() !== "PAID";
+}
+
+function FineRow({ fine, selected, onToggle }: { fine: ApiFine; selected: boolean; onToggle: () => void }) {
   return (
     <Pressable style={styles.fineRow} onPress={onToggle}>
       <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
@@ -56,23 +50,50 @@ function FineRow({ fine, selected, onToggle }: { fine: Fine; selected: boolean; 
         <Ionicons name="receipt-outline" size={18} color={colors.primary} />
       </View>
       <View style={styles.fineInfo}>
-        <Text style={styles.fineTitle}>{fine.bookTitle}</Text>
-        <Text style={styles.fineReason}>
-          {fine.reason}{fine.daysOverdue ? `  ·  ${fine.daysOverdue} days overdue` : ""}
-        </Text>
+        <Text style={styles.fineTitle}>{fine.reason || "Library fine"}</Text>
+        <Text style={styles.fineReason}>{(fine.status || "UNPAID").toUpperCase()}</Text>
       </View>
-      <Text style={styles.fineAmount}>GHS {fine.amount.toFixed(2)}</Text>
+      <Text style={styles.fineAmount}>GHS {fineAmount(fine).toFixed(2)}</Text>
     </Pressable>
   );
 }
 
 export default function PayFinesScreen() {
   const router = useRouter();
-  const [selectedIds, setSelectedIds] = useState<string[]>(FINES.map((fine) => fine.id));
+  const { userId } = useAuth();
+  const [fines, setFines] = useState<ApiFine[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [method, setMethod] = useState<PaymentMethod>("mtn");
   const [phone, setPhone] = useState("");
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
+  const [paidTotal, setPaidTotal] = useState(0);
+
+  const load = useCallback(async () => {
+    if (!userId) {
+      setLoading(false);
+      setLoadError("Sign in to view your fines.");
+      return;
+    }
+    setLoadError(null);
+    setLoading(true);
+    try {
+      const list = await finesService.getForUser(userId);
+      const outstanding = list.filter(isOutstanding);
+      setFines(outstanding);
+      setSelectedIds(outstanding.map((f) => f.id));
+    } catch (e: any) {
+      setLoadError(e?.message || "Failed to load fines.");
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -83,15 +104,16 @@ export default function PayFinesScreen() {
   };
 
   const total = useMemo(
-    () => FINES.filter((fine) => selectedIds.includes(fine.id)).reduce((sum, fine) => sum + fine.amount, 0),
-    [selectedIds]
+    () => fines.filter((f) => selectedIds.includes(f.id)).reduce((sum, f) => sum + fineAmount(f), 0),
+    [selectedIds, fines]
   );
 
-  const toggleFine = (id: string) => {
+  const toggleFine = (id: number) => {
     setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (!userId) return;
     if (selectedIds.length === 0) {
       Alert.alert("Select a fine", "Choose at least one fine to pay.");
       return;
@@ -100,11 +122,36 @@ export default function PayFinesScreen() {
       Alert.alert("Mobile money number required", "Enter the 9-digit number linked to your mobile money account.");
       return;
     }
+    const selected = fines.filter((f) => selectedIds.includes(f.id));
+    const methodLabel = PAYMENT_METHODS.find((m) => m.id === method)?.label || method;
     setPaying(true);
-    setTimeout(() => {
-      setPaying(false);
+    const failures: string[] = [];
+    let charged = 0;
+    // Each fine must be paid in full individually (the backend rejects a combined amount
+    // spread across fines), so pay them one at a time and report any that failed.
+    for (const fine of selected) {
+      try {
+        await finesService.pay({
+          fineId: fine.id,
+          userId,
+          amount: fineAmount(fine),
+          paymentMethod: methodLabel,
+          transactionRef: `SIM-${Date.now()}-${fine.id}`,
+        });
+        charged += fineAmount(fine);
+      } catch (e: any) {
+        failures.push(`Fine #${fine.id}: ${e?.message || "payment failed"}`);
+      }
+    }
+    setPaying(false);
+    await load();
+    if (failures.length > 0) {
+      Alert.alert("Some payments failed", failures.join("\n"));
+    }
+    if (charged > 0) {
+      setPaidTotal(charged);
       setPaid(true);
-    }, 900);
+    }
   };
 
   if (paid) {
@@ -114,7 +161,7 @@ export default function PayFinesScreen() {
           <View style={styles.successIcon}><Ionicons name="checkmark" size={38} color={colors.card} /></View>
           <Text style={styles.successTitle}>Payment successful</Text>
           <Text style={styles.successBody}>
-            GHS {total.toFixed(2)} paid via {PAYMENT_METHODS.find((item) => item.id === method)?.label}. Your account is now in good standing.
+            GHS {paidTotal.toFixed(2)} paid via {PAYMENT_METHODS.find((item) => item.id === method)?.label}. Your account is now in good standing.
           </Text>
           <Pressable style={styles.confirmBtn} onPress={() => setPaid(false)}>
             <Text style={styles.confirmBtnText}>Back to fines</Text>
@@ -154,47 +201,63 @@ export default function PayFinesScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Outstanding fines</Text>
-        <View style={styles.card}>
-          {FINES.map((fine, index) => (
-            <View key={fine.id} style={index < FINES.length - 1 ? styles.rowDivider : undefined}>
-              <FineRow fine={fine} selected={selectedIds.includes(fine.id)} onToggle={() => toggleFine(fine.id)} />
-            </View>
-          ))}
-        </View>
-
-        <Text style={styles.sectionTitle}>Choose mobile money</Text>
-        <View style={styles.providerGrid}>
-          {PAYMENT_METHODS.map((provider) => {
-            const selected = method === provider.id;
-            return (
-              <Pressable key={provider.id} style={[styles.providerCard, selected && styles.providerCardSelected]} onPress={() => setMethod(provider.id)}>
-                <View style={[styles.providerLogo, { backgroundColor: provider.color }]}><Text style={styles.providerLogoText}>{provider.label.charAt(0)}</Text></View>
-                <Text style={styles.providerLabel}>{provider.label}</Text>
-                <View style={[styles.radio, selected && styles.radioSelected]}>{selected && <View style={styles.radioDot} />}</View>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={styles.inputCard}>
-          <View style={styles.inputHeader}><Text style={styles.inputLabel}>Mobile money number</Text><Text style={styles.required}>Required</Text></View>
-          <View style={styles.phoneField}>
-            <Text style={styles.countryCode}>+233</Text>
-            <TextInput style={styles.phoneInput} value={phone} onChangeText={setPhone} placeholder="24 000 0000" placeholderTextColor={colors.textMuted} keyboardType="phone-pad" maxLength={9} />
+        {loading ? (
+          <View style={styles.loadingBox}><ActivityIndicator size="large" color={colors.primary} /></View>
+        ) : loadError ? (
+          <Pressable style={styles.errorBox} onPress={load}>
+            <Text style={styles.errorText}>{loadError} — tap to retry</Text>
+          </Pressable>
+        ) : fines.length === 0 ? (
+          <View style={styles.card}>
+            <Text style={styles.emptyText}>You have no outstanding fines. 🎉</Text>
           </View>
-          <Text style={styles.inputHint}>Enter the number linked to your {PAYMENT_METHODS.find((item) => item.id === method)?.label} account.</Text>
-        </View>
+        ) : (
+          <View style={styles.card}>
+            {fines.map((fine, index) => (
+              <View key={fine.id} style={index < fines.length - 1 ? styles.rowDivider : undefined}>
+                <FineRow fine={fine} selected={selectedIds.includes(fine.id)} onToggle={() => toggleFine(fine.id)} />
+              </View>
+            ))}
+          </View>
+        )}
 
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Selected fines</Text><Text style={styles.summaryValue}>{selectedIds.length}</Text></View>
-          <View style={styles.summaryRow}><Text style={styles.summaryTotalLabel}>Amount to pay</Text><Text style={styles.summaryTotal}>GHS {total.toFixed(2)}</Text></View>
-        </View>
+        {fines.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Choose mobile money</Text>
+            <View style={styles.providerGrid}>
+              {PAYMENT_METHODS.map((provider) => {
+                const selected = method === provider.id;
+                return (
+                  <Pressable key={provider.id} style={[styles.providerCard, selected && styles.providerCardSelected]} onPress={() => setMethod(provider.id)}>
+                    <View style={[styles.providerLogo, { backgroundColor: provider.color }]}><Text style={styles.providerLogoText}>{provider.label.charAt(0)}</Text></View>
+                    <Text style={styles.providerLabel}>{provider.label}</Text>
+                    <View style={[styles.radio, selected && styles.radioSelected]}>{selected && <View style={styles.radioDot} />}</View>
+                  </Pressable>
+                );
+              })}
+            </View>
 
-        <Pressable style={[styles.confirmBtn, (paying || selectedIds.length === 0) && styles.confirmBtnDisabled]} onPress={handleConfirm} disabled={paying || selectedIds.length === 0}>
-          <Ionicons name="lock-closed-outline" size={18} color={colors.card} />
-          <Text style={styles.confirmBtnText}>{paying ? "Processing payment..." : `Pay GHS ${total.toFixed(2)}`}</Text>
-        </Pressable>
-        <Text style={styles.footerNote}>Your payment is processed securely. No card details are stored.</Text>
+            <View style={styles.inputCard}>
+              <View style={styles.inputHeader}><Text style={styles.inputLabel}>Mobile money number</Text><Text style={styles.required}>Required</Text></View>
+              <View style={styles.phoneField}>
+                <Text style={styles.countryCode}>+233</Text>
+                <TextInput style={styles.phoneInput} value={phone} onChangeText={setPhone} placeholder="24 000 0000" placeholderTextColor={colors.textMuted} keyboardType="phone-pad" maxLength={9} />
+              </View>
+              <Text style={styles.inputHint}>Enter the number linked to your {PAYMENT_METHODS.find((item) => item.id === method)?.label} account.</Text>
+            </View>
+
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryRow}><Text style={styles.summaryLabel}>Selected fines</Text><Text style={styles.summaryValue}>{selectedIds.length}</Text></View>
+              <View style={styles.summaryRow}><Text style={styles.summaryTotalLabel}>Amount to pay</Text><Text style={styles.summaryTotal}>GHS {total.toFixed(2)}</Text></View>
+            </View>
+
+            <Pressable style={[styles.confirmBtn, (paying || selectedIds.length === 0) && styles.confirmBtnDisabled]} onPress={handleConfirm} disabled={paying || selectedIds.length === 0}>
+              <Ionicons name="lock-closed-outline" size={18} color={colors.card} />
+              <Text style={styles.confirmBtnText}>{paying ? "Processing payment..." : `Pay GHS ${total.toFixed(2)}`}</Text>
+            </Pressable>
+            <Text style={styles.footerNote}>Simulated payment — records the payment and clears the fine. No real money moves.</Text>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -221,6 +284,10 @@ const styles = StyleSheet.create({
   balanceBadgeText: { color: colors.primaryDark, fontSize: 10, fontWeight: "700" },
   sectionTitle: { fontSize: 15, fontWeight: "800", color: colors.text, marginBottom: 10, marginTop: 2 },
   card: { backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.border, marginBottom: 23, overflow: "hidden" },
+  loadingBox: { paddingVertical: 40, alignItems: "center", marginBottom: 23 },
+  errorBox: { backgroundColor: colors.danger + "18", borderRadius: 14, padding: 14, marginBottom: 23 },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: "600", textAlign: "center" },
+  emptyText: { textAlign: "center", color: colors.textMuted, padding: 22, fontSize: 14 },
   rowDivider: { borderBottomWidth: 1, borderBottomColor: colors.border },
   fineRow: { flexDirection: "row", alignItems: "center", padding: 14, gap: 11 },
   checkbox: { width: 21, height: 21, borderRadius: 7, borderWidth: 2, borderColor: colors.border, alignItems: "center", justifyContent: "center" },

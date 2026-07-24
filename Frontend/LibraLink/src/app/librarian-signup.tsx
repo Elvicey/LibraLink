@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   backgroundCirclesContainer: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
     zIndex: -1,
   },
