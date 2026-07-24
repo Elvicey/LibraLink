@@ -226,7 +226,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       borderBottomWidth: 3,
     },
     overlayLoader: {
-      ...StyleSheet.absoluteFill,
+      ...StyleSheet.absoluteFillObject,
       backgroundColor: "rgba(6, 9, 19, 0.85)",
       justifyContent: "center",
       alignItems: "center",
@@ -249,7 +249,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       fontWeight: "700",
     },
     overlaySuccess: {
-      ...StyleSheet.absoluteFill,
+      ...StyleSheet.absoluteFillObject,
       backgroundColor: "rgba(6, 9, 19, 0.9)",
       justifyContent: "center",
       alignItems: "center",

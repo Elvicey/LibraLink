@@ -149,8 +149,12 @@ export default function Borrowed() {
 
   const [selectedBook, setSelectedBook] = useState<any>(null);
   const [returnVisible, setReturnVisible] = useState(false);
+  const [returnStatus, setReturnStatus] = useState<"idle" | "loading" | "success">("idle");
+  const [returnError, setReturnError] = useState<string | null>(null);
   const [renewVisible, setRenewVisible] = useState(false);
-  const [renewStatus, setRenewStatus] = useState<"loading" | "success">("loading");
+  const [renewStatus, setRenewStatus] = useState<"loading" | "success" | "error">("loading");
+  const [renewError, setRenewError] = useState<string | null>(null);
+  const [newDueDate, setNewDueDate] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!userId || !token) {
@@ -186,16 +190,42 @@ export default function Borrowed() {
     load();
   }, [load]);
 
-  const handleRenewClick = (book: any) => {
+  const handleRenewClick = async (book: any) => {
     setSelectedBook(book);
     setRenewVisible(true);
     setRenewStatus("loading");
-    setTimeout(() => setRenewStatus("success"), 1800);
+    setRenewError(null);
+    setNewDueDate(null);
+    try {
+      const updated = await borrowsService.renew(Number(book.id));
+      setNewDueDate(updated.dueDate || null);
+      setRenewStatus("success");
+      load();
+    } catch (e: any) {
+      setRenewError(e?.message || "Could not renew this loan.");
+      setRenewStatus("error");
+    }
   };
 
   const handleReturnClick = (book: any) => {
     setSelectedBook(book);
+    setReturnStatus("idle");
+    setReturnError(null);
     setReturnVisible(true);
+  };
+
+  const doReturn = async () => {
+    if (!selectedBook) return;
+    setReturnStatus("loading");
+    setReturnError(null);
+    try {
+      await borrowsService.return(Number(selectedBook.id));
+      setReturnStatus("success");
+      load();
+    } catch (e: any) {
+      setReturnError(e?.message || "Could not return this book.");
+      setReturnStatus("idle");
+    }
   };
 
   const loans = tab === "active" ? activeLoans : historyLoans;
@@ -385,6 +415,18 @@ export default function Borrowed() {
                   Calculating new due date parameters.
                 </Text>
               </View>
+            ) : renewStatus === "error" ? (
+              <View style={styles.statusBox}>
+                <Text style={[styles.statusTitle, { color: colors.danger }]}>Renewal not possible</Text>
+                <Text style={[styles.statusDesc, { color: colors.textMuted, marginVertical: spacing.md }]}>
+                  {renewError}
+                </Text>
+                <Button
+                  title="Close"
+                  onPress={() => setRenewVisible(false)}
+                  style={{ width: "100%", borderRadius: borderRadius.xl, paddingVertical: spacing.md }}
+                />
+              </View>
             ) : (
               <View style={styles.statusBox}>
                 <View style={[styles.successIconCircle, { backgroundColor: colors.successLight, marginBottom: spacing.md }]}>
@@ -392,7 +434,7 @@ export default function Borrowed() {
                 </View>
                 <Text style={[styles.statusTitle, { color: colors.text }]}>Renewal Confirmed</Text>
                 <Text style={[styles.statusDesc, { color: colors.textMuted, marginVertical: spacing.md }]}>
-                  New due date: <Text style={{ fontWeight: "700", color: colors.text }}>15 Jul 2026</Text>
+                  New due date: <Text style={{ fontWeight: "700", color: colors.text }}>{newDueDate || "updated"}</Text>
                 </Text>
                 <Button
                   title="Done"
@@ -416,48 +458,56 @@ export default function Borrowed() {
           <Pressable style={styles.modalDismiss} onPress={() => setReturnVisible(false)} />
           <View style={[styles.bottomSheet, { backgroundColor: colors.surface, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg }]}>
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { color: colors.text }]}>Contactless Return Pass</Text>
+              <Text style={[styles.sheetTitle, { color: colors.text }]}>
+                {returnStatus === "success" ? "Book Returned" : "Return Book"}
+              </Text>
               <Pressable onPress={() => setReturnVisible(false)}>
                 <Text style={{ color: colors.textMuted, fontWeight: "700", fontSize: 16 }}>Close</Text>
               </Pressable>
             </View>
-            
-            {selectedBook && (
-              <View style={{ marginVertical: spacing.lg }}>
-                <Text style={[styles.returnBookTitle, { color: colors.text }]}>{selectedBook.title}</Text>
-                <Text style={[styles.returnBookAuthor, { color: colors.textMuted }]}>by {selectedBook.author}</Text>
-                
-                <View style={[styles.infoBanner, { backgroundColor: colors.infoLight, borderRadius: borderRadius.md, padding: spacing.md, marginVertical: spacing.md }]}>
-                  <Text style={[styles.infoText, { color: colors.info }]}>
-                    ℹ Scan this return pass at the library barcode reader near any box drop slot to complete transaction.
-                  </Text>
-                </View>
 
-                {/* Mock Barcode Block */}
-                <View style={[styles.barcodeContainer, { marginTop: spacing.md }]}>
-                  <View style={styles.barcodeLines}>
-                    {[1, 4, 2, 3, 1, 2, 4, 1, 3, 2, 1, 3, 4, 2, 1, 3, 2].map((val, idx) => (
-                      <View
-                        key={idx}
-                        style={[
-                          styles.barcodeBar,
-                          { width: val, backgroundColor: colors.text, marginRight: val % 2 === 0 ? 3 : 1 },
-                        ]}
-                      />
-                    ))}
-                  </View>
-                  <Text style={[styles.barcodeNumber, { color: colors.textMuted, marginTop: spacing.sm }]}>
-                    *RET-{selectedBook.id || "00"}-PASS*
-                  </Text>
+            {returnStatus === "success" ? (
+              <View style={[styles.statusBox, { marginVertical: spacing.lg }]}>
+                <View style={[styles.successIconCircle, { backgroundColor: colors.successLight, marginBottom: spacing.md }]}>
+                  <Text style={[styles.successCheckmarkText, { color: colors.success }]}>✓</Text>
                 </View>
+                <Text style={[styles.statusTitle, { color: colors.text }]}>Returned successfully</Text>
+                <Text style={[styles.statusDesc, { color: colors.textMuted, marginVertical: spacing.sm, textAlign: "center" }]}>
+                  “{selectedBook?.title}” has been returned. Any overdue fine now shows under Fines.
+                </Text>
+                <Button
+                  title="Done"
+                  onPress={() => setReturnVisible(false)}
+                  style={{ width: "100%", borderRadius: borderRadius.xl, paddingVertical: spacing.md, marginTop: spacing.sm }}
+                />
               </View>
-            )}
+            ) : (
+              <>
+                {selectedBook && (
+                  <View style={{ marginVertical: spacing.lg }}>
+                    <Text style={[styles.returnBookTitle, { color: colors.text }]}>{selectedBook.title}</Text>
+                    <Text style={[styles.returnBookAuthor, { color: colors.textMuted }]}>by {selectedBook.author}</Text>
 
-            <Button
-              title="Done"
-              onPress={() => setReturnVisible(false)}
-              style={{ width: "100%", borderRadius: borderRadius.xl, paddingVertical: spacing.md, marginBottom: spacing.md }}
-            />
+                    <View style={[styles.infoBanner, { backgroundColor: colors.infoLight, borderRadius: borderRadius.md, padding: spacing.md, marginVertical: spacing.md }]}>
+                      <Text style={[styles.infoText, { color: colors.info }]}>
+                        ℹ Confirm to return this book now. If it is past due, an overdue fine will be added automatically.
+                      </Text>
+                    </View>
+
+                    {!!returnError && (
+                      <Text style={{ color: colors.danger, marginBottom: spacing.sm }}>{returnError}</Text>
+                    )}
+                  </View>
+                )}
+
+                <Button
+                  title={returnStatus === "loading" ? "Returning..." : "Confirm return"}
+                  onPress={doReturn}
+                  disabled={returnStatus === "loading"}
+                  style={{ width: "100%", borderRadius: borderRadius.xl, paddingVertical: spacing.md, marginBottom: spacing.md }}
+                />
+              </>
+            )}
           </View>
         </View>
       </Modal>

@@ -278,7 +278,7 @@ export default function BookDetail() {
         </Pressable>
         <Pressable
           style={[styles.playButton, !track && styles.playButtonDisabled]}
-          onPress={() => router.push("/audio" as any)}
+          onPress={() => router.push({ pathname: "/audio", params: { trackId: String(track?.id) } } as any)}
           disabled={!track}
         >
           <Ionicons

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   ActivityIndicator,
   Image,
@@ -45,6 +45,7 @@ function formatSize(megabytes?: number): string | null {
 
 export default function AudioBookPlayer() {
   const router = useRouter();
+  const { trackId } = useLocalSearchParams<{ trackId?: string }>();
   const { userId } = useAuth();
   const { colors, spacing, borderRadius, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, isDark);
@@ -70,10 +71,18 @@ export default function AudioBookPlayer() {
   useEffect(() => {
     audioService
       .getAllTracks()
-      .then((data) => setTracks(data ?? []))
+      .then((data) => {
+        const list = data ?? [];
+        setTracks(list);
+        // If we arrived from a book's "PLAY BOOK" action, open that track.
+        if (trackId) {
+          const idx = list.findIndex((t) => String(t.id) === String(trackId));
+          if (idx >= 0) setCurrentIndex(idx);
+        }
+      })
       .catch(() => setTracks([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [trackId]);
 
   const progressUserId = userId ?? 1;
 

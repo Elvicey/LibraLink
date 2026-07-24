@@ -152,11 +152,18 @@ const BellIcon = ({ stroke }: { stroke: string }) => (
   </Svg>
 );
 
-const LogoutIcon = () => (
-  <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={LOGOUT_RED} strokeWidth="2">
+const LogoutIcon = ({ stroke = LOGOUT_RED }: { stroke?: string }) => (
+  <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2">
     <Path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
     <Path d="M16 17l5-5-5-5" />
     <Path d="M21 12H9" />
+  </Svg>
+);
+
+const PencilIcon = ({ stroke }: { stroke: string }) => (
+  <Svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M12 20h9" />
+    <Path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
   </Svg>
 );
 
@@ -236,22 +243,29 @@ export default function ProfileScreen({
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
           <Text style={styles.headerTitle}>My Account</Text>
-          <TouchableOpacity style={styles.editBtn} onPress={onEditProfile} activeOpacity={0.8}>
-            <Text style={styles.editBtnText}>Edit profile</Text>
+          <TouchableOpacity style={styles.logoutHeaderBtn} onPress={onLogout} activeOpacity={0.8}>
+            <LogoutIcon />
+            <Text style={styles.logoutHeaderText}>Log out</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.profileHeader}>
-          <View style={styles.avatarWrap}>
+          <TouchableOpacity
+            style={styles.avatarWrap}
+            onPress={onEditProfile}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Edit profile"
+          >
             {user.initials ? (
               <Text style={styles.avatarText}>{user.initials}</Text>
             ) : (
               <UserAvatarIcon stroke={c.avatarStroke} />
             )}
             <View style={styles.addBadge}>
-              <Text style={styles.addBadgeText}>+</Text>
+              <PencilIcon stroke={c.addBadgeText} />
             </View>
-          </View>
+          </TouchableOpacity>
 
           <Text style={styles.userName}>{user.name}</Text>
           <View style={styles.roleBadge}>
@@ -422,10 +436,6 @@ export default function ProfileScreen({
           </View>
         </View>
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} activeOpacity={0.8}>
-          <LogoutIcon />
-          <Text style={styles.logoutText}>Log out</Text>
-        </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -467,6 +477,21 @@ function createStyles(c: ProfileColors) {
     },
     editBtnText: {
       color: c.accent,
+      fontSize: 13,
+      fontWeight: "600",
+    },
+    logoutHeaderBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      borderWidth: 1,
+      borderColor: LOGOUT_RED,
+      borderRadius: 20,
+      paddingVertical: 6,
+      paddingHorizontal: 14,
+    },
+    logoutHeaderText: {
+      color: LOGOUT_RED,
       fontSize: 13,
       fontWeight: "600",
     },

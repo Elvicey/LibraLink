@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,15 @@ import {
   Modal,
   Alert,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useRouter } from 'expo-router';
+import { booksService, Book, bookAuthorName, isBookAvailable } from '../services/books';
+import { usersService, AppUser, primaryRole } from '../services/users';
+import { circulationService, BookCopyResponse } from '../services/circulation';
+import { finesService } from '../services/fines';
 
 const colors = {
   primary: '#7C5CFC',
@@ -28,57 +34,69 @@ const colors = {
   border: '#ECEAF5',
 };
 
-type BookStatus = 'Available' | 'Checked Out' | 'Reserved';
-type Book = {
-  id: string;
-  title: string;
-  author: string;
-  isbn: string;
-  status: BookStatus;
-  borrower?: string;
-  dueDate?: string;
-};
+const ROLE_LABEL: Record<string, string> = { ADMIN: 'Admin', LIBRARIAN: 'Librarian', STUDENT: 'Student' };
 
-type Member = {
-  id: string;
-  name: string;
-  email: string;
-  activeLoans: number;
-  fines: number;
-};
+function memberName(u: AppUser): string {
+  return `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || `User #${u.id}`;
+}
 
-const BOOKS: Book[] = [
-  { id: 'b1', title: 'The Midnight Library', author: 'Matt Haig', isbn: '978-0525559474', status: 'Checked Out', borrower: 'Sophia Alvarez', dueDate: 'Jul 28' },
-  { id: 'b2', title: 'Project Hail Mary', author: 'Andy Weir', isbn: '978-0593135204', status: 'Available' },
-  { id: 'b3', title: 'Educated', author: 'Tara Westover', isbn: '978-0399590504', status: 'Reserved' },
-  { id: 'b4', title: 'Atomic Habits', author: 'James Clear', isbn: '978-0735211292', status: 'Checked Out', borrower: 'Jonah Price', dueDate: 'Jul 24' },
-];
-
-const MEMBERS: Member[] = [
-  { id: 'm1', name: 'Sophia Alvarez', email: 'sophia.a@mail.com', activeLoans: 2, fines: 0 },
-  { id: 'm2', name: 'Jonah Price', email: 'jonah.p@mail.com', activeLoans: 1, fines: 3.5 },
-];
-
-function StatusBadge({ status }: { status: BookStatus }) {
-  const tint =
-    status === 'Available' ? colors.success : status === 'Checked Out' ? colors.warning : colors.primary;
+function AvailabilityBadge({ book }: { book: Book }) {
+  const available = isBookAvailable(book);
+  const tint = available ? colors.success : colors.warning;
   return (
     <View style={[styles.badge, { backgroundColor: tint + '22' }]}>
-      <Text style={[styles.badgeText, { color: tint }]}>{status}</Text>
+      <Text style={[styles.badgeText, { color: tint }]}>{available ? 'Available' : 'On loan'}</Text>
     </View>
   );
 }
 
 export default function LibrarianScreen() {
+  const router = useRouter();
   const [tab, setTab] = useState<'inventory' | 'members'>('inventory');
   const [query, setQuery] = useState('');
-  const [lookupOpen, setLookupOpen] = useState(false);
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
+  const [scanCopy, setScanCopy] = useState<BookCopyResponse | null>(null);
+  const [scanBusy, setScanBusy] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState('');
   const [permission, requestPermission] = useCameraPermissions();
+
+  const [books, setBooks] = useState<Book[]>([]);
+  const [members, setMembers] = useState<AppUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [activeMember, setActiveMember] = useState<AppUser | null>(null);
+  const [fineOpen, setFineOpen] = useState(false);
+  const [fineAmount, setFineAmount] = useState('');
+  const [fineReason, setFineReason] = useState('');
+  const [fineBusy, setFineBusy] = useState(false);
+
+  const loadBooks = useCallback(async () => {
+    const list = await booksService.list();
+    setBooks(list);
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const [bookList, memberList] = await Promise.all([
+        booksService.list(),
+        usersService.list().catch(() => [] as AppUser[]),
+      ]);
+      setBooks(bookList);
+      setMembers(memberList);
+    } catch (e: any) {
+      setLoadError(e?.message || 'Failed to load library data.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const openScanner = async () => {
     if (Platform.OS !== 'web' && !permission?.granted) {
@@ -88,49 +106,121 @@ export default function LibrarianScreen() {
         return;
       }
     }
+    resetScanner();
+    setScannerOpen(true);
+  };
+
+  const resetScanner = () => {
     setScanned(false);
     setScanResult(null);
+    setScanCopy(null);
+    setScanError(null);
     setManualCode('');
-    setScannerOpen(true);
+  };
+
+  const processCode = async (code: string) => {
+    setScanned(true);
+    setScanResult(code);
+    setScanCopy(null);
+    setScanError(null);
+    setScanBusy(true);
+    try {
+      const copy = await circulationService.lookup(code);
+      setScanCopy(copy);
+    } catch (e: any) {
+      setScanError(e?.message || 'No book copy found for this barcode.');
+    } finally {
+      setScanBusy(false);
+    }
   };
 
   const handleBarcodeScanned = ({ data }: { data: string }) => {
     if (scanned) return;
-    setScanned(true);
-    setScanResult(data);
+    processCode(data);
   };
 
   const handleManualScan = () => {
     const code = manualCode.trim();
     if (!code) {
-      Alert.alert('Enter a code', 'Enter a member, book, or pickup code to continue.');
+      Alert.alert('Enter a code', 'Enter a book copy barcode to continue.');
       return;
     }
-    setScanned(true);
-    setScanResult(code);
+    processCode(code);
+  };
+
+  const doCheckIn = async () => {
+    if (!scanResult) return;
+    setScanBusy(true);
+    try {
+      await circulationService.scan(scanResult, 'CHECK_IN');
+      Alert.alert('Checked in', `"${scanCopy?.book?.title || scanResult}" has been returned.`);
+      await loadBooks();
+      resetScanner();
+    } catch (e: any) {
+      setScanError(e?.message || 'Check-in failed.');
+    } finally {
+      setScanBusy(false);
+    }
+  };
+
+  const doCheckOut = async () => {
+    if (!scanResult) return;
+    if (!activeMember) {
+      setScanError('Select a member in the Members tab before checking out.');
+      return;
+    }
+    setScanBusy(true);
+    try {
+      const res = await circulationService.scan(scanResult, 'CHECK_OUT', activeMember.id);
+      Alert.alert('Checked out', `To ${memberName(activeMember)} · due ${res.dueDate || 'in 14 days'}.`);
+      await loadBooks();
+      resetScanner();
+    } catch (e: any) {
+      setScanError(e?.message || 'Check-out failed.');
+    } finally {
+      setScanBusy(false);
+    }
+  };
+
+  const submitFine = async () => {
+    if (!activeMember) return;
+    const amount = Number(fineAmount);
+    if (!fineAmount.trim() || Number.isNaN(amount) || amount <= 0) {
+      Alert.alert('Enter a valid amount', 'Fine amount must be a number greater than zero.');
+      return;
+    }
+    setFineBusy(true);
+    try {
+      await finesService.create({ userId: activeMember.id, amount, reason: fineReason.trim() || undefined });
+      Alert.alert('Fine issued', `${amount.toFixed(2)} charged to ${memberName(activeMember)}.`);
+      setFineOpen(false);
+      setFineAmount('');
+      setFineReason('');
+    } catch (e: any) {
+      Alert.alert('Could not issue fine', e?.message || 'Please try again.');
+    } finally {
+      setFineBusy(false);
+    }
   };
 
   const filteredBooks = useMemo(() => {
-    if (!query.trim()) return BOOKS;
+    if (!query.trim()) return books;
     const q = query.toLowerCase();
-    return BOOKS.filter(
-      (b) => b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) || b.isbn.includes(q)
+    return books.filter(
+      (b) =>
+        b.title.toLowerCase().includes(q) ||
+        bookAuthorName(b).toLowerCase().includes(q) ||
+        (b.isbn || '').toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [query, books]);
 
   const filteredMembers = useMemo(() => {
-    if (!query.trim()) return MEMBERS;
+    if (!query.trim()) return members;
     const q = query.toLowerCase();
-    return MEMBERS.filter((m) => m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q));
-  }, [query]);
-
-  const handleAction = (book: Book) => {
-    setSelectedBook(book);
-  };
-
-  const confirmAction = () => {
-    setSelectedBook(null);
-  };
+    return members.filter(
+      (m) => memberName(m).toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q)
+    );
+  }, [query, members]);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -138,19 +228,44 @@ export default function LibrarianScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Librarian</Text>
-            <Text style={styles.subtitle}>Inventory & member lookup</Text>
+            <Text style={styles.subtitle}>Inventory & circulation</Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.scanBtn} onPress={openScanner}>
               <Ionicons name="qr-code-outline" size={18} color={colors.card} />
               <Text style={styles.lookupBtnText}>Scan</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.lookupBtn} onPress={() => setLookupOpen(true)}>
-              <Ionicons name="person-circle-outline" size={18} color={colors.card} />
-              <Text style={styles.lookupBtnText}>Lookup</Text>
+            <TouchableOpacity style={styles.lookupBtn} onPress={() => setTab('members')}>
+              <Ionicons name="people-outline" size={18} color={colors.card} />
+              <Text style={styles.lookupBtnText}>Members</Text>
             </TouchableOpacity>
           </View>
         </View>
+
+        {activeMember && (
+          <View style={styles.activeMemberBanner}>
+            <Ionicons name="person-circle" size={20} color={colors.primaryDark} />
+            <Text style={styles.activeMemberText} numberOfLines={1}>
+              <Text style={{ fontWeight: '800' }}>{memberName(activeMember)}</Text>
+            </Text>
+            <TouchableOpacity style={styles.fineChip} onPress={() => setFineOpen(true)} accessibilityLabel="Issue a fine">
+              <Text style={styles.fineChipText}>Issue fine</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setActiveMember(null)} accessibilityLabel="Clear selected member">
+              <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={styles.listsLink}
+          onPress={() => router.push('/course' as any)}
+          accessibilityLabel="Manage course reading lists"
+        >
+          <Ionicons name="library-outline" size={18} color={colors.primary} />
+          <Text style={styles.listsLinkText}>Manage course reading lists</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+        </TouchableOpacity>
 
         <View style={styles.tabRow}>
           <TouchableOpacity
@@ -178,7 +293,15 @@ export default function LibrarianScreen() {
           />
         </View>
 
-        {tab === 'inventory' && (
+        {loading ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : loadError ? (
+          <TouchableOpacity style={styles.errorBox} onPress={load}>
+            <Text style={styles.errorText}>{loadError} — tap to retry</Text>
+          </TouchableOpacity>
+        ) : tab === 'inventory' ? (
           <View style={styles.card}>
             {filteredBooks.map((book, idx) => (
               <View key={book.id} style={[styles.bookRow, idx !== filteredBooks.length - 1 && styles.rowDivider]}>
@@ -187,80 +310,86 @@ export default function LibrarianScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.bookTitle}>{book.title}</Text>
-                  <Text style={styles.bookMeta}>{book.author} · {book.isbn}</Text>
-                  {book.borrower && (
-                    <Text style={styles.bookBorrower}>
-                      {book.borrower} · due {book.dueDate}
-                    </Text>
-                  )}
+                  <Text style={styles.bookMeta}>
+                    {bookAuthorName(book)}{book.isbn ? ` · ${book.isbn}` : ''}
+                  </Text>
+                  <Text style={styles.bookBorrower}>
+                    {book.availableCopies ?? 0} of {book.totalCopies ?? 0} available
+                  </Text>
                 </View>
-                <View style={{ alignItems: 'flex-end', gap: 8 }}>
-                  <StatusBadge status={book.status} />
-                  <TouchableOpacity style={styles.actionChip} onPress={() => handleAction(book)}>
-                    <Text style={styles.actionChipText}>
-                      {book.status === 'Checked Out' ? 'Return' : 'Check Out'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                <AvailabilityBadge book={book} />
               </View>
             ))}
-            {filteredBooks.length === 0 && <Text style={styles.emptyText}>No books match "{query}"</Text>}
+            {filteredBooks.length === 0 && (
+              <Text style={styles.emptyText}>
+                {query ? `No books match "${query}"` : 'No books in catalogue.'}
+              </Text>
+            )}
           </View>
-        )}
-
-        {tab === 'members' && (
+        ) : (
           <View style={styles.card}>
-            {filteredMembers.map((m, idx) => (
-              <View key={m.id} style={[styles.memberRow, idx !== filteredMembers.length - 1 && styles.rowDivider]}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{m.name.charAt(0)}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.bookTitle}>{m.name}</Text>
-                  <Text style={styles.bookMeta}>{m.email}</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.memberLoans}>{m.activeLoans} active loan{m.activeLoans !== 1 ? 's' : ''}</Text>
-                  {m.fines > 0 && <Text style={styles.memberFine}>${m.fines.toFixed(2)} owed</Text>}
-                </View>
-              </View>
-            ))}
-            {filteredMembers.length === 0 && <Text style={styles.emptyText}>No members match "{query}"</Text>}
+            {filteredMembers.map((m, idx) => {
+              const selected = activeMember?.id === m.id;
+              return (
+                <TouchableOpacity
+                  key={m.id}
+                  style={[styles.memberRow, idx !== filteredMembers.length - 1 && styles.rowDivider, selected && styles.memberRowSelected]}
+                  onPress={() => setActiveMember(selected ? null : m)}
+                  accessibilityLabel={`Select ${memberName(m)} for checkout`}
+                >
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{memberName(m).charAt(0).toUpperCase()}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.bookTitle}>{memberName(m)}</Text>
+                    <Text style={styles.bookMeta}>{m.email}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                    <View style={[styles.badge, { backgroundColor: colors.textMuted + '22' }]}>
+                      <Text style={[styles.badgeText, { color: colors.textMuted }]}>{ROLE_LABEL[primaryRole(m)] || 'Student'}</Text>
+                    </View>
+                    {selected && <Text style={styles.selectedText}>Selected</Text>}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+            {filteredMembers.length === 0 && (
+              <Text style={styles.emptyText}>
+                {query ? `No members match "${query}"` : 'No members found.'}
+              </Text>
+            )}
           </View>
         )}
       </ScrollView>
 
-      <Modal visible={!!selectedBook} transparent animationType="fade">
+      <Modal visible={fineOpen} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              {selectedBook?.status === 'Checked Out' ? 'Confirm Return' : 'Confirm Checkout'}
-            </Text>
-            <Text style={styles.modalBody}>{selectedBook?.title}</Text>
+            <Text style={styles.modalTitle}>Issue fine</Text>
+            <Text style={styles.modalBody}>{activeMember ? memberName(activeMember) : ''}</Text>
+            <TextInput
+              style={styles.fineInput}
+              placeholder="Amount (e.g. 5.00)"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="decimal-pad"
+              value={fineAmount}
+              onChangeText={setFineAmount}
+            />
+            <TextInput
+              style={styles.fineInput}
+              placeholder="Reason (optional)"
+              placeholderTextColor={colors.textMuted}
+              value={fineReason}
+              onChangeText={setFineReason}
+            />
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalCancel} onPress={() => setSelectedBook(null)}>
+              <TouchableOpacity style={styles.modalCancel} onPress={() => setFineOpen(false)}>
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalConfirm} onPress={confirmAction}>
-                <Text style={styles.modalConfirmText}>Confirm</Text>
+              <TouchableOpacity style={styles.modalConfirm} onPress={submitFine} disabled={fineBusy}>
+                <Text style={styles.modalConfirmText}>{fineBusy ? 'Issuing…' : 'Issue'}</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={lookupOpen} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Member Lookup</Text>
-            <TextInput
-              placeholder="Search by name, email, or member ID"
-              placeholderTextColor={colors.textMuted}
-              style={styles.lookupInput}
-            />
-            <TouchableOpacity style={styles.modalConfirm} onPress={() => setLookupOpen(false)}>
-              <Text style={styles.modalConfirmText}>Close</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -268,18 +397,43 @@ export default function LibrarianScreen() {
       <Modal visible={scannerOpen} animationType="slide">
         <SafeAreaView style={styles.scannerSafe}>
           <View style={styles.scannerHeader}>
-            <Text style={styles.scannerTitle}>Scan code</Text>
-            <TouchableOpacity style={styles.scannerClose} onPress={() => setScannerOpen(false)}>
+            <Text style={styles.scannerTitle}>Scan book barcode</Text>
+            <TouchableOpacity style={styles.scannerClose} onPress={() => { setScannerOpen(false); resetScanner(); }}>
               <Ionicons name="close" size={26} color={colors.card} />
             </TouchableOpacity>
           </View>
           {scanResult ? (
             <View style={styles.scanResultPanel}>
-              <Ionicons name="checkmark-circle" size={64} color={colors.success} />
-              <Text style={styles.scanResultTitle}>Code detected</Text>
-              <Text style={styles.scanResultValue}>{scanResult}</Text>
-              <TouchableOpacity style={styles.scanAgainBtn} onPress={() => { setScanned(false); setScanResult(null); setManualCode(''); }}>
-                <Text style={styles.scanAgainText}>Scan another code</Text>
+              {scanBusy && !scanCopy ? (
+                <ActivityIndicator size="large" color={colors.card} />
+              ) : scanError ? (
+                <>
+                  <Ionicons name="alert-circle" size={64} color={colors.danger} />
+                  <Text style={styles.scanResultTitle}>Heads up</Text>
+                  <Text style={styles.scanResultValue}>{scanError}</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="book" size={56} color={colors.card} />
+                  <Text style={styles.scanResultTitle}>{scanCopy?.book?.title || 'Book copy'}</Text>
+                  <Text style={styles.scanResultValue}>
+                    Barcode {scanResult} · {scanCopy?.available ? 'Available' : 'On loan'}
+                  </Text>
+                  {scanCopy?.available === false ? (
+                    <TouchableOpacity style={[styles.scanAgainBtn, { backgroundColor: colors.success }]} onPress={doCheckIn} disabled={scanBusy}>
+                      <Text style={styles.scanAgainText}>{scanBusy ? 'Working…' : 'Check in (return)'}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity style={styles.scanAgainBtn} onPress={doCheckOut} disabled={scanBusy}>
+                      <Text style={styles.scanAgainText}>
+                        {scanBusy ? 'Working…' : activeMember ? `Check out to ${memberName(activeMember)}` : 'Check out (select member first)'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+              <TouchableOpacity style={styles.scanSecondaryBtn} onPress={resetScanner}>
+                <Text style={styles.scanSecondaryText}>Scan another code</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -291,11 +445,11 @@ export default function LibrarianScreen() {
                 onBarcodeScanned={handleBarcodeScanned}
               />
               <View style={styles.manualScanPanel}>
-                <Text style={styles.scannerHint}>Point the camera at a member, book, or pickup QR/barcode</Text>
+                <Text style={styles.scannerHint}>Point the camera at a book copy barcode</Text>
                 <View style={styles.manualScanRow}>
                   <TextInput
                     style={styles.manualScanInput}
-                    placeholder="Enter code manually"
+                    placeholder="Enter barcode manually"
                     placeholderTextColor="#888"
                     value={manualCode}
                     onChangeText={setManualCode}
@@ -324,6 +478,22 @@ const styles = StyleSheet.create({
   lookupBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
   lookupBtnText: { color: colors.card, fontSize: 13, fontWeight: '700' },
   scanBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primaryDark, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14 },
+  activeMemberBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.primaryLight, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 },
+  activeMemberText: { flex: 1, fontSize: 13, color: colors.text },
+  fineChip: { backgroundColor: colors.warning, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
+  fineChipText: { color: colors.card, fontSize: 11, fontWeight: '800' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(26,26,46,0.5)', justifyContent: 'center', padding: 24 },
+  modalCard: { backgroundColor: colors.card, borderRadius: 20, padding: 22 },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 6 },
+  modalBody: { fontSize: 14, color: colors.textMuted, marginBottom: 16 },
+  fineInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, height: 46, marginBottom: 12, fontSize: 14, color: colors.text },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  modalCancel: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: colors.bg },
+  modalCancelText: { color: colors.text, fontWeight: '600', fontSize: 14 },
+  modalConfirm: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: colors.primary },
+  modalConfirmText: { color: colors.card, fontWeight: '700', fontSize: 14 },
+  listsLink: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 14 },
+  listsLinkText: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.text },
   tabRow: { flexDirection: 'row', backgroundColor: colors.primaryLight, borderRadius: 14, padding: 4, marginBottom: 14 },
   tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: 'center' },
   tabBtnActive: { backgroundColor: colors.card },
@@ -331,9 +501,13 @@ const styles = StyleSheet.create({
   tabTextActive: { color: colors.primaryDark },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 14, paddingHorizontal: 14, height: 44, borderWidth: 1, borderColor: colors.border, gap: 8, marginBottom: 14 },
   searchInput: { flex: 1, fontSize: 14, color: colors.text },
+  loadingBox: { paddingVertical: 60, alignItems: 'center' },
+  errorBox: { backgroundColor: colors.danger + '18', borderRadius: 12, padding: 14 },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center' },
   card: { backgroundColor: colors.card, borderRadius: 18, padding: 6, borderWidth: 1, borderColor: colors.border },
   bookRow: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12 },
-  memberRow: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12 },
+  memberRow: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12, borderRadius: 12 },
+  memberRowSelected: { backgroundColor: colors.primaryLight },
   rowDivider: { borderBottomWidth: 1, borderBottomColor: colors.border },
   bookIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
@@ -343,21 +517,8 @@ const styles = StyleSheet.create({
   bookBorrower: { fontSize: 11, color: colors.warning, marginTop: 2, fontWeight: '600' },
   badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
   badgeText: { fontSize: 11, fontWeight: '700' },
-  actionChip: { backgroundColor: colors.primary, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  actionChipText: { color: colors.card, fontSize: 11, fontWeight: '700' },
-  memberLoans: { fontSize: 12, color: colors.text, fontWeight: '600' },
-  memberFine: { fontSize: 11, color: colors.danger, marginTop: 2, fontWeight: '700' },
+  selectedText: { fontSize: 11, color: colors.primaryDark, fontWeight: '700' },
   emptyText: { textAlign: 'center', color: colors.textMuted, padding: 20, fontSize: 13 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(26,26,46,0.5)', justifyContent: 'center', padding: 24 },
-  modalCard: { backgroundColor: colors.card, borderRadius: 20, padding: 22 },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 8 },
-  modalBody: { fontSize: 14, color: colors.textMuted, marginBottom: 20 },
-  modalActions: { flexDirection: 'row', gap: 10 },
-  modalCancel: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: colors.bg },
-  modalCancelText: { color: colors.text, fontWeight: '600', fontSize: 14 },
-  modalConfirm: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center', backgroundColor: colors.primary },
-  modalConfirmText: { color: colors.card, fontWeight: '700', fontSize: 14 },
-  lookupInput: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 14, height: 44, marginBottom: 16, fontSize: 14, color: colors.text },
   scannerSafe: { flex: 1, backgroundColor: '#000' },
   scannerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16 },
   scannerTitle: { color: colors.card, fontSize: 18, fontWeight: '800' },
@@ -370,8 +531,10 @@ const styles = StyleSheet.create({
   manualScanBtn: { backgroundColor: colors.primary, borderRadius: 10, justifyContent: 'center', paddingHorizontal: 14 },
   manualScanBtnText: { color: colors.card, fontWeight: '700', fontSize: 12 },
   scanResultPanel: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  scanResultTitle: { color: colors.card, fontSize: 22, fontWeight: '800', marginTop: 16 },
-  scanResultValue: { color: colors.card, fontSize: 16, textAlign: 'center', marginTop: 10, paddingHorizontal: 20 },
+  scanResultTitle: { color: colors.card, fontSize: 22, fontWeight: '800', marginTop: 16, textAlign: 'center' },
+  scanResultValue: { color: colors.card, fontSize: 15, textAlign: 'center', marginTop: 10, paddingHorizontal: 20, opacity: 0.9 },
   scanAgainBtn: { backgroundColor: colors.primary, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 13, marginTop: 24 },
   scanAgainText: { color: colors.card, fontSize: 14, fontWeight: '700' },
+  scanSecondaryBtn: { marginTop: 16, paddingVertical: 10 },
+  scanSecondaryText: { color: colors.card, fontSize: 13, fontWeight: '600', opacity: 0.8 },
 });
