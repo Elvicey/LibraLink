@@ -99,6 +99,46 @@ public class UserService {
         return userRepository.findById(id);
     }
 
+    /**
+     * Self-service profile update. Only the display fields a user may safely change are
+     * touched — email (login identity), roles, password and institution are deliberately
+     * not editable here. Null/blank values leave the existing value untouched, so a
+     * student ID / index number can be set or overwritten but not cleared to blank here.
+     */
+    @Transactional
+    public User updateProfile(Integer userId, String firstName, String lastName, String phoneNumber,
+                             String studentId, String indexNumber, String programme) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        if (firstName != null && !firstName.isBlank()) {
+            user.setFirstName(firstName.trim());
+        }
+        if (lastName != null && !lastName.isBlank()) {
+            user.setLastName(lastName.trim());
+        }
+        if (phoneNumber != null) {
+            user.setPhoneNumber(phoneNumber.trim());
+        }
+        if (studentId != null && !studentId.isBlank()) {
+            String trimmed = studentId.trim();
+            if (!trimmed.matches("\\d{8}")) {
+                throw new IllegalArgumentException("Student ID must be 8 digits.");
+            }
+            user.setStudentId(trimmed);
+        }
+        if (indexNumber != null && !indexNumber.isBlank()) {
+            String trimmed = indexNumber.trim();
+            if (!trimmed.matches("\\d{7}")) {
+                throw new IllegalArgumentException("Index number must be 7 digits.");
+            }
+            user.setIndexNumber(trimmed);
+        }
+        if (programme != null) {
+            user.setProgramme(programme.trim());
+        }
+        return userRepository.save(user);
+    }
+
     @Transactional
     public void updatePushToken(Integer userId, String pushToken) {
         User user = userRepository.findById(userId)
