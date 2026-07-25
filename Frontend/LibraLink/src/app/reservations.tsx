@@ -5,16 +5,23 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
+  StatusBar,
   Modal,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from '../components/auth/AuthLibraryBackground';
+import { useTheme } from '../constants/theme';
 
 const colors = {
-  primary: '#7C5CFC',
-  primaryDark: '#5B3FE0',
-  primaryLight: '#EDE7FF',
+  primary: '#5DCAA5',
+  primaryDark: '#04342C',
+  primaryLight: '#E3F6EF',
   bg: '#F7F6FB',
   card: '#FFFFFF',
   text: '#1A1A2E',
@@ -55,14 +62,24 @@ function StatusBadge({ status }: { status: ReservationStatus }) {
 }
 
 export default function ReservationsScreen() {
+  const { isDark } = useTheme();
   const [qrReservation, setQrReservation] = useState<Reservation | null>(null);
 
   const qrUrl = (data: string) =>
     `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(data)}`;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>Reservations</Text>
           <Text style={styles.subtitle}>Pick up your held books</Text>
@@ -97,7 +114,7 @@ export default function ReservationsScreen() {
             <Text style={styles.emptyText}>No active reservations</Text>
           )}
         </View>
-      </ScrollView>
+        </ScrollView>
 
       <Modal visible={!!qrReservation} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -125,12 +142,14 @@ export default function ReservationsScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   container: { padding: 20, paddingBottom: 40 },
   header: { marginBottom: 20 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },

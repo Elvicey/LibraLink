@@ -152,6 +152,13 @@ public class DataSeeder implements CommandLineRunner {
     @Value("${seed.admin.last-name}")
     private String seedAdminLastName;
 
+    /** false in production — skips demo accounts and refuses the weak default admin password. */
+    @Value("${seed.demo.enabled:true}")
+    private boolean seedDemoEnabled;
+
+    /** The built-in weak default; refused when demo seeding is disabled (production). */
+    private static final String DEFAULT_ADMIN_PASSWORD = "admin123";
+
     public DataSeeder(UserRepository userRepository, RoleRepository roleRepository,
                       PasswordEncoder passwordEncoder,
                       BookRepository bookRepository,
@@ -199,31 +206,39 @@ public class DataSeeder implements CommandLineRunner {
 
         User admin = userRepository.findByEmailIgnoreCase(adminEmail).orElse(null);
 
-        if (admin == null) {
-            admin = new User();
-            admin.setFirstName(seedAdminFirstName);
-            admin.setLastName(seedAdminLastName);
-            admin.setEmail(adminEmail);
-            admin.setPasswordHash(passwordEncoder.encode(adminPassword));
-            admin.setActive(true);
-            Set<Role> roles = new HashSet<>();
-            roles.add(adminRole);
-            admin.setRoles(roles);
-            userRepository.save(admin);
-        } else {
-            if (!passwordEncoder.matches(adminPassword, admin.getPasswordHash())) {
-                admin.setPasswordHash(passwordEncoder.encode(adminPassword));
-                Set<Role> roles = admin.getRoles();
-                if (roles == null) roles = new HashSet<>();
-                roles.add(adminRole);
-                admin.setRoles(roles);
-                admin.setActive(true);
-                userRepository.save(admin);
-            }
+        if (admin != null) {
+            // An admin already exists — never touch its password, roles, or active state on
+            // boot. Silently reverting a rotated/deactivated admin (the old behaviour) is a
+            // security hole; operators own the account after first creation.
+            return;
         }
+
+        // First-time creation. In production (demo disabled) refuse to seed the weak built-in
+        // default — force an explicit strong SEED_ADMIN_PASSWORD, failing fast if it's absent.
+        if (!seedDemoEnabled
+                && (adminPassword == null || adminPassword.isBlank()
+                    || DEFAULT_ADMIN_PASSWORD.equals(adminPassword))) {
+            throw new IllegalStateException(
+                    "Refusing to seed the admin with the default/blank password while "
+                    + "seed.demo.enabled=false. Set SEED_ADMIN_PASSWORD to a strong value.");
+        }
+
+        admin = new User();
+        admin.setFirstName(seedAdminFirstName);
+        admin.setLastName(seedAdminLastName);
+        admin.setEmail(adminEmail);
+        admin.setPasswordHash(passwordEncoder.encode(adminPassword));
+        admin.setActive(true);
+        Set<Role> roles = new HashSet<>();
+        roles.add(adminRole);
+        admin.setRoles(roles);
+        userRepository.save(admin);
     }
 
     private void seedDemoStudent() {
+        if (!seedDemoEnabled) {
+            return; // production: no known-credential demo account
+        }
         String email = "student@libralink.com";
         if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
             return;

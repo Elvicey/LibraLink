@@ -6,16 +6,18 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   AUTH_LIBRARY_OVERLAY,
   AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
 } from "../components/auth/AuthLibraryBackground";
 import Button from "../components/common/Button";
 import Card from "../components/common/Card";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import { usersService } from "../services/users";
 
-/** Light scrim so dark text / light cards stay readable over the library photo. */
-const LIGHT_LIBRARY_OVERLAY = "rgba(240, 245, 250, 0.78)";
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
 
 export default function ProfileDetails() {
   const router = useRouter();
@@ -120,8 +122,8 @@ export default function ProfileDetails() {
         {/* Premium Back navigation with chevron icon */}
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <View style={styles.backButtonRow}>
-            <Ionicons name="chevron-back" size={20} color={colors.primary} />
-            <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
+            <Ionicons name="chevron-back" size={20} color={ACCENT} />
+            <Text style={[styles.backText, { color: ACCENT }]}>Back</Text>
           </View>
         </Pressable>
 
@@ -210,8 +212,10 @@ export default function ProfileDetails() {
           title={isUpdating ? "Saving changes..." : "Save changes"}
           onPress={handleSave}
           loading={isUpdating}
-          icon={isUpdating ? undefined : <Ionicons name="checkmark-circle-outline" size={18} color={colors.textLight} />}
+          accentColor={ACCENT}
+          icon={isUpdating ? undefined : <Ionicons name="checkmark-circle-outline" size={18} color={ACCENT_DARK} />}
           style={[styles.saveButton, { paddingVertical: spacing.md, borderRadius: borderRadius.xl }]}
+          textStyle={{ color: ACCENT_DARK }}
         />
       </ScreenWrapper>
     </View>

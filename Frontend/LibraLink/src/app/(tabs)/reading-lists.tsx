@@ -6,13 +6,20 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import BookGridCard from "../../components/BookGridCard";
-import ScreenWrapper from "../../components/common/ScreenWrapper";
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from "../../components/auth/AuthLibraryBackground";
+import { loginColors } from "../../constants/loginTheme";
 import { useTheme } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { Book } from "../../services/books";
@@ -22,6 +29,10 @@ const SCREEN_PADDING = 16;
 const GRID_GAP = 12;
 const CARD_WIDTH =
   (Dimensions.get("window").width - SCREEN_PADDING * 2 - GRID_GAP) / 2;
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
+const ACCENT_LIGHT = "rgba(93, 202, 165, 0.16)";
 
 export default function ReadingLists() {
   const router = useRouter();
@@ -79,53 +90,80 @@ export default function ReadingLists() {
   );
 
   return (
-    <ScreenWrapper style={styles.screen}>
-      <FlatList
-        data={loading ? [] : books}
-        keyExtractor={(item) => String(item.id)}
-        numColumns={2}
-        columnWrapperStyle={styles.column}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={header}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              load();
-            }}
-            tintColor={colors.primary}
-          />
-        }
-        renderItem={({ item }) => <BookGridCard book={item} width={CARD_WIDTH} />}
-        ListEmptyComponent={
-          loading ? (
-            <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.huge }} />
-          ) : error ? null : (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="bookmark-outline" size={30} color={colors.primary} />
-              </View>
-              <Text style={styles.emptyTitle}>Nothing saved yet</Text>
-              <Text style={styles.emptyBody}>
-                Tap the bookmark at the top of any book to keep it here for later.
-              </Text>
-              <Pressable style={styles.emptyButton} onPress={() => router.push("/search" as any)}>
-                <Text style={styles.emptyButtonText}>Browse catalogue</Text>
-              </Pressable>
-            </View>
-          )
-        }
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
       />
-    </ScreenWrapper>
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        <FlatList
+          style={styles.list}
+          data={loading ? [] : books}
+          keyExtractor={(item) => String(item.id)}
+          numColumns={2}
+          columnWrapperStyle={styles.column}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={header}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                load();
+              }}
+              tintColor={ACCENT}
+            />
+          }
+          renderItem={({ item }) => (
+            <BookGridCard
+              book={item}
+              width={CARD_WIDTH}
+              accentColor={ACCENT}
+              accentSoftColor={ACCENT_LIGHT}
+              accentTextColor={ACCENT_DARK}
+            />
+          )}
+          ListEmptyComponent={
+            loading ? (
+              <ActivityIndicator color={ACCENT} style={{ marginTop: spacing.huge }} />
+            ) : error ? null : (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIcon}>
+                  <Ionicons name="bookmark-outline" size={30} color={ACCENT} />
+                </View>
+                <Text style={styles.emptyTitle}>Nothing saved yet</Text>
+                <Text style={styles.emptyBody}>
+                  Tap the bookmark at the top of any book to keep it here for later.
+                </Text>
+                <Pressable style={styles.emptyButton} onPress={() => router.push("/search" as any)}>
+                  <Text style={styles.emptyButtonText}>Browse catalogue</Text>
+                </Pressable>
+              </View>
+            )
+          }
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: boolean) =>
   StyleSheet.create({
     screen: {
+      flex: 1,
       backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+      backgroundColor: "transparent",
+    },
+    list: {
+      flex: 1,
     },
     listContent: {
       paddingHorizontal: SCREEN_PADDING,
@@ -166,7 +204,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 64,
       height: 64,
       borderRadius: 32,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.lg,
@@ -186,13 +224,13 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
     },
     emptyButton: {
       marginTop: spacing.lg,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       paddingHorizontal: spacing.xl,
       paddingVertical: spacing.md,
       borderRadius: borderRadius.round,
     },
     emptyButtonText: {
-      color: colors.textLight,
+      color: ACCENT_DARK,
       fontWeight: "700",
       fontSize: 14,
     },

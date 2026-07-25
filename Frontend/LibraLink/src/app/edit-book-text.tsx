@@ -6,20 +6,30 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import ScreenWrapper from "../components/common/ScreenWrapper";
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from "../components/auth/AuthLibraryBackground";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import { booksService } from "../services/books";
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
 
 export default function EditBookText() {
   const router = useRouter();
   const { bookId, title } = useLocalSearchParams<{ bookId?: string; title?: string }>();
-  const { colors, spacing, borderRadius } = useTheme();
+  const { colors, spacing, borderRadius, isDark } = useTheme();
 
   const [text, setText] = useState("");
   const [totalCopies, setTotalCopies] = useState("");
@@ -78,7 +88,16 @@ export default function EditBookText() {
   const styles = createStyles(colors, spacing, borderRadius);
 
   return (
-    <ScreenWrapper style={{ backgroundColor: colors.background }}>
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
       <View style={styles.header}>
         <Pressable style={styles.back} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={22} color={colors.text} />
@@ -91,7 +110,7 @@ export default function EditBookText() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={ACCENT} />
         </View>
       ) : (
         <KeyboardAvoidingView
@@ -148,7 +167,7 @@ export default function EditBookText() {
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator size="small" color={colors.textLight} />
+                <ActivityIndicator size="small" color={ACCENT_DARK} />
               ) : (
                 <Text style={styles.saveText}>Save text</Text>
               )}
@@ -156,12 +175,21 @@ export default function EditBookText() {
           </View>
         </KeyboardAvoidingView>
       )}
-    </ScreenWrapper>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (colors: any, spacing: any, borderRadius: any) =>
   StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+      backgroundColor: "transparent",
+    },
     header: {
       flexDirection: "row",
       alignItems: "center",
@@ -199,11 +227,11 @@ const createStyles = (colors: any, spacing: any, borderRadius: any) =>
       lineHeight: 22,
     },
     saveBtn: {
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       borderRadius: borderRadius.md,
       paddingVertical: spacing.md,
       alignItems: "center",
     },
     saveBtnDisabled: { opacity: 0.7 },
-    saveText: { color: colors.textLight, fontSize: 15, fontWeight: "800" },
+    saveText: { color: ACCENT_DARK, fontSize: 15, fontWeight: "800" },
   });

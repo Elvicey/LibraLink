@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import LoginScreen from "../components/auth/LoginScreen";
-import { lightColors } from "../constants/theme";
+import { loginColors } from "../constants/loginTheme";
 
 const ONBOARDING_SEEN_KEY = "hasSeenOnboarding";
 
@@ -45,7 +45,7 @@ export default function LoginEntry() {
   if (!ready) {
     return (
       <View style={styles.loadingScreen}>
-        <ActivityIndicator size="large" color={lightColors.primary} />
+        <ActivityIndicator size="large" color={loginColors.teal} />
       </View>
     );
   }

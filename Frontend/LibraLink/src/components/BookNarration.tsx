@@ -1,7 +1,12 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import type { BookNarration as BookNarrationState } from "../hooks/useBookNarration";
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
+const ACCENT_LIGHT = "rgba(93, 202, 165, 0.16)";
 
 function fmt(seconds?: number): string {
   if (!seconds || seconds < 0) return "0:00";
@@ -20,7 +25,7 @@ export default function BookNarration({ narration }: { narration: BookNarrationS
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.iconTile}>
-          <Ionicons name="sparkles-outline" size={18} color={colors.primary} />
+          <Ionicons name="sparkles-outline" size={18} color={ACCENT} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>AI narration</Text>
@@ -32,7 +37,7 @@ export default function BookNarration({ narration }: { narration: BookNarrationS
         <>
           <Pressable style={styles.playRow} onPress={togglePlay}>
             <View style={styles.playCircle}>
-              <Ionicons name={playing ? "pause" : "play"} size={20} color={colors.textLight} />
+              <Ionicons name={playing ? "pause" : "play"} size={20} color={ACCENT_DARK} />
             </View>
             <Text style={styles.playLabel}>{playing ? "Pause" : "Play narration"}</Text>
             <Text style={styles.duration}>{fmt(durationSeconds)}</Text>
@@ -50,12 +55,12 @@ export default function BookNarration({ narration }: { narration: BookNarrationS
         >
           {phase === "generating" ? (
             <>
-              <ActivityIndicator size="small" color={colors.textLight} />
+              <ActivityIndicator size="small" color={ACCENT_DARK} />
               <Text style={styles.generateText}>Preparing narration…</Text>
             </>
           ) : (
             <>
-              <Ionicons name="headset-outline" size={17} color={colors.textLight} />
+              <Ionicons name="headset-outline" size={17} color={ACCENT_DARK} />
               <Text style={styles.generateText}>{phase === "error" ? "Try again" : "Generate AI narration"}</Text>
             </>
           )}
@@ -82,7 +87,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any) =>
       width: 40,
       height: 40,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -93,18 +98,18 @@ const createStyles = (colors: any, spacing: any, borderRadius: any) =>
       alignItems: "center",
       justifyContent: "center",
       gap: spacing.sm,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       borderRadius: borderRadius.md,
       paddingVertical: spacing.md,
     },
     generateBtnDisabled: { opacity: 0.7 },
-    generateText: { color: colors.textLight, fontSize: 14, fontWeight: "800" },
+    generateText: { color: ACCENT_DARK, fontSize: 14, fontWeight: "800" },
     playRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
     playCircle: {
       width: 44,
       height: 44,
       borderRadius: 22,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       alignItems: "center",
       justifyContent: "center",
     },

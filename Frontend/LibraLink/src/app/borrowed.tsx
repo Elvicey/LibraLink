@@ -1,14 +1,32 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { FlatList, Modal, Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Modal,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../components/common/Button";
-import ScreenWrapper from "../components/common/ScreenWrapper";
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from "../components/auth/AuthLibraryBackground";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
 import { bookAuthorName } from "../services/books";
 import { borrowsService, BorrowRecord } from "../services/borrows";
 import { Fine, fineAmount, finesService } from "../services/fines";
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
 
 type LoanView = {
   id: string;
@@ -38,13 +56,13 @@ function mapBorrow(record: BorrowRecord): LoanView {
 function getLoanStatusColor(status: string, colors: any) {
   if (status === "overdue") return colors.danger;
   if (status === "ready" || status === "returned") return colors.success;
-  return colors.primary;
+  return ACCENT;
 }
 
 function getLoanStatusBg(status: string, colors: any) {
   if (status === "overdue") return colors.dangerLight;
   if (status === "ready" || status === "returned") return colors.successLight;
-  return colors.primaryLight;
+  return "rgba(93, 202, 165, 0.16)";
 }
 
 function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn, showActions = true }: any) {
@@ -118,15 +136,18 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn, show
           onPress={() => onRenew(loan)}
           size="sm"
           variant={loan.status === "overdue" ? "outline" : "primary"}
-          icon={<Ionicons name="refresh-outline" size={15} color={loan.status === "overdue" ? colors.primary : colors.textLight} />}
+          accentColor={ACCENT}
+          icon={<Ionicons name="refresh-outline" size={15} color={loan.status === "overdue" ? ACCENT : ACCENT_DARK} />}
           style={{ flex: 1, marginRight: spacing.sm, borderRadius: borderRadius.lg }}
+          textStyle={loan.status === "overdue" ? undefined : { color: ACCENT_DARK }}
         />
         <Button
           title="Return"
           onPress={() => onReturn(loan)}
           size="sm"
           variant="outline"
-          icon={<Ionicons name="qr-code-outline" size={15} color={colors.primary} />}
+          accentColor={ACCENT}
+          icon={<Ionicons name="qr-code-outline" size={15} color={ACCENT} />}
           style={{ flex: 1, borderColor: colors.borderDark, borderRadius: borderRadius.lg }}
           textStyle={{ color: colors.text, fontWeight: "700" }}
         />
@@ -138,7 +159,7 @@ function LoanCard({ loan, colors, spacing, borderRadius, onRenew, onReturn, show
 
 export default function Borrowed() {
   const router = useRouter();
-  const { colors, spacing, borderRadius } = useTheme();
+  const { colors, spacing, borderRadius, isDark } = useTheme();
   const { userId, token } = useAuth();
   const [tab, setTab] = useState<"active" | "history" | "fines">("active");
   const [activeLoans, setActiveLoans] = useState<LoanView[]>([]);
@@ -239,7 +260,16 @@ export default function Borrowed() {
   ];
 
   return (
-    <ScreenWrapper style={{ backgroundColor: colors.background }}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
       <View style={[styles.container, { padding: spacing.lg }]}>
         <Pressable
           onPress={() => router.back()}
@@ -264,9 +294,9 @@ export default function Borrowed() {
                 flex: 1,
                 paddingVertical: 10,
                 borderRadius: borderRadius.lg,
-                backgroundColor: tab === segment.key ? colors.primary : colors.surface,
+                backgroundColor: tab === segment.key ? ACCENT : colors.surface,
                 borderWidth: 1,
-                borderColor: tab === segment.key ? colors.primary : colors.border,
+                borderColor: tab === segment.key ? ACCENT : colors.border,
                 alignItems: "center",
               }}
             >
@@ -274,7 +304,7 @@ export default function Borrowed() {
                 style={{
                   fontWeight: "700",
                   fontSize: 13,
-                  color: tab === segment.key ? colors.textLight : colors.text,
+                  color: tab === segment.key ? ACCENT_DARK : colors.text,
                 }}
               >
                 {segment.label}
@@ -283,7 +313,7 @@ export default function Borrowed() {
           ))}
         </View>
 
-        {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />}
+        {loading && <ActivityIndicator color={ACCENT} style={{ marginTop: spacing.xl }} />}
         {!!error && !loading && (
           <Text style={{ color: colors.danger, marginBottom: spacing.md }}>{error}</Text>
         )}
@@ -361,8 +391,10 @@ export default function Borrowed() {
               <Button
                 title={`Pay GHS ${unpaidTotal.toFixed(2)}`}
                 onPress={() => router.push("/pay-fines" as any)}
-                icon={<Ionicons name="card-outline" size={16} color={colors.textLight} />}
+                accentColor={ACCENT}
+                icon={<Ionicons name="card-outline" size={16} color={ACCENT_DARK} />}
                 style={{ borderRadius: borderRadius.lg, marginTop: spacing.sm }}
+                textStyle={{ color: ACCENT_DARK }}
               />
             )}
           </>
@@ -409,7 +441,7 @@ export default function Borrowed() {
           <View style={[styles.bottomSheet, { backgroundColor: colors.surface, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl, padding: spacing.lg }]}>
             {renewStatus === "loading" ? (
               <View style={styles.statusBox}>
-                <ActivityIndicator size="large" color={colors.primary} style={{ marginBottom: spacing.md }} />
+                <ActivityIndicator size="large" color={ACCENT} style={{ marginBottom: spacing.md }} />
                 <Text style={[styles.statusTitle, { color: colors.text }]}>Renewing Book...</Text>
                 <Text style={[styles.statusDesc, { color: colors.textMuted, marginTop: spacing.xs }]}>
                   Calculating new due date parameters.
@@ -424,6 +456,8 @@ export default function Borrowed() {
                 <Button
                   title="Close"
                   onPress={() => setRenewVisible(false)}
+                  accentColor={ACCENT}
+                  textStyle={{ color: ACCENT_DARK }}
                   style={{ width: "100%", borderRadius: borderRadius.xl, paddingVertical: spacing.md }}
                 />
               </View>
@@ -439,6 +473,8 @@ export default function Borrowed() {
                 <Button
                   title="Done"
                   onPress={() => setRenewVisible(false)}
+                  accentColor={ACCENT}
+                  textStyle={{ color: ACCENT_DARK }}
                   style={{ width: "100%", borderRadius: borderRadius.xl, paddingVertical: spacing.md }}
                 />
               </View>
@@ -478,6 +514,8 @@ export default function Borrowed() {
                 <Button
                   title="Done"
                   onPress={() => setReturnVisible(false)}
+                  accentColor={ACCENT}
+                  textStyle={{ color: ACCENT_DARK }}
                   style={{ width: "100%", borderRadius: borderRadius.xl, paddingVertical: spacing.md, marginTop: spacing.sm }}
                 />
               </View>
@@ -504,6 +542,8 @@ export default function Borrowed() {
                   title={returnStatus === "loading" ? "Returning..." : "Confirm return"}
                   onPress={doReturn}
                   disabled={returnStatus === "loading"}
+                  accentColor={ACCENT}
+                  textStyle={{ color: ACCENT_DARK }}
                   style={{ width: "100%", borderRadius: borderRadius.xl, paddingVertical: spacing.md, marginBottom: spacing.md }}
                 />
               </>
@@ -511,11 +551,19 @@ export default function Borrowed() {
           </View>
         </View>
       </Modal>
-    </ScreenWrapper>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
   container: {
     flex: 1,
   },

@@ -7,14 +7,21 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import BookGridCard from "../components/BookGridCard";
-import ScreenWrapper from "../components/common/ScreenWrapper";
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from "../components/auth/AuthLibraryBackground";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import {
   bookAuthorName,
@@ -28,6 +35,10 @@ const SCREEN_PADDING = 16;
 const GRID_GAP = 12;
 const CARD_WIDTH =
   (Dimensions.get("window").width - SCREEN_PADDING * 2 - GRID_GAP) / 2;
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
+const ACCENT_LIGHT = "rgba(93, 202, 165, 0.16)";
 
 const SUBJECT_OPTIONS = ["All", "Science", "Literature", "Computing", "Economics", "General"];
 const AVAILABILITY_OPTIONS = ["All", "Available", "On Loan"];
@@ -55,7 +66,6 @@ export default function Search() {
   const [selectedAuthor, setSelectedAuthor] = useState("All");
   const [selectedAvailability, setSelectedAvailability] = useState("All");
   const [activeDropdown, setActiveDropdown] = useState<Dropdown | null>(null);
-  const [isListening, setIsListening] = useState(false);
 
   const loadBooks = useCallback(async () => {
     setLoading(true);
@@ -128,17 +138,6 @@ export default function Search() {
     setActiveDropdown(null);
   };
 
-  // Voice search is not wired to a speech engine yet — this fills the field so
-  // the flow can be demoed end to end.
-  const startVoiceMock = () => {
-    setIsListening(true);
-    setTimeout(() => {
-      setIsListening(false);
-      setQuery("Calculus");
-      clearFilters();
-    }, 2200);
-  };
-
   const truncate = (value: string, max: number) =>
     value.length > max ? `${value.slice(0, max)}…` : value;
 
@@ -171,9 +170,6 @@ export default function Search() {
             </Pressable>
           )}
         </View>
-        <Pressable style={styles.micButton} onPress={startVoiceMock}>
-          <Ionicons name="mic-outline" size={21} color={colors.textLight} />
-        </Pressable>
       </View>
 
       {/* Filter chips */}
@@ -192,7 +188,7 @@ export default function Search() {
           <Ionicons
             name="chevron-down"
             size={13}
-            color={selectedSubject !== "All" ? colors.textLight : colors.textMuted}
+            color={selectedSubject !== "All" ? ACCENT_DARK : colors.textMuted}
           />
         </Pressable>
 
@@ -206,7 +202,7 @@ export default function Search() {
           <Ionicons
             name="chevron-down"
             size={13}
-            color={selectedAuthor !== "All" ? colors.textLight : colors.textMuted}
+            color={selectedAuthor !== "All" ? ACCENT_DARK : colors.textMuted}
           />
         </Pressable>
 
@@ -220,7 +216,7 @@ export default function Search() {
           <Ionicons
             name="chevron-down"
             size={13}
-            color={selectedAvailability !== "All" ? colors.textLight : colors.textMuted}
+            color={selectedAvailability !== "All" ? ACCENT_DARK : colors.textMuted}
           />
         </Pressable>
 
@@ -244,7 +240,7 @@ export default function Search() {
                 onPress={() => setSelectedSubject(cat.subject)}
               >
                 <View style={styles.categoryIcon}>
-                  <Ionicons name={cat.icon as any} size={20} color={colors.primary} />
+                  <Ionicons name={cat.icon as any} size={20} color={ACCENT} />
                 </View>
                 <Text style={styles.categoryLabel} numberOfLines={1}>
                   {cat.label}
@@ -271,106 +267,114 @@ export default function Search() {
   );
 
   return (
-    <ScreenWrapper style={styles.screen}>
-      <FlatList
-        data={loading ? [] : filtered}
-        keyExtractor={(item) => String(item.id)}
-        numColumns={2}
-        columnWrapperStyle={styles.column}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={header}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        renderItem={({ item }) => <BookGridCard book={item} width={CARD_WIDTH} />}
-        ListEmptyComponent={
-          loading ? (
-            <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
-          ) : error ? null : (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="search-outline" size={28} color={colors.primary} />
-              </View>
-              <Text style={styles.emptyTitle}>No matches</Text>
-              <Text style={styles.emptyBody}>
-                Try a different spelling, or clear the filters to see the whole catalogue.
-              </Text>
-              {activeFilterCount > 0 && (
-                <Pressable style={styles.emptyButton} onPress={clearFilters}>
-                  <Text style={styles.emptyButtonText}>Clear filters</Text>
-                </Pressable>
-              )}
-            </View>
-          )
-        }
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
       />
-
-      {/* Filter picker */}
-      <Modal
-        visible={activeDropdown !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setActiveDropdown(null)}
-      >
-        <Pressable style={styles.backdrop} onPress={() => setActiveDropdown(null)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <View style={styles.grabber} />
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>
-                {activeDropdown === "subject"
-                  ? "Subject"
-                  : activeDropdown === "author"
-                    ? "Author"
-                    : "Availability"}
-              </Text>
-              <Pressable onPress={() => setActiveDropdown(null)} hitSlop={8}>
-                <Ionicons name="close" size={22} color={colors.textMuted} />
-              </Pressable>
-            </View>
-
-            <ScrollView style={styles.sheetScroll}>
-              {dropdownOptions().map((option) => {
-                const selected = dropdownValue() === option;
-                return (
-                  <Pressable
-                    key={option}
-                    style={[styles.sheetOption, selected && styles.sheetOptionActive]}
-                    onPress={() => selectOption(option)}
-                  >
-                    <Text style={[styles.optionText, selected && styles.optionTextActive]}>
-                      {option}
-                    </Text>
-                    {selected && <Ionicons name="checkmark" size={18} color={colors.primary} />}
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        <FlatList
+          data={loading ? [] : filtered}
+          keyExtractor={(item) => String(item.id)}
+          numColumns={2}
+          columnWrapperStyle={styles.column}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={header}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          renderItem={({ item }) => (
+            <BookGridCard
+              book={item}
+              width={CARD_WIDTH}
+              accentColor={ACCENT}
+              accentSoftColor={ACCENT_LIGHT}
+              accentTextColor={ACCENT_DARK}
+            />
+          )}
+          ListEmptyComponent={
+            loading ? (
+              <ActivityIndicator color={ACCENT} style={{ marginTop: spacing.xl }} />
+            ) : error ? null : (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIcon}>
+                  <Ionicons name="search-outline" size={28} color={ACCENT} />
+                </View>
+                <Text style={styles.emptyTitle}>No matches</Text>
+                <Text style={styles.emptyBody}>
+                  Try a different spelling, or clear the filters to see the whole catalogue.
+                </Text>
+                {activeFilterCount > 0 && (
+                  <Pressable style={styles.emptyButton} onPress={clearFilters}>
+                    <Text style={styles.emptyButtonText}>Clear filters</Text>
                   </Pressable>
-                );
-              })}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Voice search */}
-      <Modal visible={isListening} transparent animationType="fade">
-        <View style={styles.voiceBackdrop}>
-          <View style={styles.voiceCard}>
-            <View style={styles.pulseOuter}>
-              <View style={styles.pulseInner}>
-                <Ionicons name="mic" size={30} color={colors.textLight} />
+                )}
               </View>
-            </View>
-            <Text style={styles.voiceTitle}>Listening…</Text>
-            <Text style={styles.voiceBody}>Say a book title, author or subject.</Text>
-          </View>
-        </View>
-      </Modal>
-    </ScreenWrapper>
+            )
+          }
+        />
+
+        {/* Filter picker */}
+        <Modal
+          visible={activeDropdown !== null}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setActiveDropdown(null)}
+        >
+          <Pressable style={styles.backdrop} onPress={() => setActiveDropdown(null)}>
+            <Pressable style={styles.sheet} onPress={() => {}}>
+              <View style={styles.grabber} />
+              <View style={styles.sheetHeader}>
+                <Text style={styles.sheetTitle}>
+                  {activeDropdown === "subject"
+                    ? "Subject"
+                    : activeDropdown === "author"
+                      ? "Author"
+                      : "Availability"}
+                </Text>
+                <Pressable onPress={() => setActiveDropdown(null)} hitSlop={8}>
+                  <Ionicons name="close" size={22} color={colors.textMuted} />
+                </Pressable>
+              </View>
+
+              <ScrollView style={styles.sheetScroll}>
+                {dropdownOptions().map((option) => {
+                  const selected = dropdownValue() === option;
+                  return (
+                    <Pressable
+                      key={option}
+                      style={[styles.sheetOption, selected && styles.sheetOptionActive]}
+                      onPress={() => selectOption(option)}
+                    >
+                      <Text style={[styles.optionText, selected && styles.optionTextActive]}>
+                        {option}
+                      </Text>
+                      {selected && <Ionicons name="checkmark" size={18} color={ACCENT} />}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: boolean) =>
   StyleSheet.create({
     screen: {
+      flex: 1,
       backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+      backgroundColor: "transparent",
     },
     listContent: {
       paddingHorizontal: SCREEN_PADDING,
@@ -426,14 +430,6 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       // Strips the default vertical padding Android adds to TextInput
       paddingVertical: 0,
     },
-    micButton: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.primary,
-      alignItems: "center",
-      justifyContent: "center",
-    },
     chipRow: {
       gap: spacing.sm,
       paddingVertical: spacing.xs,
@@ -451,8 +447,8 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
     },
     chipActive: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
+      backgroundColor: ACCENT,
+      borderColor: ACCENT,
     },
     chipText: {
       fontSize: 13,
@@ -460,7 +456,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       color: colors.textMuted,
     },
     chipTextActive: {
-      color: colors.textLight,
+      color: ACCENT_DARK,
       fontWeight: "700",
     },
     clearChip: {
@@ -505,7 +501,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -538,7 +534,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 60,
       height: 60,
       borderRadius: 30,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.lg,
@@ -558,13 +554,13 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
     },
     emptyButton: {
       marginTop: spacing.lg,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       paddingHorizontal: spacing.xl,
       paddingVertical: spacing.md,
       borderRadius: borderRadius.round,
     },
     emptyButtonText: {
-      color: colors.textLight,
+      color: ACCENT_DARK,
       fontWeight: "700",
       fontSize: 14,
     },
@@ -613,57 +609,14 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       borderRadius: borderRadius.md,
     },
     sheetOptionActive: {
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
     },
     optionText: {
       fontSize: 15,
       color: colors.text,
     },
     optionTextActive: {
-      color: colors.primary,
+      color: ACCENT,
       fontWeight: "700",
-    },
-    voiceBackdrop: {
-      flex: 1,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: spacing.xl,
-    },
-    voiceCard: {
-      width: "100%",
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.huge,
-      padding: spacing.xl,
-      alignItems: "center",
-    },
-    pulseOuter: {
-      width: 96,
-      height: 96,
-      borderRadius: 48,
-      borderWidth: 6,
-      borderColor: colors.primaryLight,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: spacing.lg,
-    },
-    pulseInner: {
-      width: 68,
-      height: 68,
-      borderRadius: 34,
-      backgroundColor: colors.primary,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    voiceTitle: {
-      fontSize: 17,
-      fontWeight: "800",
-      color: colors.text,
-      marginBottom: spacing.xs,
-    },
-    voiceBody: {
-      fontSize: 13,
-      color: colors.textMuted,
-      textAlign: "center",
     },
   });

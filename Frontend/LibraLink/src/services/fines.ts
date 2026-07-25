@@ -57,9 +57,12 @@ export const finesService = {
   create: (fine: NewFine): Promise<Fine> =>
     api.post<Fine>("/api/fines", { ...fine, status: "UNPAID" }),
 
-  /** Start a real Paystack checkout for a single fine. */
-  initializePayment: (fineId: number): Promise<PaymentInit> =>
-    api.post<PaymentInit>("/api/fine-payments/initialize", { fineId }),
+  /**
+   * Start a real Paystack checkout for a single fine. `callbackUrl` is an app deep link
+   * Paystack redirects to after checkout so the client can detect completion reliably.
+   */
+  initializePayment: (fineId: number, callbackUrl?: string): Promise<PaymentInit> =>
+    api.post<PaymentInit>("/api/fine-payments/initialize", { fineId, callbackUrl }),
 
   /** Confirm a Paystack transaction; the fine is only marked paid if it succeeded. */
   verifyPayment: (reference: string): Promise<PaymentVerify> =>

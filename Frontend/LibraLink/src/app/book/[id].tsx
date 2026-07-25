@@ -15,6 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import ScreenWrapper from "../../components/common/ScreenWrapper";
+import { loginColors } from "../../constants/loginTheme";
 import { useTheme } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { audioService, AudioBookTrackResponse } from "../../services/audio";
@@ -22,6 +23,9 @@ import BookNarration from "../../components/BookNarration";
 import { useBookNarration } from "../../hooks/useBookNarration";
 import { bookAuthorName, booksService, Book, isBookAvailable } from "../../services/books";
 import { bookmarksService } from "../../services/bookmarks";
+
+const ACCENT = loginColors.teal;
+const ACCENT_LIGHT = "rgba(93, 202, 165, 0.16)";
 
 /** "English" -> "ENG". Falls back to the raw value when it is already short. */
 function languageCode(language?: string | null): string {
@@ -158,7 +162,7 @@ export default function BookDetail() {
     return (
       <ScreenWrapper style={styles.screen}>
         <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={ACCENT} />
         </View>
       </ScreenWrapper>
     );
@@ -200,7 +204,7 @@ export default function BookDetail() {
           <Ionicons
             name={bookmarked ? "bookmark" : "bookmark-outline"}
             size={22}
-            color={bookmarked ? colors.primary : colors.text}
+            color={bookmarked ? ACCENT : colors.text}
           />
         </Pressable>
       </View>
@@ -216,7 +220,7 @@ export default function BookDetail() {
                 resizeMode="cover"
               />
             ) : (
-              <Ionicons name="book" size={54} color={colors.primary} />
+              <Ionicons name="book" size={54} color={ACCENT} />
             )}
           </View>
           <View style={styles.pedestal} />
@@ -293,7 +297,7 @@ export default function BookDetail() {
           <Ionicons
             name={narration.playing ? "pause" : "headset-outline"}
             size={17}
-            color={colors.primary}
+            color={ACCENT}
           />
           <Text style={styles.playButtonText}>
             {narration.phase === "generating"
@@ -333,8 +337,8 @@ export default function BookDetail() {
                 router.push({ pathname: "/reader", params: { bookId: String(bookId), title: book.title } } as any);
               }}
             >
-              <View style={[styles.sheetIcon, { backgroundColor: colors.primaryLight }]}>
-                <Ionicons name="book-outline" size={20} color={colors.primary} />
+              <View style={[styles.sheetIcon, { backgroundColor: ACCENT_LIGHT }]}>
+                <Ionicons name="book-outline" size={20} color={ACCENT} />
               </View>
               <View style={styles.sheetText}>
                 <Text style={styles.sheetRowTitle}>Read in the app</Text>
@@ -348,8 +352,8 @@ export default function BookDetail() {
               onPress={openEbook}
               disabled={!book.digitalUrl}
             >
-              <View style={[styles.sheetIcon, { backgroundColor: colors.primaryLight }]}>
-                <Ionicons name="tablet-portrait-outline" size={20} color={colors.primary} />
+              <View style={[styles.sheetIcon, { backgroundColor: ACCENT_LIGHT }]}>
+                <Ionicons name="tablet-portrait-outline" size={20} color={ACCENT} />
               </View>
               <View style={styles.sheetText}>
                 <Text style={styles.sheetRowTitle}>Read the ebook</Text>
@@ -452,7 +456,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 168,
       height: 246,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
       overflow: "hidden",
@@ -503,7 +507,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
     statValue: {
       fontSize: 15,
       fontWeight: "800",
-      color: colors.primary,
+      color: ACCENT,
     },
     divider: {
       height: 1,
@@ -574,13 +578,13 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       paddingVertical: spacing.md + 2,
       borderRadius: borderRadius.round,
       borderWidth: 1.5,
-      borderColor: colors.primary,
+      borderColor: ACCENT,
     },
     playButtonDisabled: {
       borderColor: colors.border,
     },
     playButtonText: {
-      color: colors.primary,
+      color: ACCENT,
       fontWeight: "800",
       fontSize: 14,
       letterSpacing: 0.5,

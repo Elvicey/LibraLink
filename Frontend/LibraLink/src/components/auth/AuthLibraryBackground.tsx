@@ -5,6 +5,9 @@ const LIBRARY_BG = require("../../../assets/images/onboarding-library-bg.png");
 /** Deep navy scrim — sharp photo underneath, inputs stay readable. */
 export const AUTH_LIBRARY_OVERLAY = "rgba(10, 22, 40, 0.70)";
 
+/** Light scrim so dark text / light cards stay readable over the library photo. */
+export const LIGHT_LIBRARY_OVERLAY = "rgba(240, 245, 250, 0.78)";
+
 /**
  * Full-screen library photo with overlay (no blur).
  * Sit behind SafeAreaView content (absolute fill).

@@ -5,7 +5,11 @@ import { Ionicons } from "@expo/vector-icons";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
 
 export default function BarcodeScanner() {
   const router = useRouter();
@@ -71,7 +75,7 @@ export default function BarcodeScanner() {
 
             {isScanning && (
               <View style={styles.overlayLoader}>
-                <ActivityIndicator size="large" color={colors.primary} />
+                <ActivityIndicator size="large" color={ACCENT} />
                 <Text style={styles.scanText}>Reading code...</Text>
               </View>
             )}
@@ -106,6 +110,8 @@ export default function BarcodeScanner() {
             <Button
               title="Borrow Book"
               onPress={confirmCheckout}
+              accentColor={ACCENT}
+              textStyle={{ color: ACCENT_DARK }}
               style={{ flex: 1 }}
             />
           </View>
@@ -124,6 +130,8 @@ export default function BarcodeScanner() {
               <Button
                 title="Enter"
                 onPress={handleManualSubmit}
+                accentColor={ACCENT}
+                textStyle={{ color: ACCENT_DARK }}
                 style={styles.manualBtn}
               />
             </View>
@@ -199,7 +207,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       position: "absolute",
       width: 20,
       height: 20,
-      borderColor: colors.primary,
+      borderColor: ACCENT,
     },
     topLeft: {
       top: 12,

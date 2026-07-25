@@ -3,8 +3,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenWrapper from "../components/common/ScreenWrapper";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import { booksService } from "../services/books";
+
+const ACCENT = loginColors.teal;
 
 export default function Reader() {
   const router = useRouter();
@@ -43,7 +46,7 @@ export default function Reader() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={ACCENT} />
         </View>
       ) : content && content.trim() ? (
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>

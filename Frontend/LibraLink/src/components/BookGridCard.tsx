@@ -10,16 +10,32 @@ interface BookGridCardProps {
   width: number;
   /** Overrides the default push to /book/[id]. */
   onPress?: () => void;
+  /** Solid accent for the placeholder icon + footer arrow button. Defaults to colors.primary. */
+  accentColor?: string;
+  /** Light tint for the cover-placeholder background. Defaults to colors.primaryLight. */
+  accentSoftColor?: string;
+  /** Color of the icon drawn on top of accentColor. Defaults to colors.textLight. */
+  accentTextColor?: string;
 }
 
 /**
  * The cover-forward card used by the Home "Discover books" grid and by
  * Search results, so both stay visually identical.
  */
-export default function BookGridCard({ book, width, onPress }: BookGridCardProps) {
+export default function BookGridCard({
+  book,
+  width,
+  onPress,
+  accentColor,
+  accentSoftColor,
+  accentTextColor,
+}: BookGridCardProps) {
   const router = useRouter();
   const { colors, spacing, borderRadius, isDark } = useTheme();
-  const styles = createStyles(colors, spacing, borderRadius, isDark);
+  const resolvedAccent = accentColor ?? colors.primary;
+  const resolvedAccentSoft = accentSoftColor ?? colors.primaryLight;
+  const resolvedAccentText = accentTextColor ?? colors.textLight;
+  const styles = createStyles(colors, spacing, borderRadius, isDark, resolvedAccent, resolvedAccentSoft);
 
   const available = isBookAvailable(book);
   const copies = book.availableCopies ?? 0;
@@ -33,7 +49,7 @@ export default function BookGridCard({ book, width, onPress }: BookGridCardProps
         {book.coverImageUrl ? (
           <Image source={{ uri: book.coverImageUrl }} style={styles.cover} resizeMode="cover" />
         ) : (
-          <Ionicons name="book" size={32} color={colors.primary} />
+          <Ionicons name="book" size={32} color={resolvedAccent} />
         )}
         {!available && (
           <View style={styles.loanBadge}>
@@ -51,14 +67,21 @@ export default function BookGridCard({ book, width, onPress }: BookGridCardProps
           {available ? `${copies} ${copies === 1 ? "copy" : "copies"}` : "On loan"}
         </Text>
         <View style={styles.arrow}>
-          <Ionicons name="arrow-forward" size={14} color={colors.textLight} />
+          <Ionicons name="arrow-forward" size={14} color={resolvedAccentText} />
         </View>
       </View>
     </Pressable>
   );
 }
 
-const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: boolean) =>
+const createStyles = (
+  colors: any,
+  spacing: any,
+  borderRadius: any,
+  isDark: boolean,
+  accent: string,
+  accentSoft: string
+) =>
   StyleSheet.create({
     card: {
       backgroundColor: colors.surface,
@@ -70,7 +93,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
     coverWrapper: {
       height: 130,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: accentSoft,
       alignItems: "center",
       justifyContent: "center",
       overflow: "hidden",
@@ -117,7 +140,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 28,
       height: 28,
       borderRadius: 14,
-      backgroundColor: colors.primary,
+      backgroundColor: accent,
       alignItems: "center",
       justifyContent: "center",
     },

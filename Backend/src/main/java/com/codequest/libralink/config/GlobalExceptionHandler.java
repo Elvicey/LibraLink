@@ -52,6 +52,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(Map.of("error", message));
     }
 
+    // Services throw IllegalStateException for two distinct situations, both of which
+    // previously fell through to a generic 500: an external dependency being unconfigured
+    // /unavailable (AI or payments key unset -> 503 Service Unavailable), and a business-rule
+    // conflict with the current state (e.g. "loan can no longer be renewed", "already
+    // returned" -> 409 Conflict). NOTE: this deliberately does NOT catch broader exceptions,
+    // so Spring Security's AccessDeniedException still yields 403 rather than being masked.
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException ex) {
+        String message = ex.getMessage() != null ? ex.getMessage() : "Request could not be completed.";
+        String lower = message.toLowerCase();
+        if (lower.contains("not configured") || lower.contains("not available")
+                || lower.contains("unavailable")) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of("error", message));
+        }
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", message));
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleDataIntegrity(DataIntegrityViolationException ex) {
         String message = ex.getMostSpecificCause() != null

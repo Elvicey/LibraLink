@@ -5,7 +5,11 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import ExploreSheet from "../../components/ExploreSheet";
+import { loginColors } from "../../constants/loginTheme";
 import { useTheme } from "../../constants/theme";
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
 
 const PILL_TABS: { name: string; icon: string; iconOutline: string }[] = [
   { name: "reading-lists", icon: "bookmark", iconOutline: "bookmark-outline" },
@@ -56,7 +60,7 @@ function FloatingTabBar({
         <Ionicons
           name={homeActive ? "home" : "home-outline"}
           size={24}
-          color={homeActive ? colors.textLight : colors.textMuted}
+          color={homeActive ? ACCENT_DARK : colors.textMuted}
         />
       </Pressable>
 
@@ -71,7 +75,7 @@ function FloatingTabBar({
           <Ionicons
             name={exploreOpen ? "compass" : "compass-outline"}
             size={23}
-            color={exploreOpen ? colors.textLight : colors.textMuted}
+            color={exploreOpen ? ACCENT_DARK : colors.textMuted}
           />
         </Pressable>
 
@@ -89,7 +93,7 @@ function FloatingTabBar({
               <Ionicons
                 name={(focused ? tab.icon : tab.iconOutline) as any}
                 size={23}
-                color={focused ? colors.textLight : colors.textMuted}
+                color={focused ? ACCENT_DARK : colors.textMuted}
               />
             </Pressable>
           );
@@ -138,7 +142,7 @@ const createStyles = (colors: any, isDark: boolean) =>
       width: 56,
       height: 56,
       borderRadius: 28,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       alignItems: "center",
       justifyContent: "center",
       shadowColor: "#000",
@@ -177,6 +181,6 @@ const createStyles = (colors: any, isDark: boolean) =>
       justifyContent: "center",
     },
     pillItemActive: {
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
     },
   });

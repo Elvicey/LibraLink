@@ -175,9 +175,10 @@ public class BorrowRecordService {
             throw new IllegalArgumentException("A valid book copy is required.");
         }
 
-        BorrowRecord record = borrowRecordRepository.findFirstByBookCopyIdAndStatus(copy.getId(), "BORROWED")
+        BorrowRecord record = borrowRecordRepository
+                .findFirstByBookCopyIdAndStatusIn(copy.getId(), List.of("BORROWED", "OVERDUE", "RENEWED"))
                 .orElseThrow(() -> new IllegalStateException(
-                        "No active BORROWED record found for copy id: " + copy.getId()));
+                        "No active loan found for copy id: " + copy.getId()));
 
         bookCopyService.setAvailability(copy, true);
 
@@ -195,6 +196,16 @@ public class BorrowRecordService {
         int cap = book.getTotalCopies() == null ? restored : book.getTotalCopies();
         book.setAvailableCopies(Math.min(restored, cap));
         bookRepository.save(book);
+
+        // If the book comes back late, finalize the (possibly already-accruing) overdue fine to
+        // the final lateness — upsert so the scheduler's daily fine isn't duplicated. Mirrors
+        // returnRecord so both return paths (scanned copy vs in-app) treat fines identically.
+        Integer ownerId = saved.getUser() != null ? saved.getUser().getId() : null;
+        LocalDate dueDate = record.getDueDate();
+        if (dueDate != null && dueDate.isBefore(LocalDate.now()) && ownerId != null) {
+            long daysLate = ChronoUnit.DAYS.between(dueDate, LocalDate.now());
+            upsertOverdueFine(saved.getId(), ownerId, book.getTitle(), daysLate);
+        }
 
         if (saved.getUser() != null) {
             Notification notification = new Notification();

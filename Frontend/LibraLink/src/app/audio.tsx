@@ -6,20 +6,31 @@ import {
   LayoutChangeEvent,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import {
   setAudioModeAsync,
   useAudioPlayer,
   useAudioPlayerStatus,
 } from "expo-audio";
-import ScreenWrapper from "../components/common/ScreenWrapper";
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from "../components/auth/AuthLibraryBackground";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
 import { audioService, AudioBookTrackResponse } from "../services/audio";
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
+const ACCENT_LIGHT = "rgba(93, 202, 165, 0.16)";
 
 const SPEEDS = [1.0, 1.25, 1.5, 2.0];
 const SKIP_SECONDS = 15;
@@ -41,6 +52,32 @@ function formatSize(megabytes?: number): string | null {
   if (!megabytes || megabytes <= 0) return null;
   if (megabytes < 1) return `${Math.round(megabytes * 1024)} KB`;
   return `${megabytes.toFixed(1)} MB`;
+}
+
+function Screen({
+  isDark,
+  styles,
+  children,
+}: {
+  isDark: boolean;
+  styles: any;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        {children}
+      </SafeAreaView>
+    </View>
+  );
 }
 
 export default function AudioBookPlayer() {
@@ -187,17 +224,17 @@ export default function AudioBookPlayer() {
 
   if (loading) {
     return (
-      <ScreenWrapper style={styles.screen}>
+      <Screen isDark={isDark} styles={styles}>
         <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={ACCENT} />
         </View>
-      </ScreenWrapper>
+      </Screen>
     );
   }
 
   if (!currentTrack) {
     return (
-      <ScreenWrapper style={styles.screen}>
+      <Screen isDark={isDark} styles={styles}>
         <View style={styles.header}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={22} color={colors.text} />
@@ -207,7 +244,7 @@ export default function AudioBookPlayer() {
         </View>
         <View style={styles.centered}>
           <View style={styles.emptyIcon}>
-            <Ionicons name="headset-outline" size={30} color={colors.primary} />
+            <Ionicons name="headset-outline" size={30} color={ACCENT} />
           </View>
           <Text style={styles.emptyTitle}>No audio tracks yet</Text>
           <Text style={styles.emptyBody}>
@@ -215,12 +252,12 @@ export default function AudioBookPlayer() {
             publishes them.
           </Text>
         </View>
-      </ScreenWrapper>
+      </Screen>
     );
   }
 
   return (
-    <ScreenWrapper style={styles.screen}>
+    <Screen isDark={isDark} styles={styles}>
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={22} color={colors.text} />
@@ -242,7 +279,7 @@ export default function AudioBookPlayer() {
               resizeMode="cover"
             />
           ) : (
-            <Ionicons name="headset" size={56} color={colors.primary} />
+            <Ionicons name="headset" size={56} color={ACCENT} />
           )}
         </View>
 
@@ -296,12 +333,12 @@ export default function AudioBookPlayer() {
             disabled={!status.isLoaded}
           >
             {!status.isLoaded ? (
-              <ActivityIndicator color={colors.textLight} />
+              <ActivityIndicator color={ACCENT_DARK} />
             ) : (
               <Ionicons
                 name={status.playing ? "pause" : "play"}
                 size={26}
-                color={colors.textLight}
+                color={ACCENT_DARK}
                 style={!status.playing && { marginLeft: 3 }}
               />
             )}
@@ -330,7 +367,7 @@ export default function AudioBookPlayer() {
           <Ionicons
             name={currentTrack.isAvailableOffline ? "checkmark-circle" : "wifi-outline"}
             size={19}
-            color={currentTrack.isAvailableOffline ? colors.success : colors.primary}
+            color={currentTrack.isAvailableOffline ? colors.success : ACCENT}
           />
           <View style={{ flex: 1 }}>
             <Text style={styles.infoTitle}>
@@ -358,7 +395,7 @@ export default function AudioBookPlayer() {
                 >
                   <View style={[styles.trackThumb, active && styles.trackThumbActive]}>
                     {active && status.playing ? (
-                      <Ionicons name="volume-high" size={17} color={colors.textLight} />
+                      <Ionicons name="volume-high" size={17} color={ACCENT_DARK} />
                     ) : track.coverImageUrl ? (
                       <Image
                         source={{ uri: track.coverImageUrl }}
@@ -369,7 +406,7 @@ export default function AudioBookPlayer() {
                       <Ionicons
                         name="musical-notes-outline"
                         size={17}
-                        color={active ? colors.textLight : colors.primary}
+                        color={active ? ACCENT_DARK : ACCENT}
                       />
                     )}
                   </View>
@@ -390,7 +427,7 @@ export default function AudioBookPlayer() {
                   <Ionicons
                     name={active && status.playing ? "pause-circle" : "play-circle"}
                     size={26}
-                    color={active ? colors.primary : colors.textMuted}
+                    color={active ? ACCENT : colors.textMuted}
                   />
                 </Pressable>
               );
@@ -398,14 +435,19 @@ export default function AudioBookPlayer() {
           </>
         )}
       </ScrollView>
-    </ScreenWrapper>
+    </Screen>
   );
 }
 
 const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: boolean) =>
   StyleSheet.create({
     screen: {
+      flex: 1,
       backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+      backgroundColor: "transparent",
     },
     centered: {
       flex: 1,
@@ -441,7 +483,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 190,
       height: 190,
       borderRadius: borderRadius.huge,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
       overflow: "hidden",
@@ -457,14 +499,14 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       marginBottom: spacing.xl,
     },
     coursePill: {
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       paddingHorizontal: spacing.md,
       paddingVertical: 3,
       borderRadius: borderRadius.round,
       marginBottom: spacing.sm,
     },
     coursePillText: {
-      color: colors.primary,
+      color: ACCENT,
       fontSize: 11,
       fontWeight: "800",
     },
@@ -491,14 +533,14 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
     barFill: {
       height: 5,
       borderRadius: 3,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
     },
     barThumb: {
       position: "absolute",
       width: 13,
       height: 13,
       borderRadius: 7,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       marginLeft: -6,
     },
     timeRow: {
@@ -528,7 +570,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       justifyContent: "center",
     },
     speedText: {
-      color: colors.primary,
+      color: ACCENT,
       fontWeight: "800",
       fontSize: 12,
     },
@@ -536,7 +578,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 68,
       height: 68,
       borderRadius: 34,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -582,20 +624,20 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       marginBottom: spacing.sm,
     },
     trackRowActive: {
-      borderColor: colors.primary,
-      backgroundColor: colors.primaryLight,
+      borderColor: ACCENT,
+      backgroundColor: ACCENT_LIGHT,
     },
     trackThumb: {
       width: 42,
       height: 42,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
       overflow: "hidden",
     },
     trackThumbActive: {
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
     },
     trackThumbImage: {
       width: "100%",
@@ -610,7 +652,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       color: colors.text,
     },
     trackRowTitleActive: {
-      color: colors.primary,
+      color: ACCENT,
     },
     trackRowMeta: {
       fontSize: 12,
@@ -621,7 +663,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 64,
       height: 64,
       borderRadius: 32,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.lg,
