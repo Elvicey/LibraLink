@@ -5,19 +5,32 @@ import {
   Easing,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import ScreenWrapper from "../components/common/ScreenWrapper";
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from "../components/auth/AuthLibraryBackground";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
 import { aiService } from "../services/ai";
 import { bookAuthorName } from "../services/books";
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
+const ACCENT_LIGHT = "rgba(93, 202, 165, 0.16)";
 
 const FALLBACK_SUGGESTIONS = [
   "Recommend books for a project",
@@ -168,7 +181,7 @@ export default function AI() {
   const emptyState = (
     <View style={styles.emptyState}>
       <View style={styles.emptyAvatar}>
-        <Ionicons name="sparkles" size={30} color={colors.primary} />
+        <Ionicons name="sparkles" size={30} color={ACCENT} />
       </View>
       <Text style={styles.emptyTitle}>
         Hi {firstName || "there"}, I'm Libra
@@ -183,7 +196,7 @@ export default function AI() {
         {suggestions.map((item) => (
           <Pressable key={item} style={styles.suggestCard} onPress={() => sendMessage(item)}>
             <View style={styles.suggestIcon}>
-              <Ionicons name={suggestionIcon(item) as any} size={17} color={colors.primary} />
+              <Ionicons name={suggestionIcon(item) as any} size={17} color={ACCENT} />
             </View>
             <Text style={styles.suggestText} numberOfLines={2}>
               {item}
@@ -196,7 +209,21 @@ export default function AI() {
   );
 
   return (
-    <ScreenWrapper style={styles.screen}>
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+        >
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
@@ -205,7 +232,7 @@ export default function AI() {
 
         <View style={styles.headerIdentity}>
           <View style={styles.headerAvatar}>
-            <Ionicons name="sparkles" size={16} color={colors.primary} />
+            <Ionicons name="sparkles" size={16} color={ACCENT} />
           </View>
           <View>
             <Text style={styles.headerName}>Libra</Text>
@@ -217,7 +244,7 @@ export default function AI() {
 
         {messages.length > 0 ? (
           <Pressable onPress={clearChat} hitSlop={8}>
-            <Ionicons name="create-outline" size={21} color={colors.primary} />
+            <Ionicons name="create-outline" size={21} color={ACCENT} />
           </Pressable>
         ) : (
           <View style={styles.backButton} />
@@ -246,7 +273,7 @@ export default function AI() {
               <View style={mine ? styles.userRow : styles.libraRow}>
                 {!mine && (
                   <View style={styles.bubbleAvatar}>
-                    <Ionicons name="sparkles" size={13} color={colors.primary} />
+                    <Ionicons name="sparkles" size={13} color={ACCENT} />
                   </View>
                 )}
                 <View style={[styles.bubble, mine ? styles.userBubble : styles.libraBubble]}>
@@ -280,7 +307,7 @@ export default function AI() {
                             resizeMode="cover"
                           />
                         ) : (
-                          <Ionicons name="book" size={20} color={colors.primary} />
+                          <Ionicons name="book" size={20} color={ACCENT} />
                         )}
                       </View>
                       <Text style={styles.miniTitle} numberOfLines={2}>
@@ -300,7 +327,7 @@ export default function AI() {
           isTyping ? (
             <View style={styles.libraRow}>
               <View style={styles.bubbleAvatar}>
-                <Ionicons name="sparkles" size={13} color={colors.primary} />
+                <Ionicons name="sparkles" size={13} color={ACCENT} />
               </View>
               <View style={[styles.bubble, styles.libraBubble, styles.typingBubble]}>
                 <TypingDots color={colors.textMuted} />
@@ -331,17 +358,27 @@ export default function AI() {
           onPress={() => sendMessage(prompt)}
           disabled={!prompt.trim() || isTyping}
         >
-          <Ionicons name="arrow-up" size={20} color={colors.textLight} />
+          <Ionicons name="arrow-up" size={20} color={ACCENT_DARK} />
         </Pressable>
       </View>
-    </ScreenWrapper>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: boolean) =>
   StyleSheet.create({
     screen: {
+      flex: 1,
       backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+      backgroundColor: "transparent",
+    },
+    flex: {
+      flex: 1,
     },
     header: {
       flexDirection: "row",
@@ -368,7 +405,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 34,
       height: 34,
       borderRadius: 17,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -410,7 +447,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 28,
       height: 28,
       borderRadius: 14,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -422,7 +459,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       borderRadius: borderRadius.xl,
     },
     userBubble: {
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       borderBottomRightRadius: borderRadius.xs,
     },
     libraBubble: {
@@ -439,7 +476,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       lineHeight: 21,
     },
     userText: {
-      color: colors.textLight,
+      color: ACCENT_DARK,
     },
     libraText: {
       color: colors.text,
@@ -450,7 +487,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       alignSelf: "flex-end",
     },
     userTime: {
-      color: colors.textLight,
+      color: ACCENT_DARK,
       opacity: 0.7,
     },
     libraTime: {
@@ -472,7 +509,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
     miniCover: {
       height: 72,
       borderRadius: borderRadius.sm,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
       overflow: "hidden",
@@ -501,7 +538,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 66,
       height: 66,
       borderRadius: 33,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.lg,
@@ -547,7 +584,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 34,
       height: 34,
       borderRadius: 17,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -589,7 +626,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 46,
       height: 46,
       borderRadius: 23,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       alignItems: "center",
       justifyContent: "center",
     },

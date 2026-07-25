@@ -1,12 +1,32 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../components/common/Button";
 import Card from "../components/common/Card";
-import ScreenWrapper from "../components/common/ScreenWrapper";
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from "../components/auth/AuthLibraryBackground";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import { examService, ExamQuestion, AnswerResult } from "../services/exam";
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
+const ACCENT_LIGHT = "rgba(93, 202, 165, 0.16)";
 
 const OPTION_LETTERS = ["A", "B", "C", "D"] as const;
 type Difficulty = "EASY" | "MEDIUM" | "HARD";
@@ -94,12 +114,27 @@ export default function ExamMode() {
   };
 
   return (
-    <ScreenWrapper scrollable contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[styles.scrollContent, { padding: spacing.lg }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
       {/* Back button with chevron icon */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <View style={styles.backButtonRow}>
-          <Ionicons name="chevron-back" size={20} color={colors.primary} />
-          <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
+          <Ionicons name="chevron-back" size={20} color={ACCENT} />
+          <Text style={[styles.backText, { color: ACCENT }]}>Back</Text>
         </View>
       </Pressable>
 
@@ -116,7 +151,7 @@ export default function ExamMode() {
           style={[styles.roleTab, activeTab === "summaries" && styles.activeRoleTab]}
           onPress={() => setActiveTab("summaries")}
         >
-          <Text style={[styles.roleTabText, activeTab === "summaries" && styles.activeRoleTabText, { color: activeTab === "summaries" ? colors.textLight : colors.textMuted }]}>
+          <Text style={[styles.roleTabText, activeTab === "summaries" && styles.activeRoleTabText, { color: activeTab === "summaries" ? ACCENT_DARK : colors.textMuted }]}>
             Summaries
           </Text>
         </Pressable>
@@ -124,7 +159,7 @@ export default function ExamMode() {
           style={[styles.roleTab, activeTab === "quiz" && styles.activeRoleTab]}
           onPress={() => setActiveTab("quiz")}
         >
-          <Text style={[styles.roleTabText, activeTab === "quiz" && styles.activeRoleTabText, { color: activeTab === "quiz" ? colors.textLight : colors.textMuted }]}>
+          <Text style={[styles.roleTabText, activeTab === "quiz" && styles.activeRoleTabText, { color: activeTab === "quiz" ? ACCENT_DARK : colors.textMuted }]}>
             Quiz
           </Text>
         </Pressable>
@@ -132,7 +167,7 @@ export default function ExamMode() {
           style={[styles.roleTab, activeTab === "workspaces" && styles.activeRoleTab]}
           onPress={() => setActiveTab("workspaces")}
         >
-          <Text style={[styles.roleTabText, activeTab === "workspaces" && styles.activeRoleTabText, { color: activeTab === "workspaces" ? colors.textLight : colors.textMuted }]}>
+          <Text style={[styles.roleTabText, activeTab === "workspaces" && styles.activeRoleTabText, { color: activeTab === "workspaces" ? ACCENT_DARK : colors.textMuted }]}>
             Workspaces
           </Text>
         </Pressable>
@@ -144,14 +179,14 @@ export default function ExamMode() {
           {SUMMARIES.map((summ) => (
             <Card key={summ.course} style={[styles.summaryCard, isDark ? styles.cardDark : null, { marginBottom: spacing.md }]}>
               <View style={styles.cardHeader}>
-                <Ionicons name="sparkles-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
-                <Text style={[styles.courseCode, { color: colors.primary }]}>{summ.course}</Text>
+                <Ionicons name="sparkles-outline" size={16} color={ACCENT} style={{ marginRight: 6 }} />
+                <Text style={[styles.courseCode, { color: ACCENT }]}>{summ.course}</Text>
               </View>
-              
+
               <View style={styles.topicsList}>
                 {summ.topics.map((t, idx) => (
                   <View key={idx} style={styles.topicRow}>
-                    <Text style={[styles.topicDot, { color: colors.primary }]}>•</Text>
+                    <Text style={[styles.topicDot, { color: ACCENT }]}>•</Text>
                     <Text style={[styles.topicText, { color: colors.text }]}>{t}</Text>
                   </View>
                 ))}
@@ -166,7 +201,7 @@ export default function ExamMode() {
         <View style={styles.section}>
           {questions.length === 0 ? (
             <Card style={[styles.quizCard, isDark ? styles.cardDark : null, { padding: spacing.md }]}>
-              <Text style={[styles.questionNo, { color: colors.primary, marginBottom: spacing.xs }]}>GENERATE A QUIZ</Text>
+              <Text style={[styles.questionNo, { color: ACCENT, marginBottom: spacing.xs }]}>GENERATE A QUIZ</Text>
               <Text style={[styles.description, { color: colors.textMuted, fontSize: typography.bodyMedium.fontSize, marginBottom: spacing.md }]}>
                 Enter a topic or paste some notes, and Libra will create a 5-question practice quiz.
               </Text>
@@ -186,9 +221,9 @@ export default function ExamMode() {
                     <Pressable
                       key={d}
                       onPress={() => setDifficulty(d)}
-                      style={[styles.diffChip, { borderColor: active ? colors.primary : colors.border, backgroundColor: active ? colors.primaryLight : "transparent", borderRadius: borderRadius.round }]}
+                      style={[styles.diffChip, { borderColor: active ? ACCENT : colors.border, backgroundColor: active ? ACCENT_LIGHT : "transparent", borderRadius: borderRadius.round }]}
                     >
-                      <Text style={[styles.diffChipText, { color: active ? colors.primary : colors.textMuted }]}>{d}</Text>
+                      <Text style={[styles.diffChipText, { color: active ? ACCENT : colors.textMuted }]}>{d}</Text>
                     </Pressable>
                   );
                 })}
@@ -197,9 +232,11 @@ export default function ExamMode() {
                 title={generating ? "Generating…" : "Generate quiz"}
                 onPress={handleGenerate}
                 disabled={generating}
+                accentColor={ACCENT}
+                textStyle={{ color: ACCENT_DARK }}
                 style={{ marginTop: spacing.md }}
               />
-              {generating && <ActivityIndicator style={{ marginTop: spacing.md }} color={colors.primary} />}
+              {generating && <ActivityIndicator style={{ marginTop: spacing.md }} color={ACCENT} />}
             </Card>
           ) : (
             <>
@@ -209,7 +246,7 @@ export default function ExamMode() {
                 const result = results[q.id];
                 return (
                   <Card key={q.id} style={[styles.quizCard, isDark ? styles.cardDark : null, { padding: spacing.md, marginBottom: spacing.lg }]}>
-                    <Text style={[styles.questionNo, { color: colors.primary, marginBottom: spacing.xs }]}>QUESTION {qi + 1} OF {questions.length}</Text>
+                    <Text style={[styles.questionNo, { color: ACCENT, marginBottom: spacing.xs }]}>QUESTION {qi + 1} OF {questions.length}</Text>
                     <Text style={[styles.questionText, { color: colors.text, marginBottom: spacing.md }]}>{q.question}</Text>
 
                     {OPTION_LETTERS.map((letter, idx) => {
@@ -220,9 +257,9 @@ export default function ExamMode() {
                       let optionBorder = colors.border;
                       let optionTextColor = colors.text;
                       if (isSelected && !result) {
-                        optionBg = isDark ? "rgba(11, 110, 253, 0.12)" : colors.primaryLight;
-                        optionBorder = colors.primary;
-                        optionTextColor = colors.primary;
+                        optionBg = ACCENT_LIGHT;
+                        optionBorder = ACCENT;
+                        optionTextColor = ACCENT;
                       }
                       if (result) {
                         if (letter === result.correctAnswer) {
@@ -263,13 +300,21 @@ export default function ExamMode() {
                         title={checkingId === q.id ? "Checking…" : "Check answer"}
                         onPress={() => handleCheck(q.id)}
                         disabled={!selected || checkingId === q.id}
+                        accentColor={ACCENT}
+                        textStyle={{ color: ACCENT_DARK }}
                         style={{ marginTop: spacing.xs }}
                       />
                     )}
                   </Card>
                 );
               })}
-              <Button title="New quiz" onPress={handleNewQuiz} style={{ marginBottom: spacing.lg }} />
+              <Button
+                title="New quiz"
+                onPress={handleNewQuiz}
+                accentColor={ACCENT}
+                textStyle={{ color: ACCENT_DARK }}
+                style={{ marginBottom: spacing.lg }}
+              />
             </>
           )}
         </View>
@@ -282,14 +327,14 @@ export default function ExamMode() {
           <Card style={[styles.summaryCard, isDark ? styles.cardDark : null, { padding: spacing.md, marginBottom: spacing.md }]}>
             <View style={styles.workspaceRow}>
               <View style={styles.workspaceLeft}>
-                <Ionicons name="people-outline" size={24} color={colors.primary} style={{ marginRight: spacing.md }} />
+                <Ionicons name="people-outline" size={24} color={ACCENT} style={{ marginRight: spacing.md }} />
                 <View>
                   <Text style={[styles.workspaceTitle, { color: colors.text }]}>KNUST Algo study channel</Text>
                   <Text style={[styles.workspaceMembers, { color: colors.textMuted }]}>4 student nodes active now</Text>
                 </View>
               </View>
-              <Pressable style={[styles.joinBtn, { backgroundColor: colors.primaryLight, borderRadius: borderRadius.round }]}>
-                <Text style={[styles.joinText, { color: colors.primary }]}>Join</Text>
+              <Pressable style={[styles.joinBtn, { backgroundColor: ACCENT_LIGHT, borderRadius: borderRadius.round }]}>
+                <Text style={[styles.joinText, { color: ACCENT }]}>Join</Text>
               </Pressable>
             </View>
           </Card>
@@ -310,13 +355,26 @@ export default function ExamMode() {
           </Card>
         </View>
       )}
-    </ScreenWrapper>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (colors: any, spacing: any, borderRadius: any, typography: any, isDark: boolean) =>
   StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
     container: {
+      flex: 1,
+      backgroundColor: "transparent",
+    },
+    scroll: {
+      flex: 1,
+    },
+    scrollContent: {
       backgroundColor: "transparent",
     },
     backButton: {
@@ -355,7 +413,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       borderRadius: borderRadius.lg,
     },
     activeRoleTab: {
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
     },
     roleTabText: {
       fontSize: 14,

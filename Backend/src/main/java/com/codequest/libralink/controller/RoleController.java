@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 public class RoleController {
     @Autowired private RoleService roleService;
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<Role> createRole(@Valid @RequestBody Role role) {
         return new ResponseEntity<>(roleService.saveRole(role), HttpStatus.CREATED);

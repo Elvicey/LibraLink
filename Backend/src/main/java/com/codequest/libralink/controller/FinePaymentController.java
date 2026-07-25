@@ -44,11 +44,14 @@ public class FinePaymentController {
         this.finePaymentRepository = finePaymentRepository;
     }
 
-    @PreAuthorize("hasAnyRole('STUDENT', 'LIBRARIAN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
     @PostMapping
     public ResponseEntity<FinePayment> payFine(@RequestBody FinePayment payment) {
-        // A student/lecturer can only ever pay their own fine. A librarian/admin may
-        // record an in-person payment on behalf of a specific patron by supplying userId.
+        // Staff-only: records an in-person (e.g. cash) payment against a patron's fine and
+        // marks it PAID WITHOUT a gateway charge. Students must never reach this — otherwise
+        // they could settle their own fines for free, bypassing Paystack. Self-service online
+        // payment goes through /initialize + /verify, which only marks a fine paid after
+        // Paystack confirms the money server-side.
         payment.setUserId(currentUserProvider.resolveActingUserId(payment.getUserId(), "LIBRARIAN", "ADMIN"));
         return new ResponseEntity<>(finePaymentService.processPayment(payment), HttpStatus.CREATED);
     }
@@ -90,8 +93,12 @@ public class FinePaymentController {
         // Unique per attempt; also carries the fine id for easy reconciliation in the dashboard.
         String reference = "LIB-" + fineId + "-" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
 
+        // Optional app deep link Paystack redirects to after checkout (see openAuthSessionAsync
+        // on the client). Falls back to the browser-close flow when absent.
+        String callbackUrl = body.get("callbackUrl") == null ? null : body.get("callbackUrl").toString();
+
         PaymentGatewayService.InitResult init = paymentGatewayService.initialize(
-                owner.getEmail(), fine.getAmount(), reference, fineId, fine.getUserId());
+                owner.getEmail(), fine.getAmount(), reference, fineId, fine.getUserId(), callbackUrl);
 
         return ResponseEntity.ok(Map.of(
                 "authorizationUrl", init.authorizationUrl(),

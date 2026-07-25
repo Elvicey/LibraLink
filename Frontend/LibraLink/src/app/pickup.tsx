@@ -5,12 +5,19 @@ import {
   Alert,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import ScreenWrapper from "../components/common/ScreenWrapper";
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from "../components/auth/AuthLibraryBackground";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
 import { booksService, Book } from "../services/books";
@@ -19,6 +26,10 @@ import {
   ReservationResponse,
   reservationsService,
 } from "../services/reservations";
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
+const ACCENT_LIGHT = "rgba(93, 202, 165, 0.16)";
 
 const DESKS = ["Main Library", "Engineering", "Science Library"];
 
@@ -234,16 +245,25 @@ export default function BookPickup() {
   );
 
   return (
-    <ScreenWrapper style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable style={styles.headerButton} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={22} color={colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Pick-Up Scheduler</Text>
-        <View style={styles.headerButton} />
-      </View>
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        <View style={styles.header}>
+          <Pressable style={styles.headerButton} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={22} color={colors.text} />
+          </Pressable>
+          <Text style={styles.headerTitle}>Pick-Up Scheduler</Text>
+          <View style={styles.headerButton} />
+        </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Scheduling card — shown when arriving from a book */}
         {hasPending && (
           <View style={styles.scheduleCard}>
@@ -264,7 +284,7 @@ export default function BookPickup() {
                   calendarMonth.getMonth() === startOfToday().getMonth()
                 }
               >
-                <Ionicons name="chevron-back" size={18} color={colors.primary} />
+                <Ionicons name="chevron-back" size={18} color={ACCENT} />
               </Pressable>
               <Text style={styles.monthTitle}>
                 {calendarMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
@@ -275,7 +295,7 @@ export default function BookPickup() {
                   setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))
                 }
               >
-                <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+                <Ionicons name="chevron-forward" size={18} color={ACCENT} />
               </Pressable>
             </View>
             <View style={styles.weekRow}>
@@ -299,7 +319,7 @@ export default function BookPickup() {
                     onPress={() => setSelectedDate(day)}
                     style={[
                       styles.calendarDay,
-                      selected && { backgroundColor: colors.primary },
+                      selected && { backgroundColor: ACCENT },
                       disabled && styles.pastDay,
                     ]}
                   >
@@ -308,7 +328,7 @@ export default function BookPickup() {
                         styles.calendarDayText,
                         { color: colors.text },
                         disabled && { color: colors.textMuted },
-                        selected && { color: colors.textLight, fontWeight: "800" },
+                        selected && { color: ACCENT_DARK, fontWeight: "800" },
                       ]}
                     >
                       {day.getDate()}
@@ -348,9 +368,9 @@ export default function BookPickup() {
                             setSelectedTime(option);
                             setTimePickerOpen(false);
                           }}
-                          style={[styles.dropdownOption, active && { backgroundColor: colors.primaryLight }]}
+                          style={[styles.dropdownOption, active && { backgroundColor: ACCENT_LIGHT }]}
                         >
-                          <Text style={[styles.pickerOptionText, { color: active ? colors.primary : colors.text }]}>
+                          <Text style={[styles.pickerOptionText, { color: active ? ACCENT : colors.text }]}>
                             {option.label}
                           </Text>
                         </Pressable>
@@ -373,7 +393,7 @@ export default function BookPickup() {
               disabled={confirming}
             >
               {confirming ? (
-                <ActivityIndicator color={colors.textLight} />
+                <ActivityIndicator color={ACCENT_DARK} />
               ) : (
                 <Text style={styles.confirmButtonText}>Confirm reservation</Text>
               )}
@@ -387,19 +407,19 @@ export default function BookPickup() {
 
         {isStaff && (
           <View style={styles.infoCard}>
-            <Ionicons name="information-circle-outline" size={19} color={colors.primary} />
+            <Ionicons name="information-circle-outline" size={19} color={ACCENT} />
             <Text style={styles.infoText}>
               Use Scan Barcode in the Admin console to collect scheduled pickups via QR.
             </Text>
           </View>
         )}
 
-        {loading && <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />}
+        {loading && <ActivityIndicator color={ACCENT} style={{ marginTop: spacing.xl }} />}
 
         {!loading && slots.length === 0 && !hasPending && (
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="bag-handle-outline" size={30} color={colors.primary} />
+              <Ionicons name="bag-handle-outline" size={30} color={ACCENT} />
             </View>
             <Text style={styles.emptyTitle}>No pickup slots yet</Text>
             <Text style={styles.emptyBody}>
@@ -432,7 +452,7 @@ export default function BookPickup() {
 
               {!!slot.qrCode && (
                 <View style={styles.qrRow}>
-                  <Ionicons name="qr-code-outline" size={15} color={colors.primary} />
+                  <Ionicons name="qr-code-outline" size={15} color={ACCENT} />
                   <Text style={styles.qrText} numberOfLines={1}>
                     {slot.qrCode}
                   </Text>
@@ -440,15 +460,21 @@ export default function BookPickup() {
               )}
             </View>
           ))}
-      </ScrollView>
-    </ScreenWrapper>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: boolean) =>
   StyleSheet.create({
     screen: {
+      flex: 1,
       backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+      backgroundColor: "transparent",
     },
     header: {
       flexDirection: "row",
@@ -482,7 +508,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
     scheduleCard: {
       backgroundColor: colors.surface,
       borderWidth: 1,
-      borderColor: colors.primary,
+      borderColor: ACCENT,
       borderRadius: borderRadius.xl,
       padding: spacing.lg,
       marginBottom: spacing.xl,
@@ -491,7 +517,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       fontSize: 11,
       fontWeight: "800",
       letterSpacing: 0.8,
-      color: colors.primary,
+      color: ACCENT,
       marginBottom: spacing.xs,
     },
     scheduleTitle: {
@@ -521,8 +547,8 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       backgroundColor: colors.background,
     },
     chipActive: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
+      backgroundColor: ACCENT,
+      borderColor: ACCENT,
     },
     chipText: {
       fontSize: 13,
@@ -530,11 +556,11 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       color: colors.textMuted,
     },
     chipTextActive: {
-      color: colors.textLight,
+      color: ACCENT_DARK,
       fontWeight: "700",
     },
     confirmButton: {
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       paddingVertical: spacing.md + 2,
       borderRadius: borderRadius.round,
       alignItems: "center",
@@ -544,7 +570,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       opacity: 0.7,
     },
     confirmButtonText: {
-      color: colors.textLight,
+      color: ACCENT_DARK,
       fontWeight: "800",
       fontSize: 15,
     },
@@ -558,7 +584,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 34,
       height: 34,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -596,7 +622,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       opacity: 0.35,
     },
     selectedValue: {
-      color: colors.primary,
+      color: ACCENT,
       fontSize: 12,
       fontWeight: "700",
       textAlign: "center",
@@ -692,7 +718,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       color: colors.text,
     },
     statusPill: {
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       paddingHorizontal: spacing.sm,
       paddingVertical: 2,
       borderRadius: borderRadius.round,
@@ -700,7 +726,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
     statusPillText: {
       fontSize: 10,
       fontWeight: "800",
-      color: colors.primary,
+      color: ACCENT,
     },
     slotRow: {
       flexDirection: "row",
@@ -722,7 +748,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       flex: 1,
       fontSize: 12,
       fontWeight: "600",
-      color: colors.primary,
+      color: ACCENT,
     },
     emptyState: {
       alignItems: "center",
@@ -732,7 +758,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 64,
       height: 64,
       borderRadius: 32,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.lg,
@@ -752,13 +778,13 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
     },
     emptyButton: {
       marginTop: spacing.lg,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       paddingHorizontal: spacing.xl,
       paddingVertical: spacing.md,
       borderRadius: borderRadius.round,
     },
     emptyButtonText: {
-      color: colors.textLight,
+      color: ACCENT_DARK,
       fontWeight: "700",
       fontSize: 14,
     },

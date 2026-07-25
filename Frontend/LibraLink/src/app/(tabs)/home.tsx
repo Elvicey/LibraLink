@@ -7,13 +7,20 @@ import {
   NativeSyntheticEvent,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import BookGridCard from "../../components/BookGridCard";
-import ScreenWrapper from "../../components/common/ScreenWrapper";
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from "../../components/auth/AuthLibraryBackground";
+import { loginColors } from "../../constants/loginTheme";
 import { useTheme } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { booksService, Book } from "../../services/books";
@@ -25,6 +32,10 @@ const SCREEN_PADDING = 16;
 const SLIDE_WIDTH = Dimensions.get("window").width - SCREEN_PADDING * 2;
 /** Two cards per row, accounting for the spacing.md gap between them. */
 const CARD_WIDTH = (SLIDE_WIDTH - 12) / 2;
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
+const ACCENT_LIGHT = "rgba(93, 202, 165, 0.16)";
 
 type HeroSlide = {
   eyebrow: string;
@@ -117,140 +128,172 @@ export default function Home() {
   const gridBooks = recommended.slice(0, 6);
 
   return (
-    <ScreenWrapper scrollable style={styles.screen} contentContainerStyle={styles.container}>
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <View style={styles.wordmark}>
-          <Ionicons name="library" size={20} color={colors.primary} />
-          <Text style={styles.wordmarkText}>LibraLink</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <Pressable
-            style={styles.bellButton}
-            onPress={() => router.push("/notifications" as any)}
-          >
-            <Ionicons name="notifications-outline" size={20} color={colors.text} />
-            {unreadNotifs > 0 && <View style={styles.bellBadge} />}
-          </Pressable>
-          <Pressable
-            style={styles.avatar}
-            onPress={() => router.push("/profile" as any)}
-          >
-            <Text style={styles.avatarText}>{initial}</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Search row */}
-      <View style={styles.searchRow}>
-        <Pressable style={styles.searchBar} onPress={() => router.push("/search" as any)}>
-          <Ionicons name="search-outline" size={19} color={colors.textMuted} />
-          <Text style={styles.searchPlaceholder}>Search title, author, ISBN</Text>
-        </Pressable>
-        <Pressable style={styles.scanButton} onPress={() => router.push("/scan" as any)}>
-          <Ionicons name="scan-outline" size={21} color={colors.textLight} />
-        </Pressable>
-      </View>
-
-      {/* Hero carousel */}
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={SLIDE_WIDTH}
-        decelerationRate="fast"
-        onScroll={onHeroScroll}
-        scrollEventThrottle={16}
-        style={styles.heroScroll}
-      >
-        {HERO_SLIDES.map((slide) => (
-          <View key={slide.eyebrow} style={styles.heroSlide}>
-            <View style={styles.heroCard}>
-              <Text style={styles.heroEyebrow}>{slide.eyebrow}</Text>
-              <Text style={styles.heroTitle}>{slide.title}</Text>
-              <Text style={styles.heroBody}>{slide.body}</Text>
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
+          <View style={styles.headerRow}>
+            <View style={styles.wordmark}>
+              <Ionicons name="library" size={20} color={ACCENT} />
+              <Text style={styles.wordmarkText}>LibraLink</Text>
+            </View>
+            <View style={styles.headerActions}>
               <Pressable
-                style={styles.heroCta}
-                onPress={() => router.push(slide.route as any)}
+                style={styles.bellButton}
+                onPress={() => router.push("/notifications" as any)}
               >
-                <Text style={styles.heroCtaText}>{slide.cta}</Text>
+                <Ionicons name="notifications-outline" size={20} color={colors.text} />
+                {unreadNotifs > 0 && <View style={styles.bellBadge} />}
+              </Pressable>
+              <Pressable
+                style={styles.avatar}
+                onPress={() => router.push("/profile" as any)}
+              >
+                <Text style={styles.avatarText}>{initial}</Text>
               </Pressable>
             </View>
           </View>
-        ))}
-      </ScrollView>
 
-      {/* Carousel dots */}
-      <View style={styles.dotsRow}>
-        {HERO_SLIDES.map((slide, index) => (
-          <View
-            key={slide.eyebrow}
-            style={[styles.dot, index === heroIndex && styles.dotActive]}
-          />
-        ))}
-      </View>
-
-      {/* Fines alert — only when money is owed */}
-      {unpaidFineTotal > 0 && (
-        <Pressable style={styles.fineStrip} onPress={() => router.push("/pay-fines" as any)}>
-          <Ionicons name="alert-circle" size={20} color={colors.danger} />
-          <View style={styles.fineText}>
-            <Text style={styles.fineTitle}>GHS {unpaidFineTotal.toFixed(2)} unpaid</Text>
-            <Text style={styles.fineSubtitle}>
-              {overdueCount === 1 ? "1 book overdue" : `${overdueCount} books overdue`}
-            </Text>
+          {/* Search row */}
+          <View style={styles.searchRow}>
+            <Pressable style={styles.searchBar} onPress={() => router.push("/search" as any)}>
+              <Ionicons name="search-outline" size={19} color={colors.textMuted} />
+              <Text style={styles.searchPlaceholder}>Search title, author, ISBN</Text>
+            </Pressable>
+            <Pressable style={styles.scanButton} onPress={() => router.push("/scan" as any)}>
+              <Ionicons name="scan-outline" size={21} color={ACCENT_DARK} />
+            </Pressable>
           </View>
-          <View style={styles.finePill}>
-            <Text style={styles.finePillText}>Pay</Text>
+
+          {/* Hero carousel */}
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={SLIDE_WIDTH}
+            decelerationRate="fast"
+            onScroll={onHeroScroll}
+            scrollEventThrottle={16}
+            style={styles.heroScroll}
+          >
+            {HERO_SLIDES.map((slide) => (
+              <View key={slide.eyebrow} style={styles.heroSlide}>
+                <View style={styles.heroCard}>
+                  <Text style={styles.heroEyebrow}>{slide.eyebrow}</Text>
+                  <Text style={styles.heroTitle}>{slide.title}</Text>
+                  <Text style={styles.heroBody}>{slide.body}</Text>
+                  <Pressable
+                    style={styles.heroCta}
+                    onPress={() => router.push(slide.route as any)}
+                  >
+                    <Text style={styles.heroCtaText}>{slide.cta}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Carousel dots */}
+          <View style={styles.dotsRow}>
+            {HERO_SLIDES.map((slide, index) => (
+              <View
+                key={slide.eyebrow}
+                style={[styles.dot, index === heroIndex && styles.dotActive]}
+              />
+            ))}
           </View>
-        </Pressable>
-      )}
 
-      {/* Compact stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Ionicons name="book-outline" size={19} color={colors.primary} />
-          <Text style={styles.statValue}>{borrowedCount}</Text>
-          <Text style={styles.statLabel}>Borrowed</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Ionicons name="time-outline" size={19} color={colors.warning} />
-          <Text style={[styles.statValue, overdueCount > 0 && { color: colors.danger }]}>
-            {overdueCount}
-          </Text>
-          <Text style={styles.statLabel}>Overdue</Text>
-        </View>
-      </View>
+          {/* Fines alert — only when money is owed */}
+          {unpaidFineTotal > 0 && (
+            <Pressable style={styles.fineStrip} onPress={() => router.push("/pay-fines" as any)}>
+              <Ionicons name="alert-circle" size={20} color={colors.danger} />
+              <View style={styles.fineText}>
+                <Text style={styles.fineTitle}>GHS {unpaidFineTotal.toFixed(2)} unpaid</Text>
+                <Text style={styles.fineSubtitle}>
+                  {overdueCount === 1 ? "1 book overdue" : `${overdueCount} books overdue`}
+                </Text>
+              </View>
+              <View style={styles.finePill}>
+                <Text style={styles.finePillText}>Pay</Text>
+              </View>
+            </Pressable>
+          )}
 
-      {/* Discover books */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Discover books</Text>
-        <Pressable onPress={() => router.push("/search" as any)}>
-          <Text style={styles.seeMore}>See more</Text>
-        </Pressable>
-      </View>
+          {/* Compact stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Ionicons name="book-outline" size={19} color={ACCENT} />
+              <Text style={styles.statValue}>{borrowedCount}</Text>
+              <Text style={styles.statLabel}>Borrowed</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="time-outline" size={19} color={colors.warning} />
+              <Text style={[styles.statValue, overdueCount > 0 && { color: colors.danger }]}>
+                {overdueCount}
+              </Text>
+              <Text style={styles.statLabel}>Overdue</Text>
+            </View>
+          </View>
 
-      {loading ? (
-        <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.xl }} />
-      ) : gridBooks.length === 0 ? (
-        <Text style={styles.emptyText}>No books in the catalogue yet.</Text>
-      ) : (
-        <View style={styles.grid}>
-          {gridBooks.map((book) => (
-            <BookGridCard key={book.id} book={book} width={CARD_WIDTH} />
-          ))}
-        </View>
-      )}
-    </ScreenWrapper>
+          {/* Discover books */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Discover books</Text>
+            <Pressable onPress={() => router.push("/search" as any)}>
+              <Text style={styles.seeMore}>See more</Text>
+            </Pressable>
+          </View>
+
+          {loading ? (
+            <ActivityIndicator color={ACCENT} style={{ marginVertical: spacing.xl }} />
+          ) : gridBooks.length === 0 ? (
+            <Text style={styles.emptyText}>No books in the catalogue yet.</Text>
+          ) : (
+            <View style={styles.grid}>
+              {gridBooks.map((book) => (
+                <BookGridCard
+                  key={book.id}
+                  book={book}
+                  width={CARD_WIDTH}
+                  accentColor={ACCENT}
+                  accentSoftColor={ACCENT_LIGHT}
+                  accentTextColor={ACCENT_DARK}
+                />
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: boolean) =>
   StyleSheet.create({
     screen: {
+      flex: 1,
       backgroundColor: colors.background,
     },
     container: {
+      flex: 1,
+      backgroundColor: "transparent",
+    },
+    scroll: {
+      flex: 1,
+    },
+    scrollContent: {
       paddingHorizontal: SCREEN_PADDING,
       paddingTop: spacing.sm,
       // Clear the floating tab bar
@@ -302,12 +345,12 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       alignItems: "center",
       justifyContent: "center",
     },
     avatarText: {
-      color: colors.textLight,
+      color: ACCENT_DARK,
       fontWeight: "800",
       fontSize: 15,
     },
@@ -337,7 +380,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 48,
       height: 48,
       borderRadius: 24,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -349,7 +392,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: SLIDE_WIDTH,
     },
     heroCard: {
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT_DARK,
       borderRadius: borderRadius.huge,
       padding: spacing.xl,
     },
@@ -383,7 +426,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       borderRadius: borderRadius.round,
     },
     heroCtaText: {
-      color: colors.primary,
+      color: ACCENT,
       fontWeight: "700",
       fontSize: 14,
     },
@@ -403,7 +446,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
     },
     dotActive: {
       width: 18,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
     },
     fineStrip: {
       flexDirection: "row",
@@ -478,7 +521,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       color: colors.text,
     },
     seeMore: {
-      color: colors.primary,
+      color: ACCENT,
       fontSize: 13,
       fontWeight: "700",
     },

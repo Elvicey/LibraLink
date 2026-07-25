@@ -6,16 +6,23 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
+  StatusBar,
   Modal,
   Alert,
   Platform,
   ActivityIndicator,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter, useFocusEffect } from 'expo-router';
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from '../components/auth/AuthLibraryBackground';
+import { useTheme } from '../constants/theme';
 import { booksService, Book, bookAuthorName, isBookAvailable } from '../services/books';
 import { usersService, AppUser, primaryRole } from '../services/users';
 import { circulationService, BookCopyResponse } from '../services/circulation';
@@ -23,9 +30,9 @@ import { finesService } from '../services/fines';
 import { useAuth } from '../contexts/AuthContext';
 
 const colors = {
-  primary: '#7C5CFC',
-  primaryDark: '#5B3FE0',
-  primaryLight: '#EDE7FF',
+  primary: '#5DCAA5',
+  primaryDark: '#04342C',
+  primaryLight: '#E3F6EF',
   bg: '#F7F6FB',
   card: '#FFFFFF',
   text: '#1A1A2E',
@@ -54,6 +61,7 @@ function AvailabilityBadge({ book }: { book: Book }) {
 
 export default function LibrarianScreen() {
   const router = useRouter();
+  const { isDark } = useTheme();
   const { clearSession } = useAuth();
   const [tab, setTab] = useState<'inventory' | 'members'>('inventory');
   const [query, setQuery] = useState('');
@@ -244,8 +252,17 @@ export default function LibrarianScreen() {
   }, [query, members]);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>Librarian</Text>
@@ -388,7 +405,7 @@ export default function LibrarianScreen() {
             )}
           </View>
         )}
-      </ScrollView>
+        </ScrollView>
 
       <Modal visible={fineOpen} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -492,12 +509,14 @@ export default function LibrarianScreen() {
           )}
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   container: { padding: 20, paddingBottom: 40 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text },

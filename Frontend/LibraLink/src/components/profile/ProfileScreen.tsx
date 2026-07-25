@@ -13,12 +13,10 @@ import Svg, { Path, Rect, Circle } from "react-native-svg";
 import {
   AUTH_LIBRARY_OVERLAY,
   AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
 } from "../auth/AuthLibraryBackground";
 import { loginColors } from "../../constants/loginTheme";
 import { useTheme } from "../../constants/theme";
-
-/** Light scrim so dark text / light cards stay readable over the library photo. */
-const LIGHT_LIBRARY_OVERLAY = "rgba(240, 245, 250, 0.78)";
 
 const ACCENT = loginColors.teal;
 const ACCENT_DARK = loginColors.tealDark;

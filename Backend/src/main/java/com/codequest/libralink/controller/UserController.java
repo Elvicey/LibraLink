@@ -45,7 +45,7 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/roles")
     public ResponseEntity<?> assignRole(
             @PathVariable Integer id,

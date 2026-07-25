@@ -6,20 +6,27 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
+  StatusBar,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from '../components/auth/AuthLibraryBackground';
+import { useTheme } from '../constants/theme';
 import { usersService, AppUser, primaryRole } from '../services/users';
 import { booksService } from '../services/books';
 import { borrowsService } from '../services/borrows';
 
 const colors = {
-  primary: '#7C5CFC',
-  primaryDark: '#5B3FE0',
-  primaryLight: '#EDE7FF',
+  primary: '#5DCAA5',
+  primaryDark: '#04342C',
+  primaryLight: '#E3F6EF',
   bg: '#F7F6FB',
   card: '#FFFFFF',
   text: '#1A1A2E',
@@ -67,6 +74,7 @@ function StatusDot({ active }: { active: boolean }) {
 
 export default function AdminScreen() {
   const router = useRouter();
+  const { isDark } = useTheme();
   const [query, setQuery] = useState('');
   const [users, setUsers] = useState<AppUser[]>([]);
   const [bookCount, setBookCount] = useState<number | null>(null);
@@ -156,8 +164,17 @@ export default function AdminScreen() {
   const suspendedCount = useMemo(() => users.filter((u) => u.active === false).length, [users]);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.headerTitleRow}>
             <TouchableOpacity style={styles.backBtn} onPress={handleBack} accessibilityLabel="Go back">
@@ -188,7 +205,7 @@ export default function AdminScreen() {
               <StatCard label="Books in Catalog" value={bookCount == null ? '—' : String(bookCount)} icon="book-outline" tint={colors.primaryDark} />
             </View>
             <View style={styles.statsRow}>
-              <StatCard label="Staff" value={String(librarianCount)} icon="shield-checkmark-outline" tint="#9B7BFF" />
+              <StatCard label="Staff" value={String(librarianCount)} icon="shield-checkmark-outline" tint="#3FAE86" />
               <StatCard label="Suspended" value={String(suspendedCount)} icon="alert-circle-outline" tint={colors.danger} />
             </View>
 
@@ -267,13 +284,15 @@ export default function AdminScreen() {
             </View>
           </>
         )}
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   container: { padding: 20, paddingBottom: 40 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },

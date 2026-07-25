@@ -3,22 +3,45 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from "../components/auth/AuthLibraryBackground";
+import { useTheme } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
 import { finesService, fineAmount, Fine as ApiFine } from "../services/fines";
 
+// Verify can momentarily run before Paystack finishes settling the charge, so retry a
+// few times before treating it as unpaid.
+async function confirmPayment(reference: string): Promise<boolean> {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const result = await finesService.verifyPayment(reference);
+      if (result.paid) return true;
+    } catch {
+      // transient network/gateway error — fall through to retry
+    }
+    if (attempt < 3) await new Promise((r) => setTimeout(r, 2000));
+  }
+  return false;
+}
+
 const colors = {
-  primary: "#7C5CFC",
-  primaryDark: "#5B3FE0",
-  primaryLight: "#EDE7FF",
+  primary: "#5DCAA5",
+  primaryDark: "#04342C",
+  primaryLight: "#E3F6EF",
   bg: "#F7F6FB",
   card: "#FFFFFF",
   text: "#1A1A2E",
@@ -27,6 +50,24 @@ const colors = {
   danger: "#FF5A5F",
   border: "#ECEAF5",
 };
+
+function Screen({ isDark, children }: { isDark: boolean; children: React.ReactNode }) {
+  return (
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        {children}
+      </SafeAreaView>
+    </View>
+  );
+}
 
 function isOutstanding(fine: ApiFine): boolean {
   return (fine.status || "").toUpperCase() !== "PAID";
@@ -52,6 +93,7 @@ function FineRow({ fine, selected, onToggle }: { fine: ApiFine; selected: boolea
 
 export default function PayFinesScreen() {
   const router = useRouter();
+  const { isDark } = useTheme();
   const { userId } = useAuth();
   const [fines, setFines] = useState<ApiFine[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -113,17 +155,20 @@ export default function PayFinesScreen() {
     const failures: string[] = [];
     let charged = 0;
     // Each fine is a separate Paystack transaction (the backend rejects a combined amount
-    // spread across fines), so run one hosted checkout per fine. After the browser closes
-    // we verify server-side — the fine is only marked paid if Paystack reports "success".
+    // spread across fines), so run one hosted checkout per fine. We pass a deep-link
+    // callback so Paystack redirects back into the app and openAuthSessionAsync resolves
+    // exactly when checkout ends — openBrowserAsync returns early on Android, which caused
+    // verify to run before payment completed. We then verify server-side; the fine is only
+    // marked paid if Paystack reports "success".
+    const redirectUrl = Linking.createURL("paystack-callback");
     for (const fine of selected) {
       try {
-        const init = await finesService.initializePayment(fine.id);
-        await WebBrowser.openBrowserAsync(init.authorizationUrl);
-        const result = await finesService.verifyPayment(init.reference);
-        if (result.paid) {
+        const init = await finesService.initializePayment(fine.id, redirectUrl);
+        await WebBrowser.openAuthSessionAsync(init.authorizationUrl, redirectUrl);
+        if (await confirmPayment(init.reference)) {
           charged += fineAmount(fine);
         } else {
-          failures.push(`Fine #${fine.id}: ${result.message || "payment not completed"}`);
+          failures.push(`Fine #${fine.id}: payment not completed`);
         }
       } catch (e: any) {
         failures.push(`Fine #${fine.id}: ${e?.message || "payment failed"}`);
@@ -142,7 +187,7 @@ export default function PayFinesScreen() {
 
   if (paid) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <Screen isDark={isDark}>
         <View style={styles.successWrap}>
           <View style={styles.successIcon}><Ionicons name="checkmark" size={38} color={colors.card} /></View>
           <Text style={styles.successTitle}>Payment successful</Text>
@@ -153,12 +198,12 @@ export default function PayFinesScreen() {
             <Text style={styles.confirmBtnText}>Back to fines</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </Screen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <Screen isDark={isDark}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
           <Pressable style={styles.backButton} onPress={handleBack} accessibilityLabel="Go back">
@@ -233,12 +278,13 @@ export default function PayFinesScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, backgroundColor: "transparent" },
   container: { padding: 20, paddingBottom: 34 },
   topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
   backButton: { minWidth: 82, height: 44, borderRadius: 14, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.primary, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 7, paddingHorizontal: 12 },

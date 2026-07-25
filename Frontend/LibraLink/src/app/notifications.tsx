@@ -5,15 +5,26 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import ScreenWrapper from "../components/common/ScreenWrapper";
+import {
+  AUTH_LIBRARY_OVERLAY,
+  AuthLibraryBackground,
+  LIGHT_LIBRARY_OVERLAY,
+} from "../components/auth/AuthLibraryBackground";
+import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
 import { NotificationItem, notificationsService } from "../services/users";
+
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
+const ACCENT_LIGHT = "rgba(93, 202, 165, 0.16)";
 
 type Filter = "all" | "unread";
 
@@ -189,8 +200,17 @@ export default function Notifications() {
   );
 
   return (
-    <ScreenWrapper style={styles.screen}>
-      <FlatList
+    <View style={styles.screen}>
+      <AuthLibraryBackground
+        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
+      />
+      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          translucent
+          backgroundColor="transparent"
+        />
+        <FlatList
         data={loading ? [] : visible}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.listContent}
@@ -203,19 +223,19 @@ export default function Notifications() {
               setRefreshing(true);
               load();
             }}
-            tintColor={colors.primary}
+            tintColor={ACCENT}
           />
         }
         ListEmptyComponent={
           loading ? (
-            <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.huge }} />
+            <ActivityIndicator color={ACCENT} style={{ marginTop: spacing.huge }} />
           ) : error ? null : (
             <View style={styles.emptyState}>
               <View style={styles.emptyIcon}>
                 <Ionicons
                   name={filter === "unread" ? "checkmark-done-outline" : "notifications-off-outline"}
                   size={30}
-                  color={colors.primary}
+                  color={ACCENT}
                 />
               </View>
               <Text style={styles.emptyTitle}>
@@ -269,15 +289,21 @@ export default function Notifications() {
             </Pressable>
           );
         }}
-      />
-    </ScreenWrapper>
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: boolean) =>
   StyleSheet.create({
     screen: {
+      flex: 1,
       backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+      backgroundColor: "transparent",
     },
     listContent: {
       paddingHorizontal: spacing.lg,
@@ -305,7 +331,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       color: colors.text,
     },
     markAll: {
-      color: colors.primary,
+      color: ACCENT,
       fontWeight: "700",
       fontSize: 13,
     },
@@ -329,8 +355,8 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       alignItems: "center",
     },
     segmentItemActive: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
+      backgroundColor: ACCENT,
+      borderColor: ACCENT,
     },
     segmentText: {
       fontSize: 13,
@@ -338,7 +364,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       color: colors.textMuted,
     },
     segmentTextActive: {
-      color: colors.textLight,
+      color: ACCENT_DARK,
     },
     errorText: {
       color: colors.danger,
@@ -357,8 +383,8 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       marginBottom: spacing.md,
     },
     rowUnread: {
-      borderColor: colors.primary,
-      backgroundColor: colors.primaryLight,
+      borderColor: ACCENT,
+      backgroundColor: ACCENT_LIGHT,
     },
     iconTile: {
       width: 40,
@@ -409,7 +435,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: colors.primary,
+      backgroundColor: ACCENT,
       marginTop: spacing.sm,
     },
     emptyState: {
@@ -420,7 +446,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, isDark: bool
       width: 64,
       height: 64,
       borderRadius: 32,
-      backgroundColor: colors.primaryLight,
+      backgroundColor: ACCENT_LIGHT,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: spacing.lg,

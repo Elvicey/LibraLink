@@ -68,7 +68,7 @@ public class PaymentGatewayService {
      * The fine/user ids are stored in Paystack metadata so verify can recover them.
      */
     public InitResult initialize(String email, BigDecimal amountGhs, String reference,
-                                 Integer fineId, Integer userId) {
+                                 Integer fineId, Integer userId, String callbackUrl) {
         requireConfigured();
 
         Map<String, Object> metadata = new LinkedHashMap<>();
@@ -81,6 +81,12 @@ public class PaymentGatewayService {
         body.put("currency", currency);
         body.put("reference", reference);
         body.put("metadata", metadata);
+        // When set, Paystack redirects here after checkout so the app can detect completion
+        // (an app deep link, e.g. libralink://...). Without it the flow relies on the user
+        // closing the browser, which is unreliable on Android.
+        if (callbackUrl != null && !callbackUrl.isBlank()) {
+            body.put("callback_url", callbackUrl);
+        }
 
         Map<String, Object> data = postForData("/transaction/initialize", body);
         return new InitResult(

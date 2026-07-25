@@ -38,4 +38,9 @@ public interface BorrowRecordRepository extends JpaRepository<BorrowRecord, Inte
     List<BorrowRecord> findByUserIdAndStatusIn(Integer userId, List<String> statuses);
 
     Optional<BorrowRecord> findFirstByBookCopyIdAndStatus(Integer bookCopyId, String status);
+
+    // Desk check-in must match any still-out state, not just BORROWED: the nightly scheduler
+    // flips late loans to OVERDUE and self-renewal sets RENEWED, and those books still need
+    // to be returnable by scanning the copy.
+    Optional<BorrowRecord> findFirstByBookCopyIdAndStatusIn(Integer bookCopyId, List<String> statuses);
 }
