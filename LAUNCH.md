@@ -197,3 +197,74 @@ Backend must be up before Web or Mobile will work against local data.
   again for a different method, check that list first.
 - **Port 8080 already in use** — `lsof -i :8080 -sTCP:LISTEN -t` to find the
   PID, or a previous background run may still be alive.
+## 8. Optional integrations (Paystack, email, AI/TTS)
+
+These are disabled by default (nothing breaks without them). Config lives in
+`Backend/.env`.
+
+### Paystack fine payments
+
+Fine payments use a real Paystack checkout (`/api/fine-payments/initialize` +
+`/verify`); nothing is marked paid until Paystack confirms the charge
+server-side.
+
+1. Create a Paystack account → Dashboard → **Settings → API Keys & Webhooks**,
+   in **Test Mode**.
+2. Set in `Backend/.env`:
+   ```
+   PAYSTACK_SECRET_KEY=sk_test_...
+   PAYSTACK_PUBLIC_KEY=pk_test_...
+   PAYSTACK_BASE_URL=https://api.paystack.co
+   PAYSTACK_CURRENCY=GHS
+   ```
+3. Restart the backend. Amounts are charged in GHS, converted to pesewas
+   server-side. Test card: `4084 0840 8408 4081`, any future expiry, any CVV.
+4. If `PAYSTACK_SECRET_KEY` is blank, the payment endpoints return `503` and
+   the fine simply stays unpaid (no crash).
+5. Mobile checkout flow (`Frontend/LibraLink/src/app/pay-fines.tsx`): the app
+   calls `initialize`, opens the returned Paystack `authorizationUrl` via
+   `WebBrowser.openAuthSessionAsync` with a deep-link callback
+   (`libralink://paystack-callback`, registered in `app.json`), then calls
+   `verify` with the transaction reference. Re-verifying an already-settled
+   reference is a no-op.
+6. Going live: repeat with **live** keys (`sk_live_...` / `pk_live_...`) from
+   Paystack's Live Mode, set as Render environment variables.
+
+### Email (password reset)
+
+If `SPRING_MAIL_HOST` is blank, reset codes are logged to the server console
+instead — fine for local dev. To send real email via Gmail:
+
+1. Enable 2-Step Verification on the Google account.
+2. Google Account → Security → **App passwords** → generate a 16-character
+   password.
+3. Set in `Backend/.env`:
+   ```
+   SPRING_MAIL_HOST=smtp.gmail.com
+   SPRING_MAIL_PORT=587
+   SPRING_MAIL_USERNAME=your-address@gmail.com
+   SPRING_MAIL_PASSWORD=your16charapppassword
+   SPRING_MAIL_FROM=your-address@gmail.com
+   ```
+   `SPRING_MAIL_PASSWORD` must be an App Password (not your normal Google
+   password), and `SPRING_MAIL_FROM` must equal `SPRING_MAIL_USERNAME` (Gmail
+   rewrites the From header to the authenticated account).
+
+### AI ("Ask Libra" chat, exam tools) + text-to-speech narration
+
+Both share one Google AI Studio (Gemini) key:
+
+1. Get a key at https://aistudio.google.com/apikey.
+2. Set in `Backend/.env`:
+   ```
+   AI_API_URL=https://generativelanguage.googleapis.com/v1beta
+   AI_API_KEY=your-key
+   AI_MODEL=gemini-flash-latest
+   TTS_MODEL=gemini-2.5-flash-preview-tts
+   TTS_VOICE=Kore
+   ```
+3. Without `AI_API_KEY`, Ask Libra still works using canned/keyword answers,
+   and exam summary/question generation and audiobook narration generation
+   are disabled.
+
+---

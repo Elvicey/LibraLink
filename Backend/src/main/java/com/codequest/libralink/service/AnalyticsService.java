@@ -21,6 +21,11 @@ public class AnalyticsService {
     }
 
     public SearchLog logSearch(SearchLog log) {
+        // Never trust a client-supplied id/createdAt on create (H7/H6).
+        log.setId(null);
+        if (log.getQuery() == null || log.getQuery().isBlank()) {
+            throw new IllegalArgumentException("query is required");
+        }
         log.setSchoolId(schoolContext.requireSchoolId());
         log.setCreatedAt(LocalDateTime.now());
         return searchLogRepository.save(log);
@@ -31,11 +36,11 @@ public class AnalyticsService {
     }
 
     public List<SearchLog> getLogsBySearchType(String searchType) {
-        return scoped(searchLogRepository.findBySearchType(searchType));
+        return scoped(searchLogRepository.findTop1000BySearchTypeOrderByCreatedAtDesc(searchType));
     }
 
     public List<SearchLog> getLogsByDateRange(LocalDateTime from, LocalDateTime to) {
-        return scoped(searchLogRepository.findByCreatedAtBetween(from, to));
+        return scoped(searchLogRepository.findTop1000ByCreatedAtBetweenOrderByCreatedAtDesc(from, to));
     }
 
     private List<SearchLog> scoped(List<SearchLog> logs) {

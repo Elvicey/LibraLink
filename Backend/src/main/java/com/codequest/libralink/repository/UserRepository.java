@@ -19,4 +19,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.roles r " +
            "WHERE u.institution.institutionId = :schoolId AND r.name = :roleName")
     long countByInstitutionAndRole(@Param("schoolId") Integer schoolId, @Param("roleName") String roleName);
+
+    // Medium (N+1): ReadingListService used to call findAll() and filter to students in
+    // Java just to notify them of a newly-published list - a single targeted query
+    // instead of loading the entire users table.
+    List<User> findByRoles_NameIgnoreCase(String roleName);
 }

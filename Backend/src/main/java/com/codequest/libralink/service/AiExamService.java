@@ -3,16 +3,14 @@ package com.codequest.libralink.service;
 import com.codequest.libralink.entity.*;
 import com.codequest.libralink.repository.*;
 import com.codequest.libralink.security.SchoolContext;
+import com.codequest.libralink.security.CurrentUserProvider;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -28,29 +26,27 @@ public class AiExamService {
     private final StudySessionRepository studySessionRepository;
     private final BookRepository bookRepository;
     private final SchoolContext schoolContext;
-    private final RestTemplate restTemplate;
+    private final CurrentUserProvider currentUserProvider;
+    private final LlmClient llmClient;
     private final ObjectMapper objectMapper;
 
-    @Value("${ai.api.url:https://api.openai.com/v1/chat/completions}")
-    private String aiApiUrl;
-
-    @Value("${ai.api.key:}")
-    private String aiApiKey;
-
-    @Value("${ai.api.model:gpt-4o-mini}")
-    private String aiModel;
+    private static final String TUTOR_SYSTEM =
+            "You are an expert academic tutor. Provide clear, accurate, and educational responses.";
 
     public AiExamService(StudySummaryRepository studySummaryRepository,
                          ExamQuestionRepository examQuestionRepository,
                          StudySessionRepository studySessionRepository,
                          BookRepository bookRepository,
-                         SchoolContext schoolContext) {
+                         SchoolContext schoolContext,
+                         CurrentUserProvider currentUserProvider,
+                         LlmClient llmClient) {
         this.studySummaryRepository = studySummaryRepository;
         this.examQuestionRepository = examQuestionRepository;
         this.studySessionRepository = studySessionRepository;
         this.bookRepository = bookRepository;
         this.schoolContext = schoolContext;
-        this.restTemplate = new RestTemplate();
+        this.currentUserProvider = currentUserProvider;
+        this.llmClient = llmClient;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -94,14 +90,15 @@ public class AiExamService {
     @Async
     public CompletableFuture<StudySummary> processSummary(Integer summaryId) {
         StudySummary summary = studySummaryRepository.findById(summaryId)
-                .orElseThrow(() -> new RuntimeException("Study summary not found"));
+                .orElseThrow(() -> new com.codequest.libralink.exception.ResourceNotFoundException(
+                        "Study summary not found with id: " + summaryId));
 
         summary.setStatus("PROCESSING");
         studySummaryRepository.save(summary);
 
         try {
             String prompt = buildSummaryPrompt(summary.getOriginalText(), summary.getSummaryType());
-            String aiResponse = callAiApi(prompt);
+            String aiResponse = llmClient.generateText(TUTOR_SYSTEM, prompt);
 
             summary.setSummaryText(aiResponse);
             summary.setStatus("COMPLETED");
@@ -130,14 +127,25 @@ public class AiExamService {
     public List<ExamQuestion> generateQuestions(Integer bookId, Integer userId,
                                                  Integer count, String difficulty,
                                                  String contentOverride) {
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new IllegalArgumentException("Book not found with ID: " + bookId));
-
-        String content = resolveBookContent(book, contentOverride, "generate questions from");
+        String content;
+        Integer schoolId;
+        if (bookId != null) {
+            Book book = bookRepository.findById(bookId)
+                    .orElseThrow(() -> new IllegalArgumentException("Book not found with ID: " + bookId));
+            content = resolveBookContent(book, contentOverride, "generate questions from");
+            schoolId = book.getInstitution() != null ? book.getInstitution().getInstitutionId() : null;
+        } else {
+            // Topic/text-based quiz: no source book, so a non-empty topic/text is required.
+            if (contentOverride == null || contentOverride.isBlank()) {
+                throw new IllegalArgumentException("Provide a topic or text to generate questions from.");
+            }
+            content = contentOverride.trim();
+            // No book to derive a school from - scope to the caller's own school instead.
+            schoolId = schoolContext.currentSchoolId();
+        }
 
         int questionCount = (count != null && count > 0) ? Math.min(count, 20) : 5;
         String diff = (difficulty != null && !difficulty.isBlank()) ? difficulty : "MEDIUM";
-        Integer schoolId = book.getInstitution() != null ? book.getInstitution().getInstitutionId() : null;
 
         StudySession session = new StudySession();
         session.setUserId(userId);
@@ -153,50 +161,20 @@ public class AiExamService {
     private List<ExamQuestion> generateQuestionsFromAi(String bookContent, int count,
                                                         String difficulty, Integer bookId,
                                                         Integer userId, Integer sessionId, Integer schoolId) {
-        if (aiApiKey == null || aiApiKey.isBlank()) {
+        if (!llmClient.isConfigured()) {
             throw new RuntimeException("AI API key not configured. Question generation is unavailable.");
         }
 
         try {
             String prompt = buildQuestionPrompt(bookContent, count, difficulty);
-            String aiResponse = callAiApi(prompt);
+            // JSON mode: Gemini returns a strict JSON array so parsing is reliable.
+            String aiResponse = llmClient.generateJson(TUTOR_SYSTEM, prompt);
             return parseQuestionsFromAi(aiResponse, bookId, userId, sessionId, schoolId);
 
         } catch (Exception e) {
             log.error("AI question generation failed: {}", e.getMessage());
             throw new RuntimeException("AI exam generation is unavailable. Please try again later.", e);
         }
-    }
-
-    private String callAiApi(String prompt) throws Exception {
-        if (aiApiKey == null || aiApiKey.isBlank()) {
-            throw new RuntimeException("AI API key not configured.");
-        }
-
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", aiModel);
-        requestBody.put("messages", List.of(
-                Map.of("role", "system", "content", "You are an expert academic tutor. Provide clear, accurate, and educational responses."),
-                Map.of("role", "user", "content", prompt)
-        ));
-        requestBody.put("temperature", 0.7);
-        requestBody.put("max_tokens", 2000);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + aiApiKey);
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(aiApiUrl, request, String.class);
-
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            JsonNode json = objectMapper.readTree(response.getBody());
-            if (json.has("choices") && json.get("choices").size() > 0) {
-                return json.get("choices").get(0).get("message").get("content").asText();
-            }
-        }
-
-        throw new RuntimeException("AI API call failed with status: " + response.getStatusCode());
     }
 
     private String buildSummaryPrompt(String content, String type) {
@@ -214,12 +192,15 @@ public class AiExamService {
 
     private String buildQuestionPrompt(String content, int count, String difficulty) {
         String truncated = content.length() > 4000 ? content.substring(0, 4000) + "..." : content;
-        return "Generate " + count + " exam questions at " + difficulty + " difficulty level "
-                + "based on the following academic text. "
-                + "Return a JSON array where each object has: "
-                + "\"question\", \"correctAnswer\", \"optionA\", \"optionB\", \"optionC\", \"optionD\", "
-                + "\"questionType\" (MULTIPLE_CHOICE, TRUE_FALSE, or SHORT_ANSWER), "
-                + "\"explanation\".\n\nText:\n" + truncated;
+        return "Generate " + count + " multiple-choice exam questions at " + difficulty
+                + " difficulty about the following topic or text. "
+                + "Return a JSON array where each object has exactly these fields: "
+                + "\"question\" (string), "
+                + "\"optionA\", \"optionB\", \"optionC\", \"optionD\" (the four answer choices, plain text with no letter prefixes), "
+                + "\"correctAnswer\" (exactly one of the letters \"A\", \"B\", \"C\", or \"D\"), "
+                + "\"questionType\" (always \"MULTIPLE_CHOICE\"), "
+                + "\"explanation\" (one sentence explaining why the answer is correct)."
+                + "\n\nTopic/text:\n" + truncated;
     }
 
     private List<ExamQuestion> parseQuestionsFromAi(String aiResponse, Integer bookId,
@@ -260,7 +241,9 @@ public class AiExamService {
     @Transactional
     public ExamQuestion submitAnswer(Integer questionId, String userAnswer) {
         ExamQuestion question = examQuestionRepository.findById(questionId)
-                .orElseThrow(() -> new RuntimeException("Question not found with ID: " + questionId));
+                .orElseThrow(() -> new com.codequest.libralink.exception.ResourceNotFoundException(
+                        "Question not found with ID: " + questionId));
+        currentUserProvider.requireSelfOrAnyRole(question.getUserId(), "LIBRARIAN", "ADMIN");
 
         question.setUserAnswer(userAnswer);
         question.setIsCorrect(userAnswer.trim().equalsIgnoreCase(question.getCorrectAnswer().trim()));
@@ -270,7 +253,9 @@ public class AiExamService {
     @Transactional
     public StudySession completeSession(Integer sessionId) {
         StudySession session = studySessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found"));
+                .orElseThrow(() -> new com.codequest.libralink.exception.ResourceNotFoundException(
+                        "Session not found with id: " + sessionId));
+        currentUserProvider.requireSelfOrAnyRole(session.getUserId(), "LIBRARIAN", "ADMIN");
 
         List<ExamQuestion> questions = examQuestionRepository.findBySessionId(sessionId);
         long correct = questions.stream().filter(q -> Boolean.TRUE.equals(q.getIsCorrect())).count();

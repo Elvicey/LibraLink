@@ -21,6 +21,10 @@ public class BookCopyService {
     @Autowired
     private SchoolContext schoolContext;
 
+    // NOTE: this method is shared between BookCopyController's create endpoint and
+    // CirculationController's check-in/check-out flow (which legitimately updates an
+    // existing copy's isAvailable flag), so it cannot blindly null the id here - the
+    // create-only caller is responsible for that (see BookCopyController.createCopy).
     public BookCopy registerBookCopy(BookCopy copy) {
         if (copy.getBarcode() != null && !copy.getBarcode().isBlank()) {
             Optional<BookCopy> existing = bookCopyRepository.findByBarcode(copy.getBarcode());
@@ -56,5 +60,15 @@ public class BookCopyService {
         Optional<BookCopy> copy = bookCopyRepository.findByBarcode(barcode);
         copy.ifPresent(c -> schoolContext.assertSameSchool(c.getSchoolId()));
         return copy;
+    }
+
+    /**
+     * Flips a single copy's availability flag. Used by the circulation check-in/check-out
+     * flow (see BorrowRecordService.checkOutCopy/checkInCopy) instead of having callers
+     * mutate the entity and call the create-oriented registerBookCopy directly.
+     */
+    public BookCopy setAvailability(BookCopy copy, boolean available) {
+        copy.setAvailable(available);
+        return bookCopyRepository.save(copy);
     }
 }

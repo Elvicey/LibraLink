@@ -9,6 +9,7 @@ import com.codequest.libralink.repository.ReadingListRepository;
 import com.codequest.libralink.repository.UserRepository;
 import com.codequest.libralink.security.SchoolContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -33,7 +34,10 @@ public class ReadingListService {
         this.schoolContext = schoolContext;
     }
 
+    @Transactional
     public ReadingList saveReadingList(ReadingList list) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        list.setId(null);
         if (list.getCourseId() == null) {
             throw new IllegalArgumentException("courseId is required");
         }
@@ -67,6 +71,7 @@ public class ReadingListService {
                 .orElseThrow(() -> new IllegalArgumentException("Reading list not found with id: " + id));
     }
 
+    @Transactional
     public ReadingList publish(Integer id, boolean publish) {
         ReadingList list = getById(id);
         boolean wasPublished = Boolean.TRUE.equals(list.getIsPublished());
@@ -84,10 +89,7 @@ public class ReadingListService {
     }
 
     private void notifyStudentsOfPublishedList(ReadingList list) {
-        List<User> students = userRepository.findAll().stream()
-                .filter(user -> user.getRoles() != null && user.getRoles().stream()
-                        .anyMatch(role -> "STUDENT".equalsIgnoreCase(role.getName())))
-                .toList();
+        List<User> students = userRepository.findByRoles_NameIgnoreCase("STUDENT");
 
         for (User student : students) {
             Notification notification = new Notification();

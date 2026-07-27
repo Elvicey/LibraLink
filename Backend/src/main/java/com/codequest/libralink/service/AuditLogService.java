@@ -20,6 +20,9 @@ public class AuditLogService {
     }
 
     public AuditLog saveLog(AuditLog log) {
+        // Never trust a client-supplied id/createdAt on create (H7/H6) - a forged id could
+        // overwrite an unrelated existing audit record instead of creating a new one.
+        log.setId(null);
         log.setSchoolId(schoolContext.requireSchoolId());
         log.setCreatedAt(LocalDateTime.now());
         return auditLogRepository.save(log);
@@ -34,7 +37,7 @@ public class AuditLogService {
     }
 
     public List<AuditLog> getLogsByAction(String action) {
-        return scoped(auditLogRepository.findByAction(action));
+        return scoped(auditLogRepository.findTop1000ByActionOrderByCreatedAtDesc(action));
     }
 
     private List<AuditLog> scoped(List<AuditLog> logs) {

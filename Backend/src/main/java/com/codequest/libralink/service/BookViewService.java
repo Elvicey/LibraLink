@@ -12,6 +12,8 @@ public class BookViewService {
     @Autowired private BookRepository bookRepository;
 
     public BookView recordView(BookView view) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        view.setId(null);
         if (view.getBook() != null) {
             Integer schoolId = view.getBook().getInstitution() != null
                     ? view.getBook().getInstitution().getInstitutionId()

@@ -24,6 +24,7 @@ public class UserController {
         this.roleService = roleService;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
         User registeredUser = userService.registerUser(user);
@@ -62,10 +63,25 @@ public class UserController {
                     "roles", updated.getRoles().stream().map(r -> r.getName()).toList()
             ));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().contains("no longer supported")) {
+                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            }
             return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         }
     }
 
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#id, 'ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateProfile(
+            @PathVariable Integer id,
+            @RequestBody Map<String, String> body) {
+        User updated = userService.updateProfile(
+                id, body.get("firstName"), body.get("lastName"), body.get("phoneNumber"),
+                body.get("studentId"), body.get("indexNumber"), body.get("programme"));
+        return ResponseEntity.ok(updated);
+    }
+
+    @PreAuthorize("@currentUserProvider.isCurrentUser(#id)")
     @PutMapping("/{id}/push-token")
     public ResponseEntity<Map<String, String>> updatePushToken(
             @PathVariable Integer id,

@@ -61,6 +61,35 @@ public class AuthService {
         return toAuthResponse(user);
     }
 
+    @Transactional
+    public void changePassword(Integer userId, String currentPassword, String newPassword) {
+        if (userId == null) {
+            throw new IllegalArgumentException("Not authenticated");
+        }
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("New password must be different from the current password");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    // Medium: registerWithRole does a read (email-exists check), a possible role insert,
+    // and the user insert as separate statements. @Transactional has to go on these public
+    // entry points rather than on registerWithRole itself - Spring's proxy-based
+    // @Transactional has no effect on self-invoked private/internal calls.
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         return registerWithRole(request, "STUDENT");
     }

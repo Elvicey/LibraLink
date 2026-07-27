@@ -1,6 +1,8 @@
 package com.codequest.libralink.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @Entity
@@ -12,10 +14,14 @@ public class Institution {
     @Column(name = "institution_id")
     private Integer institutionId;
 
+    @NotBlank
     @Column(nullable = false, length = 200)
     private String name;
 
-    @Column(name = "short_name", length = 50)
+    // Medium: shortName is used as a short human-facing code for the institution; nothing
+    // stopped two institutions from being created with the same one. Plain unique columns
+    // allow multiple NULLs, so institutions that don't set a shortName are unaffected.
+    @Column(name = "short_name", length = 50, unique = true)
     private String shortName;
 
     @Column(nullable = false, length = 20)
@@ -27,6 +33,7 @@ public class Institution {
     @Column(length = 100)
     private String country = "Ghana";
 
+    @Email
     @Column(length = 150)
     private String email;
 
