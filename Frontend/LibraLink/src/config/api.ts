@@ -4,6 +4,6 @@
 // The LAN IP changes when the Mac reconnects to Wi-Fi — recheck with
 // `ipconfig getifaddr en0` and update here if a physical device can't connect.
 // Revert to "https://libralink-rgp2.onrender.com" before deploy.
-const API_BASE_URL = "http://192.168.61.144:8080";
+const API_BASE_URL = "http://192.168.199.144:8080";
 
 export { API_BASE_URL };
