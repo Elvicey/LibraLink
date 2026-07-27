@@ -99,10 +99,13 @@ class Group1AccessControlTest extends BaseApiTest {
     }
 
     @Test
-    void getUserById_otherAccount_asStudent_returns403() throws Exception {
+    void getUserById_otherAccount_asStudent_returns404() throws Exception {
+        // UserService.getUserById hides existence behind 404 for a non-self, non-staff
+        // caller (this codebase's convention - see SchoolContext.assertSameSchool) rather
+        // than revealing it via 403.
         mockMvc.perform(get("/api/users/" + studentB.getId())
                         .header("Authorization", bearerToken(studentAToken)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -130,20 +133,27 @@ class Group1AccessControlTest extends BaseApiTest {
     }
 
     // --- C4: fine payment amount + ownership fraud ---
+    // POST /api/fine-payments is staff-only (records an in-person/cash payment; see
+    // FinePaymentController.payFine) - a student can never reach it directly, so these
+    // exercise the same amount/ownership validation via a Librarian acting on a student's
+    // behalf, which is the endpoint's actual intended caller.
 
     @Test
     void payFine_insufficientAmount_isRejected() throws Exception {
+        String librarianToken = createAndGetLibrarianToken(uniqueEmail("g1lib"), "pass1234");
         Fine fine = new Fine();
         fine.setUserId(studentA.getId());
+        fine.setSchoolId(testInstitution().getInstitutionId());
         fine.setAmount(new BigDecimal("25.00"));
         fine = fineRepository.save(fine);
 
         mockMvc.perform(post("/api/fine-payments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearerToken(studentAToken))
+                        .header("Authorization", bearerToken(librarianToken))
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
                                         "fineId", fine.getId(),
+                                        "userId", studentA.getId(),
                                         "amountPaid", new BigDecimal("0.01")
                                 ))))
                 .andExpect(status().isBadRequest())
@@ -152,19 +162,22 @@ class Group1AccessControlTest extends BaseApiTest {
 
     @Test
     void payFine_cannotPaySomeoneElsesFineByForgingUserId() throws Exception {
+        String librarianToken = createAndGetLibrarianToken(uniqueEmail("g1lib2"), "pass1234");
         Fine fine = new Fine();
         fine.setUserId(studentB.getId());
+        fine.setSchoolId(testInstitution().getInstitutionId());
         fine.setAmount(new BigDecimal("25.00"));
         fine = fineRepository.save(fine);
 
-        // studentA tries to pay studentB's fine, forging userId in the body.
+        // Fine belongs to studentB, but the request claims userId=studentA - the payment
+        // must never be attached to the wrong owner regardless of who submitted it.
         mockMvc.perform(post("/api/fine-payments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearerToken(studentAToken))
+                        .header("Authorization", bearerToken(librarianToken))
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
                                         "fineId", fine.getId(),
-                                        "userId", studentB.getId(),
+                                        "userId", studentA.getId(),
                                         "amountPaid", new BigDecimal("25.00")
                                 ))))
                 .andExpect(status().isBadRequest())
@@ -173,17 +186,20 @@ class Group1AccessControlTest extends BaseApiTest {
 
     @Test
     void payFine_ownFineWithFullAmount_succeeds() throws Exception {
+        String librarianToken = createAndGetLibrarianToken(uniqueEmail("g1lib3"), "pass1234");
         Fine fine = new Fine();
         fine.setUserId(studentA.getId());
+        fine.setSchoolId(testInstitution().getInstitutionId());
         fine.setAmount(new BigDecimal("10.00"));
         fine = fineRepository.save(fine);
 
         mockMvc.perform(post("/api/fine-payments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearerToken(studentAToken))
+                        .header("Authorization", bearerToken(librarianToken))
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
                                         "fineId", fine.getId(),
+                                        "userId", studentA.getId(),
                                         "amountPaid", new BigDecimal("10.00")
                                 ))))
                 .andExpect(status().isCreated())
@@ -211,6 +227,7 @@ class Group1AccessControlTest extends BaseApiTest {
     @Test
     void cancelReservation_otherUsers_asStudent_returns403() throws Exception {
         Book book = new Book();
+        book.setInstitution(testInstitution());
         book.setTitle("Reservation Test Book");
         book.setIsbn("978-1-000000" + (int) (Math.random() * 9000 + 1000) + "-1");
         book.setTotalCopies(1);
@@ -221,6 +238,7 @@ class Group1AccessControlTest extends BaseApiTest {
         Reservation reservation = new Reservation();
         reservation.setUserId(studentB.getId());
         reservation.setBook(book);
+        reservation.setSchoolId(testInstitution().getInstitutionId());
         reservation = reservationRepository.save(reservation);
 
         mockMvc.perform(put("/api/reservations/" + reservation.getId() + "/cancel")
@@ -231,6 +249,7 @@ class Group1AccessControlTest extends BaseApiTest {
     @Test
     void makeHold_forcesReservationOwnerToCaller() throws Exception {
         Book book = new Book();
+        book.setInstitution(testInstitution());
         book.setTitle("Reservation Force Book");
         book.setIsbn("978-1-000000" + (int) (Math.random() * 9000 + 1000) + "-2");
         book.setTotalCopies(1);

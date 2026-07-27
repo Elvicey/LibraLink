@@ -36,6 +36,7 @@ class Group6DataLayerTest extends BaseApiTest {
         User student = createTestStudent(uniqueEmail("g6stu"), "pass1234");
 
         Book book = new Book();
+        book.setInstitution(testInstitution());
         book.setTitle("Lazy Fetch Test Book");
         book.setIsbn("978-6-" + (int) (Math.random() * 900000000 + 100000000) + "-1");
         book.setTotalCopies(1);
@@ -46,6 +47,7 @@ class Group6DataLayerTest extends BaseApiTest {
         BorrowRecord record = new BorrowRecord();
         record.setBook(book);
         record.setUser(student);
+        record.setSchoolId(testInstitution().getInstitutionId());
         record.setStatus("BORROWED");
         record.setDueDate(LocalDate.now().plusDays(14));
         borrowRecordRepository.save(record);

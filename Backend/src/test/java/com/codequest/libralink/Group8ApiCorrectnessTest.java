@@ -40,6 +40,7 @@ class Group8ApiCorrectnessTest extends BaseApiTest {
         String studentToken = loginAs(student.getEmail(), "pass1234");
 
         Book book = new Book();
+        book.setInstitution(testInstitution());
         book.setTitle("Audio Track Source Book");
         book.setIsbn("978-8-" + (int) (Math.random() * 900000000 + 100000000) + "-3");
         book.setTotalCopies(1);
@@ -50,6 +51,7 @@ class Group8ApiCorrectnessTest extends BaseApiTest {
         AudioTrack track = new AudioTrack();
         track.setBookId(book.getId());
         track.setUserId(student.getId());
+        track.setSchoolId(testInstitution().getInstitutionId());
         track.setTitle("My Track");
         track.setStatus("COMPLETED");
         track = audioTrackRepository.save(track);

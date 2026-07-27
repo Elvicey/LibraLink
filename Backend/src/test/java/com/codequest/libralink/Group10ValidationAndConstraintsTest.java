@@ -89,6 +89,7 @@ class Group10ValidationAndConstraintsTest extends BaseApiTest {
     @Test
     void saveRecord_missingUser_throwsInsteadOfCreatingOwnerlessLoan() {
         com.codequest.libralink.entity.Book book = new com.codequest.libralink.entity.Book();
+        book.setInstitution(testInstitution());
         book.setTitle("G10 Ownerless Loan Book");
         book.setIsbn("978-10-" + (int) (Math.random() * 900000000 + 100000000) + "-1");
         book.setTotalCopies(1);
@@ -121,9 +122,11 @@ class Group10ValidationAndConstraintsTest extends BaseApiTest {
     @Test
     void userAudioProgress_duplicateUserAndTrack_violatesUniqueConstraint() {
         UserAudioProgress first = new UserAudioProgress(9001, 9001, 10, false);
+        first.setSchoolId(testInstitution().getInstitutionId());
         userAudioProgressRepository.saveAndFlush(first);
 
         UserAudioProgress duplicate = new UserAudioProgress(9001, 9001, 20, false);
+        duplicate.setSchoolId(testInstitution().getInstitutionId());
         assertThrows(DataIntegrityViolationException.class,
                 () -> userAudioProgressRepository.saveAndFlush(duplicate));
     }
@@ -132,10 +135,12 @@ class Group10ValidationAndConstraintsTest extends BaseApiTest {
     void studentReadingProgress_duplicateStudentAndItem_violatesUniqueConstraint() {
         StudentReadingProgress first = StudentReadingProgress.builder()
                 .studentId(9002).listItemId(9002).build();
+        first.setSchoolId(testInstitution().getInstitutionId());
         studentReadingProgressRepository.saveAndFlush(first);
 
         StudentReadingProgress duplicate = StudentReadingProgress.builder()
                 .studentId(9002).listItemId(9002).build();
+        duplicate.setSchoolId(testInstitution().getInstitutionId());
         assertThrows(DataIntegrityViolationException.class,
                 () -> studentReadingProgressRepository.saveAndFlush(duplicate));
     }
@@ -179,6 +184,7 @@ class Group10ValidationAndConstraintsTest extends BaseApiTest {
         FinePayment payment = new FinePayment();
         payment.setFineId(fineId);
         payment.setUserId(fineId);
+        payment.setSchoolId(testInstitution().getInstitutionId());
         payment.setAmount(BigDecimal.TEN);
         payment.setAmountPaid(BigDecimal.TEN);
         payment.setTransactionRef(transactionRef);

@@ -108,6 +108,7 @@ class Group7SecurityAndCirculationTest extends BaseApiTest {
         User student = createTestStudent(uniqueEmail("g7stu"), "pass1234");
 
         Book book = new Book();
+        book.setInstitution(testInstitution());
         book.setTitle("Circulation Restore Book");
         book.setIsbn("978-7-" + (int) (Math.random() * 900000000 + 100000000) + "-1");
         book.setTotalCopies(2);
@@ -118,6 +119,7 @@ class Group7SecurityAndCirculationTest extends BaseApiTest {
         BookCopy copy = new BookCopy();
         copy.setBarcode("G7-CIRC-" + System.nanoTime());
         copy.setBook(book);
+        copy.setSchoolId(testInstitution().getInstitutionId());
         copy.setAvailable(true);
         copy.setCondition("GOOD");
         bookCopyRepository.save(copy);
@@ -161,6 +163,7 @@ class Group7SecurityAndCirculationTest extends BaseApiTest {
         String librarianToken = createAndGetLibrarianToken(uniqueEmail("g7lib2"), "pass1234");
 
         Book book = new Book();
+        book.setInstitution(testInstitution());
         book.setTitle("Never Checked Out Book");
         book.setIsbn("978-7-" + (int) (Math.random() * 900000000 + 100000000) + "-2");
         book.setTotalCopies(1);
@@ -171,6 +174,7 @@ class Group7SecurityAndCirculationTest extends BaseApiTest {
         BookCopy copy = new BookCopy();
         copy.setBarcode("G7-NOLOAN-" + System.nanoTime());
         copy.setBook(book);
+        copy.setSchoolId(testInstitution().getInstitutionId());
         copy.setAvailable(true);
         copy.setCondition("GOOD");
         bookCopyRepository.save(copy);
