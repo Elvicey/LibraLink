@@ -227,9 +227,10 @@ public class AuthService {
                 .map(Role::getName)
                 .collect(Collectors.toList());
         Integer instId = user.getInstitution() != null ? user.getInstitution().getInstitutionId() : null;
+        String shortName = user.getInstitution() != null ? user.getInstitution().getShortName() : null;
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), roleNames, instId);
         return new AuthResponse(token, user.getId(), user.getEmail(),
-                user.getFirstName(), user.getLastName(), roleNames, instId);
+                user.getFirstName(), user.getLastName(), roleNames, instId, shortName);
     }
 
     private String normalizeEmail(String email) {

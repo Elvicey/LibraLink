@@ -12,6 +12,7 @@ interface SessionState {
   lastName: string | null;
   email: string | null;
   schoolId: number | null;
+  schoolShortName: string | null;
   loading: boolean;
 }
 
@@ -29,13 +30,31 @@ function loadStoredSession(): Omit<SessionState, "loading"> {
   const token = getToken();
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!token || !raw) {
-    return { token: null, userId: null, roles: [], firstName: null, lastName: null, email: null, schoolId: null };
+    return {
+      token: null,
+      userId: null,
+      roles: [],
+      firstName: null,
+      lastName: null,
+      email: null,
+      schoolId: null,
+      schoolShortName: null,
+    };
   }
   try {
     const parsed = JSON.parse(raw);
     return { token, ...parsed };
   } catch {
-    return { token: null, userId: null, roles: [], firstName: null, lastName: null, email: null, schoolId: null };
+    return {
+      token: null,
+      userId: null,
+      roles: [],
+      firstName: null,
+      lastName: null,
+      email: null,
+      schoolId: null,
+      schoolShortName: null,
+    };
   }
 }
 
@@ -55,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastName: data.lastName,
       email: data.email,
       schoolId: data.schoolId ?? data.institutionId ?? null,
+      schoolShortName: data.schoolShortName ?? null,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
     setState({ token: data.token, ...rest, loading: false });
@@ -63,7 +83,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearSession = () => {
     persistToken(null);
     localStorage.removeItem(STORAGE_KEY);
-    setState({ token: null, userId: null, roles: [], firstName: null, lastName: null, email: null, schoolId: null, loading: false });
+    setState({
+      token: null,
+      userId: null,
+      roles: [],
+      firstName: null,
+      lastName: null,
+      email: null,
+      schoolId: null,
+      schoolShortName: null,
+      loading: false,
+    });
   };
 
   const hasRole = (...roles: string[]) => roles.some((r) => state.roles.includes(r));

@@ -12,6 +12,7 @@ export interface AuthResponse {
   roles: string[];
   institutionId: number | null;
   schoolId: number | null;
+  schoolShortName: string | null;
 }
 
 export interface LoginPayload {
