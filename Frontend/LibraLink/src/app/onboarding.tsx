@@ -1,374 +1,500 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
+  Dimensions,
+  FlatList,
+  ImageBackground,
+  ListRenderItem,
   Pressable,
-  ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
+  ViewToken,
 } from "react-native";
-import Button from "../components/common/Button";
-import { theme, lightColors } from "../constants/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { BrandLogo } from "../components/common/BrandLogo";
+import { theme } from "../constants/theme";
 
-const slides = [
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const ONBOARDING_SEEN_KEY = "hasSeenOnboarding";
+const LIBRARY_BG = require("../../assets/images/onboarding-library-bg.png");
+
+const Colors = {
+  bgDeep: "#0a1628",
+  teal: "#5DCAA5",
+  tealDark: "#04342C",
+  textWhite: "#ffffff",
+  textSecondary: "rgba(255,255,255,0.72)",
+  textMuted: "rgba(255,255,255,0.45)",
+  dotInactive: "rgba(255,255,255,0.25)",
+  borderDefault: "rgba(255,255,255,0.12)",
+  borderStrong: "rgba(255,255,255,0.28)",
+  overlay: "rgba(10, 22, 40, 0.72)",
+  cardBg: "rgba(10, 22, 40, 0.82)",
+  cardBorder: "rgba(255,255,255,0.14)",
+};
+
+interface Slide {
+  id: string;
+  heading: string;
+  body: string;
+  illustration?: ReactNode;
+}
+
+function PhotoCardFrame({
+  crop = "center",
+  children,
+}: {
+  crop?: "left" | "center" | "right";
+  children: ReactNode;
+}) {
+  const cropStyle =
+    crop === "left"
+      ? { transform: [{ scale: 1.45 }, { translateX: 36 }] }
+      : crop === "right"
+        ? { transform: [{ scale: 1.45 }, { translateX: -36 }] }
+        : { transform: [{ scale: 1.3 }] };
+
+  return (
+    <View style={styles.photoCard}>
+      <ImageBackground
+        source={LIBRARY_BG}
+        style={styles.photoCardBg}
+        imageStyle={[styles.photoCardImage, cropStyle]}
+        resizeMode="cover"
+      >
+        <View style={styles.photoCardScrim} />
+        <View style={styles.photoCardContent}>{children}</View>
+      </ImageBackground>
+    </View>
+  );
+}
+
+const SearchPreview = () => (
+  <PhotoCardFrame crop="left">
+    <View style={styles.mockCard}>
+      <View style={styles.searchBar}>
+        <Text style={styles.searchIcon}>⌕</Text>
+        <Text style={styles.searchQuery} numberOfLines={1}>
+          African economics after 2015
+        </Text>
+      </View>
+
+      <View style={styles.resultRow}>
+        <View style={[styles.resultCover, { backgroundColor: "#D85A30" }]} />
+        <View style={styles.resultMeta}>
+          <Text style={styles.resultTitle}>Development Economics</Text>
+          <Text style={styles.resultSub}>3 copies · Ground floor</Text>
+        </View>
+        <View style={styles.resultBadge}>
+          <Text style={styles.resultBadgeText}>Match</Text>
+        </View>
+      </View>
+
+      <View style={[styles.resultRow, styles.resultRowMuted]}>
+        <View style={[styles.resultCover, { backgroundColor: "#378ADD" }]} />
+        <View style={styles.resultMeta}>
+          <Text style={styles.resultTitle}>African Growth Models</Text>
+          <Text style={styles.resultSub}>1 copy · Level 2</Text>
+        </View>
+      </View>
+    </View>
+  </PhotoCardFrame>
+);
+
+const ReservePreview = () => (
+  <PhotoCardFrame crop="right">
+    <View style={styles.mockCard}>
+      <View style={styles.reserveBookRow}>
+        <View style={[styles.resultCover, styles.reserveCover]} />
+        <View style={styles.resultMeta}>
+          <Text style={styles.resultTitle}>Introduction to Statistics</Text>
+          <Text style={styles.reserveStatus}>Available · Science wing</Text>
+        </View>
+      </View>
+
+      <View style={styles.reserveTimeline}>
+        <View style={styles.timelineDot} />
+        <Text style={styles.timelineText}>Held for 48 hours · Pick up by Friday</Text>
+      </View>
+
+      <View style={styles.reserveButton}>
+        <Text style={styles.reserveButtonText}>Reserved · Ready to collect</Text>
+      </View>
+    </View>
+  </PhotoCardFrame>
+);
+
+const SLIDES: Slide[] = [
   {
-    title: "LibraLink",
-    subtitle: "Your academic library in your pocket",
-    note: "A modern library experience designed for Ghanaian universities.",
-    orbColors: ["rgba(11, 110, 253, 0.12)", "rgba(253, 230, 138, 0.06)"],
-    neonColor: "#0b6efd",
-    emoji: "📚",
+    id: "1",
+    heading: "Your campus library, in your pocket",
+    body: "Search, reserve, and borrow books from anywhere on campus",
   },
   {
-    title: "Search any book instantly",
-    subtitle: "Smart search across physical books and e-resources",
-    note: "Filter by title, author, subject and real-time availability.",
-    orbColors: ["rgba(16, 185, 129, 0.10)", "rgba(167, 243, 208, 0.06)"],
-    neonColor: "#10b981",
-    emoji: "🔍",
+    id: "2",
+    heading: "Smart search powered by AI",
+    body: 'Ask in plain language — "Find African economics books after 2015" — and get instant results',
+    illustration: <SearchPreview />,
   },
   {
-    title: "Ask AI in plain English",
-    subtitle: "No codes or filters — just type natural queries",
-    note: "Example: 'Find books on African economics after 2015.'",
-    orbColors: ["rgba(139, 92, 246, 0.12)", "rgba(244, 63, 94, 0.06)"],
-    neonColor: "#8b5cf6",
-    emoji: "🤖",
-  },
-  {
-    title: "Pick up without queuing",
-    subtitle: "Reserve, schedule a slot, scan your QR code",
-    note: "Collect reserved books in under 5 minutes with contactless pickup.",
-    orbColors: ["rgba(6, 182, 212, 0.12)", "rgba(245, 158, 11, 0.06)"],
-    neonColor: "#06b6d4",
-    emoji: "⚡",
+    id: "3",
+    heading: "Reserve books before you arrive",
+    body: "Hold a title for 48 hours — pick it up at a time that works for you",
+    illustration: <ReservePreview />,
   },
 ];
 
+const viewabilityConfig = { viewAreaCoveragePercentThreshold: 50 };
+
 export default function Onboarding() {
-  const [index, setIndex] = useState(0);
   const router = useRouter();
-  const { width, height } = useWindowDimensions();
-  const ref = useRef<ScrollView>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const flatListRef = useRef<FlatList<Slide>>(null);
 
-  const slide = slides[index];
-  const nextLabel = index === slides.length - 1 ? "Get started" : "Next";
+  const isLast = activeIndex === SLIDES.length - 1;
 
-  const stepDots = useMemo(
-    () =>
-      slides.map((_, idx) => (
-        <View
-          key={idx}
-          style={[
-            styles.dot,
-            idx === index ? [styles.dotActive, { backgroundColor: slide.neonColor }] : null,
-          ]}
-        />
-      )),
-    [index, slide.neonColor],
+  const finishOnboarding = async (route: "/signup" | "/signin") => {
+    if (!__DEV__) {
+      await AsyncStorage.setItem(ONBOARDING_SEEN_KEY, "true");
+    }
+    router.replace(route);
+  };
+
+  const handleNext = () => {
+    if (isLast) {
+      void finishOnboarding("/signup");
+      return;
+    }
+
+    const next = activeIndex + 1;
+    flatListRef.current?.scrollToIndex({ index: next, animated: true });
+    setActiveIndex(next);
+  };
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        setActiveIndex(viewableItems[0].index);
+      }
+    },
+  ).current;
+
+  const renderItem: ListRenderItem<Slide> = ({ item, index }) => (
+    <View style={[styles.slide, index === 0 && styles.slideFirst]}>
+      {item.illustration ? (
+        <View style={styles.illustrationWrap}>{item.illustration}</View>
+      ) : (
+        <View style={styles.slideSpacer} />
+      )}
+      <Text style={styles.slideHeading}>{item.heading}</Text>
+      <Text style={styles.slideBody}>{item.body}</Text>
+    </View>
   );
 
   return (
-    <View style={styles.outerContainer}>
-      {/* Decorative background circles */}
-      <View style={styles.backgroundCirclesContainer}>
-        {/* Large soft blue circle top left */}
-        <View style={[styles.circle, styles.circleBlueLarge, { top: -100, left: -100 }]} />
-        {/* Medium yellow circle top right */}
-        <View style={[styles.circle, styles.circleYellowMedium, { top: 80, right: -40 }]} />
-        {/* Medium blue ring middle left */}
-        <View style={[styles.circle, styles.circleBlueRing, { top: "45%", left: -50 }]} />
-        {/* Small yellow circle bottom left */}
-        <View style={[styles.circle, styles.circleYellowSmall, { bottom: 120, left: -30 }]} />
-        {/* Large blue circle bottom right */}
-        <View style={[styles.circle, styles.circleBlueLarge, { bottom: -120, right: -80 }]} />
-        {/* Medium-small yellow ring middle right */}
-        <View style={[styles.circle, styles.circleYellowRing, { top: "25%", right: "15%" }]} />
-      </View>
-      
-      <View style={styles.wrapper}>
-        <ScrollView
-          ref={ref}
+    <View style={styles.screen}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+      <ImageBackground source={LIBRARY_BG} style={StyleSheet.absoluteFill} resizeMode="cover">
+        <View style={styles.overlay} />
+      </ImageBackground>
+
+      <SafeAreaView style={styles.content} edges={["top", "bottom", "left", "right"]}>
+        <View style={styles.logoArea}>
+          <BrandLogo variant="iconWithLabel" size="onboarding" />
+        </View>
+
+        <FlatList
+          ref={flatListRef}
+          data={SLIDES}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={(event) => {
-            const page = Math.round(event.nativeEvent.contentOffset.x / width);
-            setIndex(page);
-          }}
-        >
-          {slides.map((slideItem, slideIndex) => (
-            <View
-              key={slideIndex}
-              style={[styles.container, { width, height }]}
-            >
-              {/* Ambient Glowing Orbs */}
-              <View
-                style={[
-                  styles.orb,
-                  {
-                    backgroundColor: slideItem.orbColors[0],
-                    top: "15%",
-                    left: "10%",
-                    shadowColor: slideItem.neonColor,
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.orb,
-                  {
-                    backgroundColor: slideItem.orbColors[1],
-                    bottom: "25%",
-                    right: "10%",
-                    width: 250,
-                    height: 250,
-                    borderRadius: 125,
-                    shadowColor: "#ddd",
-                  },
-                ]}
-              />
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          style={styles.flatList}
+          getItemLayout={(_, index) => ({
+            length: SCREEN_WIDTH,
+            offset: SCREEN_WIDTH * index,
+            index,
+          })}
+        />
 
-              {/* Glassmorphic Slide Card */}
-              <View style={styles.glassCard}>
-                <View style={styles.header}>
-                  <View
-                    style={[
-                      styles.heroIconContainer,
-                      {
-                        borderColor: slideItem.neonColor,
-                        shadowColor: slideItem.neonColor,
-                      },
-                    ]}
-                  >
-                    <Text style={styles.heroEmoji}>{slideItem.emoji}</Text>
-                  </View>
-                  <Text style={styles.title}>{slideItem.title}</Text>
-                </View>
-
-                <View style={styles.body}>
-                  <Text style={styles.subtitle}>{slideItem.subtitle}</Text>
-                  <Text style={styles.note}>{slideItem.note}</Text>
-                </View>
-              </View>
-            </View>
+        <View style={styles.dotsRow}>
+          {SLIDES.map((_, i) => (
+            <View key={i} style={[styles.dot, i === activeIndex && styles.dotActive]} />
           ))}
-        </ScrollView>
-
-        {/* Footer Controls */}
-        <View style={styles.footer}>
-          <View style={styles.pagination}>{stepDots}</View>
-          <View style={styles.actions}>
-            <Pressable
-              style={styles.skipButton}
-              onPress={() => router.replace("/")}
-            >
-              <Text style={styles.skipText}>Skip</Text>
-            </Pressable>
-            <Button
-              title={nextLabel}
-              onPress={() => {
-                if (index === slides.length - 1) {
-                  router.replace("/");
-                } else {
-                  ref.current?.scrollTo({
-                    x: (index + 1) * width,
-                    animated: true,
-                  });
-                  setIndex((prev) => prev + 1);
-                }
-              }}
-              style={[styles.nextButton, { backgroundColor: slide.neonColor }]}
-              textStyle={styles.nextButtonText}
-            />
-          </View>
         </View>
-      </View>
+
+        <View style={styles.ctaArea}>
+          <Pressable style={styles.btnPrimary} onPress={handleNext}>
+            <Text style={styles.btnPrimaryText}>
+              {isLast ? "Create an account" : activeIndex === 0 ? "Get Started" : "Next"}
+            </Text>
+          </Pressable>
+
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>already have an account</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <Pressable style={styles.btnGhost} onPress={() => void finishOnboarding("/signin")}>
+            <Text style={styles.btnGhostText}>Log in</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  outerContainer: {
+  screen: {
     flex: 1,
-    position: "relative",
-    backgroundColor: "#ffffff",
+    backgroundColor: Colors.bgDeep,
   },
-  wrapper: {
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.overlay,
+  },
+  content: {
     flex: 1,
-    backgroundColor: "transparent",
   },
-  container: {
-    paddingHorizontal: theme.spacing.xl,
+  logoArea: {
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.xxl,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+  },
+  flatList: {
+    flex: 1,
+  },
+  slide: {
+    width: SCREEN_WIDTH,
+    paddingHorizontal: theme.spacing.xxl,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
+    gap: theme.spacing.xl,
+    paddingTop: theme.spacing.lg,
   },
-  orb: {
-    position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    opacity: 0.25,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 50,
-    elevation: 0,
+  slideFirst: {
+    paddingTop: theme.spacing.sm,
+    gap: theme.spacing.lg,
   },
-  glassCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.72)",
-    borderWidth: 1.8,
-    borderColor: "rgba(255, 255, 255, 0.5)",
-    borderRadius: theme.borderRadius.huge,
-    paddingVertical: theme.spacing.huge,
-    paddingHorizontal: theme.spacing.xl,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 5,
+  slideSpacer: {
+    height: 24,
+  },
+  illustrationWrap: {
     alignItems: "center",
-    alignSelf: "center",
     width: "100%",
-    marginVertical: 40,
   },
-  header: {
-    alignItems: "center",
-    marginBottom: theme.spacing.lg,
+  photoCard: {
+    width: SCREEN_WIDTH - 48,
+    height: 196,
+    borderRadius: theme.borderRadius.xl,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
   },
-  heroIconContainer: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
-    backgroundColor: "rgba(255, 255, 255, 0.88)",
-    borderWidth: 2,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: theme.spacing.md,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 2,
+  photoCardBg: {
+    flex: 1,
+    justifyContent: "flex-end",
   },
-  heroEmoji: {
-    fontSize: 52,
+  photoCardImage: {
+    borderRadius: theme.borderRadius.xl,
   },
-  title: {
-    fontSize: 38,
-    lineHeight: 44,
-    fontWeight: "900",
-    color: lightColors.text,
-    textAlign: "center",
-    marginTop: theme.spacing.xs,
+  photoCardScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(10, 22, 40, 0.55)",
   },
-  body: {
-    alignItems: "center",
+  photoCardContent: {
+    padding: theme.spacing.md,
   },
-  subtitle: {
-    fontSize: 24,
-    lineHeight: 32,
-    fontWeight: "800",
-    color: lightColors.text,
-    textAlign: "center",
-    marginBottom: theme.spacing.sm,
+  mockCard: {
+    backgroundColor: Colors.cardBg,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
-  note: {
-    fontSize: 18,
-    lineHeight: 26,
-    color: lightColors.text,
-    fontWeight: "600",
-    textAlign: "center",
-    maxWidth: 300,
-  },
-  footer: {
-    position: "absolute",
-    bottom: 50,
-    left: 0,
-    right: 0,
-    paddingHorizontal: theme.spacing.xxl + 8,
-  },
-  pagination: {
+  searchBar: {
     flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: theme.spacing.xl,
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.teal,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
   },
-  dot: {
+  searchIcon: {
+    fontSize: 16,
+    color: Colors.teal,
+  },
+  searchQuery: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.textWhite,
+  },
+  resultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    paddingVertical: 6,
+  },
+  resultRowMuted: {
+    opacity: 0.72,
+  },
+  resultCover: {
+    width: 28,
+    height: 38,
+    borderRadius: 4,
+  },
+  resultMeta: {
+    flex: 1,
+    gap: 2,
+  },
+  resultTitle: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: Colors.textWhite,
+  },
+  resultSub: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+  },
+  resultBadge: {
+    backgroundColor: Colors.teal,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  resultBadgeText: {
+    fontSize: 9,
+    fontWeight: "600",
+    color: Colors.tealDark,
+  },
+  reserveBookRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  reserveCover: {
+    backgroundColor: "#639922",
+  },
+  reserveStatus: {
+    fontSize: 10,
+    color: Colors.teal,
+  },
+  reserveTimeline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    paddingVertical: 4,
+  },
+  timelineDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "rgba(0, 0, 0, 0.16)",
-    marginHorizontal: 5,
+    backgroundColor: "#EF9F27",
   },
-  dotActive: {
-    width: 22,
+  timelineText: {
+    flex: 1,
+    fontSize: 10,
+    color: Colors.textSecondary,
   },
-  actions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  reserveButton: {
+    backgroundColor: Colors.teal,
+    borderRadius: theme.borderRadius.md,
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
   },
-  skipButton: {
-    paddingVertical: theme.spacing.sm,
+  reserveButtonText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: Colors.tealDark,
+  },
+  slideHeading: {
+    fontSize: 22,
+    fontWeight: "500",
+    color: Colors.textWhite,
+    textAlign: "center",
+    lineHeight: 30,
+    paddingHorizontal: theme.spacing.sm,
+  },
+  slideBody: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
     paddingHorizontal: theme.spacing.md,
   },
-  skipText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: lightColors.textMuted,
+  dotsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: theme.spacing.lg,
   },
-  nextButton: {
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.dotInactive,
+  },
+  dotActive: {
+    width: 18,
+    borderRadius: 3,
+    backgroundColor: Colors.teal,
+  },
+  ctaArea: {
     paddingHorizontal: theme.spacing.xxl,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.xl,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3,
+    paddingBottom: theme.spacing.huge,
+    gap: 10,
   },
-  nextButtonText: {
-    color: lightColors.textLight,
-    fontSize: 16,
-    fontWeight: "700",
+  btnPrimary: {
+    height: 50,
+    backgroundColor: Colors.teal,
+    borderRadius: theme.borderRadius.lg,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  backgroundCirclesContainer: {
-    ...StyleSheet.absoluteFill,
-    overflow: "hidden",
-    zIndex: -1,
+  btnPrimaryText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: Colors.tealDark,
   },
-  circle: {
-    position: "absolute",
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
   },
-  circleBlueLarge: {
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: "rgba(13, 37, 63, 0.5)",
+  dividerLine: {
+    flex: 1,
+    height: 0.5,
+    backgroundColor: Colors.borderDefault,
   },
-  circleBlueRing: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    borderWidth: 2,
-    borderColor: "rgba(13, 37, 63, 0.5)",
+  dividerText: {
+    fontSize: 11,
+    color: Colors.textMuted,
   },
-  circleYellowMedium: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: "rgba(245, 186, 19, 0.5)",
+  btnGhost: {
+    height: 46,
+    borderWidth: 0.5,
+    borderColor: Colors.borderStrong,
+    borderRadius: theme.borderRadius.lg,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  circleYellowSmall: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(245, 186, 19, 0.5)",
-  },
-  circleYellowRing: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 1.5,
-    borderColor: "rgba(245, 186, 19, 0.5)",
+  btnGhostText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
   },
 });

@@ -51,12 +51,17 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/register").permitAll()
                 .requestMatchers("/api/auth/school-admin-signup").permitAll()
                 .requestMatchers("/api/auth/school-admin-join").permitAll()
+                .requestMatchers("/api/auth/forgot-password").permitAll()
+                .requestMatchers("/api/auth/verify-reset-code").permitAll()
+                .requestMatchers("/api/auth/reset-password").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/authors/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/publishers/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/institutions").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/books/**").permitAll()
+                // Deliberately fully public (not narrowed to specific sub-paths): accepted,
+                // documented gap for podcast-style audio content — see NEXT_STEPS.md.
                 .requestMatchers(HttpMethod.GET, "/api/audio/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/audio-tracks/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ai/suggestions").permitAll()

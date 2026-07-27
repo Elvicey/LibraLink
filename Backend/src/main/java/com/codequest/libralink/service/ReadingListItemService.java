@@ -34,6 +34,8 @@ public class ReadingListItemService {
     }
 
     public ReadingListItem addItemToList(ReadingListItem item) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        item.setId(null);
         if (item.getReadingListId() == null) {
             throw new IllegalArgumentException("readingListId is required");
         }
@@ -76,7 +78,8 @@ public class ReadingListItemService {
 
     public ReadingListItem getItemById(Integer itemId) {
         return readingListItemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Reading list item not found with id: " + itemId));
+                .orElseThrow(() -> new com.codequest.libralink.exception.ResourceNotFoundException(
+                        "Reading list item not found with id: " + itemId));
     }
 
     public ReadingListItem updateItem(Integer itemId, ReadingListItem updatedItem) {

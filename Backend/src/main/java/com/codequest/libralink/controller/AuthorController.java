@@ -2,7 +2,9 @@ package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.Author;
 import com.codequest.libralink.service.AuthorService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.codequest.libralink.security.Roles;
@@ -18,8 +20,8 @@ public class AuthorController {
 
     @PreAuthorize(Roles.STAFF)
     @PostMapping
-    public Author createAuthor(@RequestBody Author author) {
-        return authorService.addAuthor(author);
+    public ResponseEntity<Author> createAuthor(@Valid @RequestBody Author author) {
+        return new ResponseEntity<>(authorService.addAuthor(author), HttpStatus.CREATED);
     }
 
     @GetMapping

@@ -81,6 +81,14 @@ public class AudioBookTrackService {
     }
 
     public AudioBookTrack saveTrack(AudioBookTrack track) {
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        track.setId(null);
+        if (track.getTitle() == null || track.getTitle().isBlank()) {
+            throw new IllegalArgumentException("title is required");
+        }
+        if (track.getAudioUrl() == null || track.getAudioUrl().isBlank()) {
+            throw new IllegalArgumentException("audioUrl is required");
+        }
         if (track.getSchoolId() == null) {
             Integer schoolId = null;
             if (track.getBook() != null) {

@@ -32,6 +32,7 @@ export async function apiRequest<T>(
   }
 
   const response = await fetch(url, {
+    cache: "no-store",
     ...rest,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,

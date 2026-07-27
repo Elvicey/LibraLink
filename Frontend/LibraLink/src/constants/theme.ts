@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useColorScheme } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const lightColors = {
   primary: "#0b6efd",
@@ -103,7 +104,9 @@ export const theme = {
 export type ColorsType = typeof lightColors;
 export type ThemeType = typeof theme;
 
-type ThemeMode = "system" | "light" | "dark";
+export type ThemeMode = "system" | "light" | "dark";
+
+const THEME_STORAGE_KEY = "themeMode";
 
 interface ThemeContextType {
   themeMode: ThemeMode;
@@ -113,12 +116,37 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [themeMode, setThemeMode] = useState<ThemeMode>("system");
+function isThemeMode(value: string | null): value is ThemeMode {
+  return value === "system" || value === "light" || value === "dark";
+}
 
-  const toggleTheme = () => {
-    setThemeMode((prev) => (prev === "dark" ? "light" : "dark"));
-  };
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [themeMode, setThemeModeState] = useState<ThemeMode>("light");
+
+  useEffect(() => {
+    AsyncStorage.getItem(THEME_STORAGE_KEY)
+      .then((stored) => {
+        if (isThemeMode(stored)) {
+          setThemeModeState(stored);
+        }
+      })
+      .catch(() => {
+        // keep default light
+      });
+  }, []);
+
+  const setThemeMode = useCallback((mode: ThemeMode) => {
+    setThemeModeState(mode);
+    AsyncStorage.setItem(THEME_STORAGE_KEY, mode).catch(() => {});
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setThemeModeState((prev) => {
+      const next: ThemeMode = prev === "dark" ? "light" : "dark";
+      AsyncStorage.setItem(THEME_STORAGE_KEY, next).catch(() => {});
+      return next;
+    });
+  }, []);
 
   return React.createElement(
     ThemeContext.Provider,
@@ -131,7 +159,7 @@ export function useTheme() {
   const context = useContext(ThemeContext);
   const systemScheme = useColorScheme();
 
-  const themeMode = context ? context.themeMode : "system";
+  const themeMode = context ? context.themeMode : "light";
   const toggleTheme = context ? context.toggleTheme : () => {};
   const setThemeMode = context ? context.setThemeMode : () => {};
 

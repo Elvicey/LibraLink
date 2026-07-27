@@ -1,7 +1,9 @@
 package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.Reservation;
+import com.codequest.libralink.security.CurrentUserProvider;
 import com.codequest.libralink.service.ReservationService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.codequest.libralink.security.Roles;
@@ -15,14 +17,19 @@ import java.util.Map;
 public class ReservationController {
 
     private final ReservationService reservationService;
+    private final CurrentUserProvider currentUserProvider;
 
-    public ReservationController(ReservationService reservationService) {
+    public ReservationController(ReservationService reservationService, CurrentUserProvider currentUserProvider) {
         this.reservationService = reservationService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @PostMapping
-    public Reservation makeHold(@RequestBody Reservation reservation) {
-        return reservationService.createReservation(reservation);
+    public ResponseEntity<Reservation> makeHold(@RequestBody Reservation reservation) {
+        // A patron can only reserve for themselves; a librarian/admin may place a hold
+        // on behalf of a specific patron by supplying userId.
+        reservation.setUserId(currentUserProvider.resolveActingUserId(reservation.getUserId(), "LIBRARIAN", "ADMIN"));
+        return new ResponseEntity<>(reservationService.createReservation(reservation), HttpStatus.CREATED);
     }
 
     @PreAuthorize(Roles.STAFF)
@@ -31,11 +38,23 @@ public class ReservationController {
         return reservationService.getAllReservations();
     }
 
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#userId, 'LIBRARIAN', 'ADMIN')")
+    @GetMapping("/user/{userId}")
+    public List<Reservation> getReservationsForUser(@PathVariable Integer userId) {
+        return reservationService.getReservationsForUser(userId);
+    }
+
     @PutMapping("/{id}/cancel")
     public ResponseEntity<?> cancelReservation(@PathVariable Integer id) {
         try {
+            // Ownership of the reservation is verified inside the service.
             Reservation cancelled = reservationService.cancelReservation(id);
             return ResponseEntity.ok(cancelled);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            throw e;
+        } catch (com.codequest.libralink.exception.ResourceNotFoundException e) {
+            // Let GlobalExceptionHandler turn this into a proper 404 instead of 400.
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

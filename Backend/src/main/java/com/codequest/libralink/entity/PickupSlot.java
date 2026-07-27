@@ -5,7 +5,10 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "pickup_slots")
+@Table(name = "pickup_slots", indexes = {
+        @Index(name = "idx_pickup_user_id", columnList = "user_id"),
+        @Index(name = "idx_pickup_status", columnList = "status")
+})
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PickupSlot {
 

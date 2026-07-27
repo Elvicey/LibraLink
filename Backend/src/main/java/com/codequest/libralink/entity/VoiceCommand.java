@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "voice_commands")
+@Table(name = "voice_commands", indexes = {
+        @Index(name = "idx_voicecommand_user_id", columnList = "user_id")
+})
 public class VoiceCommand {
 
     @Id

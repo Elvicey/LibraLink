@@ -1,6 +1,7 @@
 package com.codequest.libralink.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -13,6 +14,7 @@ public class BookCopy {
     private Integer id;
 
     // Many physical copies beInteger to one master Book entry
+    @NotNull
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;

@@ -2,6 +2,8 @@ package com.codequest.libralink.service;
 
 import com.codequest.libralink.entity.Book;
 import com.codequest.libralink.repository.BookRepository;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -55,19 +57,34 @@ public class NlSearchService {
         }
 
         if (results.isEmpty()) {
-            String[] words = cleanedQuery.split("\\s+");
-            if (words.length > 1) {
-                Set<Book> combined = new LinkedHashSet<>();
-                for (String word : words) {
-                    if (word.length() > 2) {
-                        combined.addAll(bookRepository.searchByQuery(word));
-                    }
-                }
-                results = new ArrayList<>(combined);
+            // Medium: this used to issue one searchByQuery(word) round trip per word in a
+            // loop; now it's a single query ORing a LIKE predicate per word.
+            List<String> significantWords = Arrays.stream(cleanedQuery.split("\\s+"))
+                    .filter(word -> word.length() > 2)
+                    .toList();
+            if (significantWords.size() > 1) {
+                results = bookRepository.findAll(anyWordMatches(significantWords));
             }
         }
 
         return results;
+    }
+
+    private Specification<Book> anyWordMatches(List<String> words) {
+        return (root, query, cb) -> {
+            List<Predicate> perWordPredicates = new ArrayList<>();
+            for (String word : words) {
+                String pattern = "%" + word.toLowerCase() + "%";
+                perWordPredicates.add(cb.or(
+                        cb.like(cb.lower(root.get("title")), pattern),
+                        cb.like(cb.lower(root.get("isbn")), pattern),
+                        cb.like(cb.lower(root.get("isbn13")), pattern),
+                        cb.like(cb.lower(root.get("description")), pattern),
+                        cb.like(cb.lower(root.get("subtitle")), pattern)
+                ));
+            }
+            return cb.or(perWordPredicates.toArray(new Predicate[0]));
+        };
     }
 
     private String extractAfterPatterns(String text, List<String> patterns) {
