@@ -78,7 +78,7 @@ export default function AudioBookPlayer() {
         Audio Reader
       </Text>
       <Text style={[styles.description, { color: colors.textMuted, fontSize: typography.bodyMedium.fontSize, lineHeight: typography.bodyMedium.lineHeight, marginBottom: spacing.lg }]}>
-        Listen to textbook translations, lecture summaries, and reading podcasts offline.
+        Listen to textbook translations and reading summaries offline.
       </Text>
 
       {/* Album Artwork Circle */}

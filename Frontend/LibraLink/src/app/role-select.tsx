@@ -13,14 +13,6 @@ const roles = [
     route: "/signin",
   },
   {
-    id: "lecturer",
-    title: "Lecturer",
-    description: "Lecture-to-Library: link courses, publish reading lists, alert on low stock",
-    emoji: "👨‍🏫",
-    color: "#8b5cf6",
-    route: "/lecturer-signin",
-  },
-  {
     id: "staff",
     title: "Librarian / Admin",
     description: "Staff console: inventory, circulation, and Admin reports",

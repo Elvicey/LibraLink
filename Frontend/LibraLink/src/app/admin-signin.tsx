@@ -33,7 +33,7 @@ export default function AdminSignIn() {
       }
 
       const roles: string[] = data.roles || [];
-      const isAdmin = roles.includes("ADMIN");
+      const isAdmin = roles.includes("ADMIN") || roles.includes("SCHOOL_ADMIN");
 
       if (!isAdmin) {
         throw new Error("This account does not have admin privileges.");

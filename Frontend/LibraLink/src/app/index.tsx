@@ -11,13 +11,6 @@ const roles = [
     route: "/signin",
   },
   {
-    key: "lecturer",
-    title: "Lecturer",
-    subtitle: "Lecture-to-Library & course reading lists",
-    emoji: "📖",
-    route: "/lecturer-signin",
-  },
-  {
     key: "librarian",
     title: "Librarian",
     subtitle: "Manage books, loans & inventory",
