@@ -1,6 +1,7 @@
 package com.codequest.libralink.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "roles")
@@ -10,8 +11,9 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @NotBlank
     @Column(nullable = false, unique = true, length = 50)
-    private String name; // e.g., STUDENT, LIBRARIAN, ADMIN, LECTURER
+    private String name; // e.g., STUDENT, LIBRARIAN, ADMIN
 
     public Role() {}
 

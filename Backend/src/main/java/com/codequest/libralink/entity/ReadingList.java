@@ -16,6 +16,9 @@ public class ReadingList {
     @Column(name = "course_id", nullable = false)
     private Integer courseId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(name = "created_by")
     private Integer createdBy;
 
@@ -99,6 +102,14 @@ public class ReadingList {
 
     public void setCourseId(Integer courseId) {
         this.courseId = courseId;
+    }
+
+    public Integer getSchoolId() {
+        return schoolId;
+    }
+
+    public void setSchoolId(Integer schoolId) {
+        this.schoolId = schoolId;
     }
 
     public Integer getCreatedBy() {

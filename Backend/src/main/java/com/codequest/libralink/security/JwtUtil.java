@@ -25,6 +25,12 @@ public class JwtUtil {
     }
 
     public String generateToken(Integer userId, String email, List<String> roles) {
+        return generateToken(userId, email, roles, null);
+    }
+
+    // schoolId is null for PLATFORM_SUPER_ADMIN (not school-scoped); every other role's
+    // token carries it so per-request school-scoping can be enforced without a DB lookup.
+    public String generateToken(Integer userId, String email, List<String> roles, Integer schoolId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
@@ -32,6 +38,7 @@ public class JwtUtil {
                 .subject(String.valueOf(userId))
                 .claim("email", email)
                 .claim("roles", roles)
+                .claim("schoolId", schoolId)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(signingKey)
@@ -66,6 +73,15 @@ public class JwtUtil {
                 .parseSignedClaims(token)
                 .getPayload()
                 .get("email", String.class);
+    }
+
+    public Integer extractSchoolId(String token) {
+        return Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("schoolId", Integer.class);
     }
 
     @SuppressWarnings("unchecked")

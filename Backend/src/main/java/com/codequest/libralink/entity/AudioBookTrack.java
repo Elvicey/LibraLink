@@ -15,6 +15,9 @@ public class AudioBookTrack {
     @JoinColumn(name = "book_id")
     private Book book;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(nullable = false, length = 500)
     private String title;
 
@@ -61,6 +64,9 @@ public class AudioBookTrack {
 
     public Book getBook() { return book; }
     public void setBook(Book book) { this.book = book; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }

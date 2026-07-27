@@ -37,11 +37,13 @@ class CirculationControllerTest extends BaseApiTest {
         testBook.setTotalCopies(3);
         testBook.setAvailableCopies(3);
         testBook.setActive(true);
+        testBook.setInstitution(testInstitution());
         bookRepository.save(testBook);
 
         BookCopy copy = new BookCopy();
         copy.setBarcode("CIRC-TEST-" + System.nanoTime());
         copy.setBook(testBook);
+        copy.setSchoolId(testBook.getInstitution().getInstitutionId());
         copy.setAvailable(true);
         copy.setCondition("GOOD");
         bookCopyRepository.save(copy);

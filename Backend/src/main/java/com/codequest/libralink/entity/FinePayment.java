@@ -6,7 +6,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "fine_payments")
+@Table(name = "fine_payments", indexes = {
+        @Index(name = "idx_finepayment_fine_id", columnList = "fine_id"),
+        @Index(name = "idx_finepayment_user_id", columnList = "user_id")
+})
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FinePayment {
 
@@ -20,6 +23,9 @@ public class FinePayment {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
@@ -29,7 +35,10 @@ public class FinePayment {
     @Column(name = "payment_method", length = 50)
     private String paymentMethod;
 
-    @Column(name = "transaction_ref", length = 100)
+    // Medium: an external payment gateway reference should never be reusable across two
+    // different payments - without a constraint, nothing stopped it from being. Plain
+    // unique columns allow multiple NULLs, so cash/no-ref payments are unaffected.
+    @Column(name = "transaction_ref", length = 100, unique = true)
     private String transactionRef;
 
     @Column(name = "paid_at", nullable = false)
@@ -79,6 +88,9 @@ public class FinePayment {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }

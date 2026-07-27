@@ -2,8 +2,10 @@ package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.Course;
 import com.codequest.libralink.service.CourseService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,10 +21,10 @@ public class CourseController {
         this.courseService = courseService;
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping
     public ResponseEntity<Course> createCourse(@RequestBody Course course) {
-        return ResponseEntity.ok(courseService.saveCourse(course));
+        return new ResponseEntity<>(courseService.saveCourse(course), HttpStatus.CREATED);
     }
 
     @GetMapping("/institutions/{instId}")
@@ -35,7 +37,7 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getCourseById(courseId));
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize(Roles.STAFF)
     @PutMapping("/{courseId}/books")
     public ResponseEntity<?> addBooksToCourse(@PathVariable Integer courseId,
                                                @RequestBody Map<String, Object> body) {
@@ -44,18 +46,24 @@ public class CourseController {
             List<Integer> bookIds = (List<Integer>) body.get("bookIds");
             Course updated = courseService.addBooksToCourse(courseId, bookIds);
             return ResponseEntity.ok(updated);
+        } catch (com.codequest.libralink.exception.ResourceNotFoundException e) {
+            // Let GlobalExceptionHandler turn this into a proper 404 instead of 400.
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize(Roles.STAFF)
     @DeleteMapping("/{courseId}/books/{bookId}")
     public ResponseEntity<?> removeBookFromCourse(@PathVariable Integer courseId,
                                                    @PathVariable Integer bookId) {
         try {
             Course updated = courseService.removeBookFromCourse(courseId, bookId);
             return ResponseEntity.ok(updated);
+        } catch (com.codequest.libralink.exception.ResourceNotFoundException e) {
+            // Let GlobalExceptionHandler turn this into a proper 404 instead of 400.
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

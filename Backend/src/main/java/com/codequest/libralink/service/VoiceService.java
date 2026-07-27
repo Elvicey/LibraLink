@@ -2,6 +2,7 @@ package com.codequest.libralink.service;
 
 import com.codequest.libralink.entity.*;
 import com.codequest.libralink.repository.VoiceCommandRepository;
+import com.codequest.libralink.security.SchoolContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ public class VoiceService {
     private final BorrowRecordService borrowRecordService;
     private final AiExamService aiExamService;
     private final AudioTrackService audioTrackService;
+    private final SchoolContext schoolContext;
     private final ObjectMapper objectMapper;
 
     public VoiceService(VoiceCommandRepository voiceCommandRepository,
@@ -32,7 +34,8 @@ public class VoiceService {
                         ReservationService reservationService,
                         BorrowRecordService borrowRecordService,
                         AiExamService aiExamService,
-                        AudioTrackService audioTrackService) {
+                        AudioTrackService audioTrackService,
+                        SchoolContext schoolContext) {
         this.voiceCommandRepository = voiceCommandRepository;
         this.nlSearchService = nlSearchService;
         this.bookService = bookService;
@@ -40,13 +43,23 @@ public class VoiceService {
         this.borrowRecordService = borrowRecordService;
         this.aiExamService = aiExamService;
         this.audioTrackService = audioTrackService;
+        this.schoolContext = schoolContext;
         this.objectMapper = new ObjectMapper();
     }
 
-    @Transactional
+    // Intentionally NOT @Transactional: handleSummary/handleAudio call an
+    // already-@Transactional creation method (createSummary/initiateConversion)
+    // followed immediately by an @Async processing method (processSummary/
+    // processConversion) that re-queries the row by id on a different thread/
+    // connection. If this whole method were wrapped in one outer transaction, that
+    // row wouldn't be committed/visible yet when the async method runs, causing
+    // intermittent "not found" failures (H1). Leaving this method non-transactional
+    // lets each sub-operation's own @Transactional commit independently before the
+    // next line (including the @Async dispatch) executes.
     public VoiceCommand processVoiceCommand(Integer userId, String transcribedText) {
         VoiceCommand command = new VoiceCommand();
         command.setUserId(userId);
+        command.setSchoolId(schoolContext.requireSchoolId());
         command.setTranscribedText(transcribedText);
 
         try {
@@ -258,6 +271,11 @@ public class VoiceService {
 
     @Transactional(readOnly = true)
     public List<VoiceCommand> getUserCommands(Integer userId) {
-        return voiceCommandRepository.findByUserId(userId);
+        List<VoiceCommand> commands = voiceCommandRepository.findByUserId(userId);
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return commands;
+        }
+        Integer schoolId = schoolContext.requireSchoolId();
+        return commands.stream().filter(c -> schoolId.equals(c.getSchoolId())).toList();
     }
 }
