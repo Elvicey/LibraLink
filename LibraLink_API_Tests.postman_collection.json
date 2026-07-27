@@ -9,7 +9,6 @@
 		{ "key": "adminToken", "value": "", "type": "string" },
 		{ "key": "librarianToken", "value": "", "type": "string" },
 		{ "key": "studentToken", "value": "", "type": "string" },
-		{ "key": "lecturerToken", "value": "", "type": "string" },
 		{ "key": "authToken", "value": "", "type": "string" },
 		{ "key": "testUserId", "value": "", "type": "string" },
 		{ "key": "testBookId", "value": "", "type": "string" },
@@ -84,28 +83,6 @@
 					"event": [{ "listen": "test", "script": { "exec": [
 						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
 						"pm.test('Has token and LIBRARIAN role', function () { var j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.expect(j.roles).to.include('LIBRARIAN'); pm.collectionVariables.set('librarianToken', j.token); pm.collectionVariables.set('authToken', j.token); if (j.userId) pm.collectionVariables.set('testUserId', j.userId); });"
-					]}}],
-					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}" },
-						"url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
-					}
-				},
-				{
-					"name": "Register - Lecturer",
-					"event": [{ "listen": "test", "script": { "exec": [
-						"pm.test('Status is 201', function () { pm.expect(pm.response.code).to.equal(201); });",
-						"pm.test('Has token and LECTURER role', function () { var j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.expect(j.roles).to.include('LECTURER'); pm.collectionVariables.set('lecturerToken', j.token); pm.collectionVariables.set('authToken', j.token); if (j.userId) pm.collectionVariables.set('testUserId', j.userId); });"
-					]}}],
-					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"password\": \"\"\n}" },
-						"url": { "raw": "{{baseUrl}}/api/auth/register-lecturer", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register-lecturer"] }
-					}
-				},
-				{
-					"name": "Login - Lecturer",
-					"event": [{ "listen": "test", "script": { "exec": [
-						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
-						"pm.test('Has token and LECTURER role', function () { var j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.expect(j.roles).to.include('LECTURER'); pm.collectionVariables.set('lecturerToken', j.token); pm.collectionVariables.set('authToken', j.token); if (j.userId) pm.collectionVariables.set('testUserId', j.userId); });"
 					]}}],
 					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
 						"body": { "mode": "raw", "raw": "{\n  \"email\": \"\",\n  \"password\": \"\"\n}" },
@@ -344,7 +321,7 @@
 		{
 			"name": "Courses",
 			"item": [
-				{ "name": "Create Course (Lecturer)",
+				{ "name": "Create Course (Librarian)",
 					"event": [
 						{ "listen": "prerequest", "script": { "exec": [
 							"if (!pm.collectionVariables.get('testInstitutionId')) {",
@@ -357,33 +334,33 @@
 							"if (j.id) { pm.collectionVariables.set('testCourseId', String(j.id)); }"
 						]}}
 					],
-					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
 					"body": { "mode": "raw", "raw": "{\n  \"institution\": {\"institutionId\": {{testInstitutionId}}},\n  \"name\": \"Introduction to Algorithms\",\n  \"code\": \"CS281\",\n  \"description\": \"Core CS course\",\n  \"status\": \"ACTIVE\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/courses", "host": ["{{baseUrl}}"], "path": ["api", "courses"] }
 				}},
 				{ "name": "Get Courses by Institution", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/courses/institutions/{{testInstitutionId}}", "host": ["{{baseUrl}}"], "path": ["api", "courses", "institutions", "{{testInstitutionId}}"] } } },
-				{ "name": "Add Books to Course (Lecturer)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
+				{ "name": "Add Books to Course (Librarian)", "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
 					"body": { "mode": "raw", "raw": "{\n  \"bookIds\": [{{testBookId}}]\n}" },
 					"url": { "raw": "{{baseUrl}}/api/courses/{{testCourseId}}/books", "host": ["{{baseUrl}}"], "path": ["api", "courses", "{{testCourseId}}", "books"] }
 				}},
-				{ "name": "Remove Book from Course (Lecturer)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{lecturerToken}}" }], "url": { "raw": "{{baseUrl}}/api/courses/{{testCourseId}}/books/{{testBookId}}", "host": ["{{baseUrl}}"], "path": ["api", "courses", "{{testCourseId}}", "books", "{{testBookId}}"] } } }
+				{ "name": "Remove Book from Course (Librarian)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{librarianToken}}" }], "url": { "raw": "{{baseUrl}}/api/courses/{{testCourseId}}/books/{{testBookId}}", "host": ["{{baseUrl}}"], "path": ["api", "courses", "{{testCourseId}}", "books", "{{testBookId}}"] } } }
 			]
 		},
 		{
 			"name": "Reading Lists",
 			"item": [
-				{ "name": "Create Reading List (Lecturer)",
+				{ "name": "Create Reading List (Librarian)",
 					"event": [{ "listen": "test", "script": { "exec": [
 						"pm.test('Status is 200', function () { pm.expect(pm.response.code).to.equal(200); });",
 						"var j = pm.response.json();",
 						"if (j.id) { pm.collectionVariables.set('testReadingListId', String(j.id)); }"
 					]}}],
-					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
+					"request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
 					"body": { "mode": "raw", "raw": "{\n  \"courseId\": {{testCourseId}},\n  \"createdBy\": {{testUserId}},\n  \"title\": \"CS281 Required Readings\",\n  \"description\": \"Core texts for the semester\",\n  \"semester\": \"First\",\n  \"academicYear\": \"2025/2026\",\n  \"isPublished\": true\n}" },
 					"url": { "raw": "{{baseUrl}}/api/reading-lists", "host": ["{{baseUrl}}"], "path": ["api", "reading-lists"] }
 				}},
 				{ "name": "Get Reading Lists by Course", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/reading-lists/course/{{testCourseId}}", "host": ["{{baseUrl}}"], "path": ["api", "reading-lists", "course", "{{testCourseId}}"] } } },
-				{ "name": "Add Item to Reading List (Lecturer)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{lecturerToken}}" }],
+				{ "name": "Add Item to Reading List (Librarian)", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{librarianToken}}" }],
 					"body": { "mode": "raw", "raw": "{\n  \"readingListId\": {{testReadingListId}},\n  \"bookId\": {{testBookId}},\n  \"notes\": \"Required reading\"\n}" },
 					"url": { "raw": "{{baseUrl}}/api/reading_list_items", "host": ["{{baseUrl}}"], "path": ["api", "reading_list_items"] }
 				}}

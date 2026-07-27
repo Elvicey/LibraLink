@@ -1,8 +1,10 @@
 package com.codequest.libralink;
 
+import com.codequest.libralink.entity.Institution;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -98,6 +100,13 @@ class AuthControllerTest extends BaseApiTest {
     void registerLibrarian_asAdmin_createsWithLibrarianRole() throws Exception {
         String adminToken = getAdminToken();
 
+        MvcResult codeResult = mockMvc.perform(post("/api/librarian-codes")
+                        .header("Authorization", bearerToken(adminToken)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String librarianCode = objectMapper.readTree(codeResult.getResponse().getContentAsString())
+                .get("librarianCode").asText();
+
         mockMvc.perform(post("/api/auth/register-librarian")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", bearerToken(adminToken))
@@ -105,28 +114,46 @@ class AuthControllerTest extends BaseApiTest {
                                 java.util.Map.of(
                                         "firstName", "Lib",
                                         "lastName", "Staff",
-                                        "email", "lib.staff@test.com",
-                                        "password", "pass1234"
+                                        "email", uniqueEmail("lib.staff"),
+                                        "password", "pass1234",
+                                        "librarianCode", librarianCode
                                 ))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.roles", hasItem("LIBRARIAN")));
     }
 
     @Test
-    void registerLecturer_asAdmin_createsWithLecturerRole() throws Exception {
+    void registerLibrarian_missingCode_returns400() throws Exception {
         String adminToken = getAdminToken();
 
-        mockMvc.perform(post("/api/auth/register-lecturer")
+        mockMvc.perform(post("/api/auth/register-librarian")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", bearerToken(adminToken))
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
-                                        "firstName", "Dr",
-                                        "lastName", "Lecturer",
-                                        "email", "lecturer@test.com",
+                                        "firstName", "No",
+                                        "lastName", "Code",
+                                        "email", uniqueEmail("nocode"),
                                         "password", "pass1234"
                                 ))))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.roles", hasItem("LECTURER")));
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void login_schoolAdminReturnsSchoolId() throws Exception {
+        Institution school = createSchool("Auth Test School", "AUTHTEST-" + System.nanoTime());
+        String email = uniqueEmail("schooladmin");
+        createTestSchoolAdmin(school, email, "pass1234");
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "email", email,
+                                        "password", "pass1234"
+                                ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roles", hasItem("SCHOOL_ADMIN")))
+                .andExpect(jsonPath("$.schoolId").value(school.getInstitutionId()));
     }
 }

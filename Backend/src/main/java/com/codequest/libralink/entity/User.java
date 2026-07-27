@@ -14,6 +14,11 @@ public class User {
     @Column(name = "id")
     private Integer id;
 
+    // Institution = School. Nullable only for PLATFORM_SUPER_ADMIN users (not
+    // school-scoped); every other role must have one. Enforced in application code
+    // (AuthService / school-admin-signup / school-admin-join / register-librarian),
+    // not as a DB constraint - Postgres CHECK constraints can't subquery the roles
+    // table to express "non-null unless role X".
     @ManyToOne
     @JoinColumn(name = "institution_id")
     private Institution institution;
@@ -41,6 +46,15 @@ public class User {
 
     @Column(name = "phone_number", length = 30)
     private String phoneNumber;
+
+    @Column(name = "student_id", length = 8)
+    private String studentId;
+
+    @Column(name = "index_number", length = 7)
+    private String indexNumber;
+
+    @Column(name = "programme", length = 150)
+    private String programme;
 
     @Column(name = "profile_image_url", length = 500)
     private String profileImageUrl;
@@ -76,6 +90,15 @@ public class User {
 
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getStudentId() { return studentId; }
+    public void setStudentId(String studentId) { this.studentId = studentId; }
+
+    public String getIndexNumber() { return indexNumber; }
+    public void setIndexNumber(String indexNumber) { this.indexNumber = indexNumber; }
+
+    public String getProgramme() { return programme; }
+    public void setProgramme(String programme) { this.programme = programme; }
 
     public String getProfileImageUrl() { return profileImageUrl; }
     public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }

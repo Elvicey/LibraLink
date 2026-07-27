@@ -1,23 +1,32 @@
 package com.codequest.libralink.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "book_views")
+@Table(name = "book_views", indexes = {
+        @Index(name = "idx_bookview_user_id", columnList = "user_id"),
+        @Index(name = "idx_bookview_book_id", columnList = "book_id")
+})
 public class BookView {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @NotNull
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @NotNull
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
+
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
 
     @Column(name = "viewed_at", nullable = false, updatable = false)
     private LocalDateTime viewedAt = LocalDateTime.now();
@@ -37,6 +46,9 @@ public class BookView {
 
     public Book getBook() { return book; }
     public void setBook(Book book) { this.book = book; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public LocalDateTime getViewedAt() { return viewedAt; }
 }

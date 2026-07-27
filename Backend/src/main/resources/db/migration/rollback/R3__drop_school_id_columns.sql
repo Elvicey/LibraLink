@@ -1,0 +1,21 @@
+-- Manual rollback for V3__add_school_id_to_tenant_entities.sql. Not auto-run by Flyway.
+ALTER TABLE borrow_records           DROP COLUMN IF EXISTS school_id;
+ALTER TABLE fines                    DROP COLUMN IF EXISTS school_id;
+ALTER TABLE fine_payments            DROP COLUMN IF EXISTS school_id;
+ALTER TABLE reservations             DROP COLUMN IF EXISTS school_id;
+ALTER TABLE pickup_slots             DROP COLUMN IF EXISTS school_id;
+ALTER TABLE notifications            DROP COLUMN IF EXISTS school_id;
+ALTER TABLE reading_lists            DROP COLUMN IF EXISTS school_id;
+ALTER TABLE reading_list_items       DROP COLUMN IF EXISTS school_id;
+ALTER TABLE student_reading_progress DROP COLUMN IF EXISTS school_id;
+ALTER TABLE book_copies              DROP COLUMN IF EXISTS school_id;
+ALTER TABLE book_views               DROP COLUMN IF EXISTS school_id;
+ALTER TABLE audio_tracks             DROP COLUMN IF EXISTS school_id;
+ALTER TABLE audio_book_tracks        DROP COLUMN IF EXISTS school_id;
+ALTER TABLE exam_questions           DROP COLUMN IF EXISTS school_id;
+ALTER TABLE study_sessions           DROP COLUMN IF EXISTS school_id;
+ALTER TABLE study_summaries          DROP COLUMN IF EXISTS school_id;
+ALTER TABLE user_audio_progress      DROP COLUMN IF EXISTS school_id;
+ALTER TABLE audit_logs               DROP COLUMN IF EXISTS school_id;
+ALTER TABLE search_logs              DROP COLUMN IF EXISTS school_id;
+ALTER TABLE voice_commands           DROP COLUMN IF EXISTS school_id;

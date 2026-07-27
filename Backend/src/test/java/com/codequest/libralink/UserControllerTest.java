@@ -57,10 +57,21 @@ class UserControllerTest extends BaseApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", bearerToken(adminToken))
                         .content(objectMapper.writeValueAsString(
-                                java.util.Map.of("role", "LECTURER"))))
+                                java.util.Map.of("role", "LIBRARIAN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.roles", hasItem("STUDENT")))
-                .andExpect(jsonPath("$.roles", hasItem("LECTURER")));
+                .andExpect(jsonPath("$.roles", hasItem("LIBRARIAN")));
+    }
+
+    @Test
+    void assignRole_lecturer_rejected() throws Exception {
+        mockMvc.perform(post("/api/users/" + testStudent.getId() + "/roles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(adminToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of("role", "LECTURER"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Lecturer role is no longer supported"));
     }
 
     @Test
@@ -70,6 +81,45 @@ class UserControllerTest extends BaseApiTest {
                         .header("Authorization", bearerToken(adminToken))
                         .content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateProfile_persistsStudentDetails() throws Exception {
+        mockMvc.perform(put("/api/users/" + testStudent.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(studentToken))
+                        .content(objectMapper.writeValueAsString(java.util.Map.of(
+                                "phoneNumber", "0244000000",
+                                "studentId", "12345678",
+                                "indexNumber", "1234567",
+                                "programme", "BSc Computer Science"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.studentId").value("12345678"))
+                .andExpect(jsonPath("$.indexNumber").value("1234567"))
+                .andExpect(jsonPath("$.programme").value("BSc Computer Science"))
+                .andExpect(jsonPath("$.phoneNumber").value("0244000000"));
+    }
+
+    @Test
+    void updateProfile_rejectsBadStudentId() throws Exception {
+        mockMvc.perform(put("/api/users/" + testStudent.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(studentToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of("studentId", "1234567"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Student ID must be 8 digits."));
+    }
+
+    @Test
+    void updateProfile_rejectsBadIndexNumber() throws Exception {
+        mockMvc.perform(put("/api/users/" + testStudent.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(studentToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of("indexNumber", "12345678"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Index number must be 7 digits."));
     }
 
     @Test

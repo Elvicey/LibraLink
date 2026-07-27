@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notifications")
+@Table(name = "notifications", indexes = {
+        @Index(name = "idx_notification_user_id", columnList = "user_id"),
+        @Index(name = "idx_notification_user_read", columnList = "user_id, is_read")
+})
 public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -12,6 +15,9 @@ public class Notification {
 
     @Column(name = "user_id", nullable = false)
     private Integer userId;
+
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
 
     @Column(nullable = false)
     private String type;
@@ -80,6 +86,14 @@ public class Notification {
     // Bug 4 fixed: setUserId(Long userId) -> setUserId(Integer userId) to match field type
     public void setUserId(Integer userId) {
         this.userId = userId;
+    }
+
+    public Integer getSchoolId() {
+        return schoolId;
+    }
+
+    public void setSchoolId(Integer schoolId) {
+        this.schoolId = schoolId;
     }
 
     public String getType() {

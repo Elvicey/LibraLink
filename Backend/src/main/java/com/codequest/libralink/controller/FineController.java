@@ -2,8 +2,10 @@ package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.Fine;
 import com.codequest.libralink.service.FineService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,12 +20,13 @@ public class FineController {
         this.fineService = fineService;
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping
     public ResponseEntity<Fine> issueFine(@RequestBody Fine fine) {
-        return ResponseEntity.ok(fineService.createFine(fine));
+        return new ResponseEntity<>(fineService.createFine(fine), HttpStatus.CREATED);
     }
 
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#userId, 'LIBRARIAN', 'ADMIN')")
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Fine>> getUserFines(@PathVariable Integer userId) {
         return ResponseEntity.ok(fineService.getFinesByUser(userId));

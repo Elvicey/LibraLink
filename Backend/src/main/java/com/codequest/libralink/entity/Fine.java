@@ -7,7 +7,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "fines")
+@Table(name = "fines", indexes = {
+        @Index(name = "idx_fine_user_id", columnList = "user_id"),
+        @Index(name = "idx_fine_status", columnList = "status")
+})
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Fine {
 
@@ -17,6 +20,9 @@ public class Fine {
 
     @Column(name = "user_id", nullable = false)
     private Integer userId;
+
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
 
     @JsonAlias("loanId")
     @Column(name = "borrow_id")
@@ -78,6 +84,9 @@ public class Fine {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public Integer getBorrowId() { return borrowId; }
     public void setBorrowId(Integer borrowId) { this.borrowId = borrowId; }

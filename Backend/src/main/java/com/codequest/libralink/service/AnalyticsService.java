@@ -2,6 +2,7 @@ package com.codequest.libralink.service;
 
 import com.codequest.libralink.entity.SearchLog;
 import com.codequest.libralink.repository.SearchLogRepository;
+import com.codequest.libralink.security.SchoolContext;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -11,26 +12,42 @@ import java.util.List;
 public class AnalyticsService {
 
     private final SearchLogRepository searchLogRepository;
+    private final SchoolContext schoolContext;
 
     // Bug fixed: explicitly defined constructor to replace @RequiredArgsConstructor
-    public AnalyticsService(SearchLogRepository searchLogRepository) {
+    public AnalyticsService(SearchLogRepository searchLogRepository, SchoolContext schoolContext) {
         this.searchLogRepository = searchLogRepository;
+        this.schoolContext = schoolContext;
     }
 
     public SearchLog logSearch(SearchLog log) {
+        // Never trust a client-supplied id/createdAt on create (H7/H6).
+        log.setId(null);
+        if (log.getQuery() == null || log.getQuery().isBlank()) {
+            throw new IllegalArgumentException("query is required");
+        }
+        log.setSchoolId(schoolContext.requireSchoolId());
         log.setCreatedAt(LocalDateTime.now());
         return searchLogRepository.save(log);
     }
 
     public List<SearchLog> getLogsByUser(Integer userId) {
-        return searchLogRepository.findByUserId(userId);
+        return scoped(searchLogRepository.findByUserId(userId));
     }
 
     public List<SearchLog> getLogsBySearchType(String searchType) {
-        return searchLogRepository.findBySearchType(searchType);
+        return scoped(searchLogRepository.findTop1000BySearchTypeOrderByCreatedAtDesc(searchType));
     }
 
     public List<SearchLog> getLogsByDateRange(LocalDateTime from, LocalDateTime to) {
-        return searchLogRepository.findByCreatedAtBetween(from, to);
+        return scoped(searchLogRepository.findTop1000ByCreatedAtBetweenOrderByCreatedAtDesc(from, to));
+    }
+
+    private List<SearchLog> scoped(List<SearchLog> logs) {
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return logs;
+        }
+        Integer schoolId = schoolContext.requireSchoolId();
+        return logs.stream().filter(l -> schoolId.equals(l.getSchoolId())).toList();
     }
 }

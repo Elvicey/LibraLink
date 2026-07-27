@@ -33,6 +33,7 @@ class BorrowRecordControllerTest extends BaseApiTest {
         testBook.setTotalCopies(5);
         testBook.setAvailableCopies(5);
         testBook.setActive(true);
+        testBook.setInstitution(testInstitution());
         bookRepository.save(testBook);
     }
 
@@ -48,7 +49,7 @@ class BorrowRecordControllerTest extends BaseApiTest {
                                         "status", "BORROWED",
                                         "dueDate", java.time.LocalDate.now().plusDays(14).toString()
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("BORROWED"));
     }
 

@@ -1,7 +1,9 @@
 package com.codequest.libralink;
 
+import com.codequest.libralink.entity.Institution;
 import com.codequest.libralink.entity.Role;
 import com.codequest.libralink.entity.User;
+import com.codequest.libralink.repository.InstitutionRepository;
 import com.codequest.libralink.repository.RoleRepository;
 import com.codequest.libralink.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,6 +39,9 @@ public abstract class BaseApiTest {
     protected RoleRepository roleRepository;
 
     @Autowired
+    protected InstitutionRepository institutionRepository;
+
+    @Autowired
     protected PasswordEncoder passwordEncoder;
 
     protected final ObjectMapper objectMapper = new ObjectMapper();
@@ -45,6 +50,22 @@ public abstract class BaseApiTest {
 
     protected String uniqueEmail(String prefix) {
         return prefix + "-" + UUID.randomUUID().toString().substring(0, 8) + "@test.com";
+    }
+
+    /**
+     * Every non-PLATFORM_SUPER_ADMIN user/book needs a school. Reuses the seeded admin's
+     * own institution (rather than a separate "TEST" one) so existing tests that mix
+     * getAdminToken()/createAndGetLibrarianToken() with createTestStudent()-created fixtures
+     * interact as same-school by default; CrossSchoolIsolationTest creates its own distinct
+     * second school explicitly to exercise cross-school behavior.
+     */
+    protected Institution testInstitution() {
+        return userRepository.findByEmailIgnoreCase("admin@libralink.com")
+                .map(User::getInstitution)
+                .orElseGet(() -> institutionRepository.findByShortName("TEST")
+                        .orElseGet(() -> institutionRepository.save(
+                                new Institution("Test Institution", "TEST", "BASIC", "Accra",
+                                        "test@libralink.test", "+233000000000"))));
     }
 
     protected User createTestStudent(String email, String password) {
@@ -57,6 +78,7 @@ public abstract class BaseApiTest {
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(password));
         user.setActive(true);
+        user.setInstitution(testInstitution());
         Set<Role> roles = new HashSet<>();
         roles.add(studentRole);
         user.setRoles(roles);
@@ -73,6 +95,7 @@ public abstract class BaseApiTest {
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(password));
         user.setActive(true);
+        user.setInstitution(testInstitution());
         Set<Role> roles = new HashSet<>();
         roles.add(librarianRole);
         user.setRoles(roles);
@@ -122,5 +145,57 @@ public abstract class BaseApiTest {
 
     protected String bearerToken(String token) {
         return "Bearer " + token;
+    }
+
+    // --- Multi-school test support -------------------------------------------------
+
+    protected Institution createSchool(String name, String shortName) {
+        return institutionRepository.save(new Institution(name, shortName, "BASIC", "Accra",
+                shortName.toLowerCase() + "@libralink.test", "+233000000001"));
+    }
+
+    protected User createTestStudentForSchool(Institution school, String email, String password) {
+        return createTestUserForSchool(school, "STUDENT", "Test", "Student", email, password);
+    }
+
+    protected User createTestLibrarianForSchool(Institution school, String email, String password) {
+        return createTestUserForSchool(school, "LIBRARIAN", "Test", "Librarian", email, password);
+    }
+
+    protected User createTestSchoolAdmin(Institution school, String email, String password) {
+        return createTestUserForSchool(school, "SCHOOL_ADMIN", "Test", "SchoolAdmin", email, password);
+    }
+
+    /** PLATFORM_SUPER_ADMIN is never school-scoped - no institution attached. */
+    protected User createTestPlatformSuperAdmin(String email, String password) {
+        Role role = roleRepository.findByName("PLATFORM_SUPER_ADMIN")
+                .orElseGet(() -> roleRepository.save(new Role("PLATFORM_SUPER_ADMIN")));
+        User user = new User();
+        user.setFirstName("Test");
+        user.setLastName("PlatformAdmin");
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setActive(true);
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+        user.setRoles(roles);
+        return userRepository.save(user);
+    }
+
+    private User createTestUserForSchool(Institution school, String roleName, String firstName,
+                                          String lastName, String email, String password) {
+        Role role = roleRepository.findByName(roleName)
+                .orElseGet(() -> roleRepository.save(new Role(roleName)));
+        User user = new User();
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setActive(true);
+        user.setInstitution(school);
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+        user.setRoles(roles);
+        return userRepository.save(user);
     }
 }
