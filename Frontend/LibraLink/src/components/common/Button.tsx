@@ -21,8 +21,6 @@ interface ButtonProps {
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   icon?: React.ReactNode;
-  /** Overrides colors.primary for the primary fill, outline border, outline/text text color, and the outline/text loading spinner. Defaults to colors.primary. */
-  accentColor?: string;
 }
 
 export default function Button({
@@ -35,14 +33,12 @@ export default function Button({
   style,
   textStyle,
   icon,
-  accentColor,
 }: ButtonProps) {
   const { colors, spacing, borderRadius } = useTheme();
-  const accent = accentColor ?? colors.primary;
 
   const variantStyles = {
     primary: {
-      backgroundColor: accent,
+      backgroundColor: colors.primary,
     },
     secondary: {
       backgroundColor: colors.secondary,
@@ -50,7 +46,7 @@ export default function Button({
     outline: {
       backgroundColor: "transparent",
       borderWidth: 1.5,
-      borderColor: accent,
+      borderColor: colors.primary,
     },
     text: {
       backgroundColor: "transparent",
@@ -65,10 +61,10 @@ export default function Button({
       color: colors.textLight,
     },
     outline: {
-      color: accent,
+      color: colors.primary,
     },
     text: {
-      color: accent,
+      color: colors.primary,
     },
   };
 
@@ -99,7 +95,7 @@ export default function Button({
         <ActivityIndicator
           color={
             variant === "outline" || variant === "text"
-              ? accent
+              ? colors.primary
               : colors.textLight
           }
           size="small"

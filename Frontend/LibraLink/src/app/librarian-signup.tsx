@@ -6,12 +6,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "../components/common/Button";
 import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
-import { loginColors } from "../constants/loginTheme";
 import { theme, lightColors } from "../constants/theme";
-
-const ACCENT = loginColors.teal;
-const ACCENT_DARK = loginColors.tealDark;
-const ACCENT_LIGHT = "rgba(93, 202, 165, 0.16)";
 
 export default function LibrarianSignUp() {
   const router = useRouter();
@@ -135,8 +130,7 @@ export default function LibrarianSignUp() {
           title={loading ? "Registering..." : "Register Librarian"}
           onPress={handleSignUp}
           loading={loading}
-          accentColor={ACCENT}
-          style={styles.submitButton}
+          style={[styles.submitButton, { backgroundColor: lightColors.primary }]}
           textStyle={styles.submitButtonText}
         />
 
@@ -182,7 +176,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: ACCENT_LIGHT,
+    backgroundColor: "rgba(11, 110, 253, 0.08)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: theme.spacing.md,
@@ -214,7 +208,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   submitButtonText: {
-    color: ACCENT_DARK,
+    color: lightColors.textLight,
     fontSize: 16,
     fontWeight: "700",
   },
@@ -222,12 +216,12 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   backLinkText: {
-    color: ACCENT,
+    color: lightColors.primary,
     fontWeight: "600",
     fontSize: 14,
   },
   backgroundCirclesContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: "hidden",
     zIndex: -1,
   },

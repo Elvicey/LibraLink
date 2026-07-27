@@ -1,23 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "expo-router";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Card from "../components/common/Card";
-import {
-  AUTH_LIBRARY_OVERLAY,
-  AuthLibraryBackground,
-  LIGHT_LIBRARY_OVERLAY,
-} from "../components/auth/AuthLibraryBackground";
-import { loginColors } from "../constants/loginTheme";
+import ScreenWrapper from "../components/common/ScreenWrapper";
 import { useTheme } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
 import { booksService } from "../services/books";
@@ -25,60 +11,6 @@ import { borrowsService } from "../services/borrows";
 import { fineAmount, finesService } from "../services/fines";
 import { notificationsService } from "../services/users";
 import { inferSubject } from "../services/books";
-
-const ACCENT = loginColors.teal;
-const ACCENT_DARK = loginColors.tealDark;
-
-function Screen({
-  isDark,
-  scrollable,
-  contentContainerStyle,
-  children,
-}: {
-  isDark: boolean;
-  scrollable?: boolean;
-  contentContainerStyle?: any;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={shellStyles.screen}>
-      <AuthLibraryBackground
-        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
-      />
-      <SafeAreaView style={shellStyles.container} edges={["top", "left", "right"]}>
-        <StatusBar
-          barStyle={isDark ? "light-content" : "dark-content"}
-          translucent
-          backgroundColor="transparent"
-        />
-        {scrollable ? (
-          <ScrollView
-            style={shellStyles.scroll}
-            contentContainerStyle={contentContainerStyle}
-            showsVerticalScrollIndicator={false}
-          >
-            {children}
-          </ScrollView>
-        ) : (
-          <View style={[{ flex: 1 }, contentContainerStyle]}>{children}</View>
-        )}
-      </SafeAreaView>
-    </View>
-  );
-}
-
-const shellStyles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
-  scroll: {
-    flex: 1,
-  },
-});
 
 export default function ReportsScreen() {
   const router = useRouter();
@@ -151,19 +83,19 @@ export default function ReportsScreen() {
 
   if (authLoading) {
     return (
-      <Screen isDark={isDark} contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
-        <ActivityIndicator color={ACCENT} />
-      </Screen>
+      <ScreenWrapper contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
+        <ActivityIndicator color={colors.primary} />
+      </ScreenWrapper>
     );
   }
 
   if (!isAdmin) {
     return (
-      <Screen isDark={isDark} contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
+      <ScreenWrapper contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <View style={styles.backRow}>
-            <Ionicons name="chevron-back" size={20} color={ACCENT} />
-            <Text style={[styles.backText, { color: ACCENT }]}>Back</Text>
+            <Ionicons name="chevron-back" size={20} color={colors.primary} />
+            <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
           </View>
         </Pressable>
         <Text style={[styles.title, { color: colors.text, fontSize: typography.titleMedium.fontSize }]}>
@@ -172,16 +104,16 @@ export default function ReportsScreen() {
         <Text style={[styles.subtitle, { color: colors.textMuted }]}>
           Library reports are available to Admin accounts only.
         </Text>
-      </Screen>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <Screen isDark={isDark} scrollable contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
+    <ScreenWrapper scrollable contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <View style={styles.backRow}>
-          <Ionicons name="chevron-back" size={20} color={ACCENT} />
-          <Text style={[styles.backText, { color: ACCENT }]}>Back</Text>
+          <Ionicons name="chevron-back" size={20} color={colors.primary} />
+          <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
         </View>
       </Pressable>
 
@@ -192,7 +124,7 @@ export default function ReportsScreen() {
         Institutional catalogue and circulation summary · {generatedAt}
       </Text>
 
-      {loading && <ActivityIndicator color={ACCENT} style={{ marginVertical: spacing.xl }} />}
+      {loading && <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.xl }} />}
       {!!error && <Text style={{ color: colors.danger, marginBottom: spacing.md }}>{error}</Text>}
 
       {!loading && !error && (
@@ -200,7 +132,7 @@ export default function ReportsScreen() {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Catalogue overview</Text>
           <View style={styles.grid}>
             <Card style={styles.metricCard}>
-              <Text style={[styles.metricValue, { color: ACCENT }]}>{catalogueCount}</Text>
+              <Text style={[styles.metricValue, { color: colors.primary }]}>{catalogueCount}</Text>
               <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Total books</Text>
             </Card>
             <Card style={styles.metricCard}>
@@ -215,14 +147,14 @@ export default function ReportsScreen() {
             .map(([subject, count]) => (
               <Card key={subject} style={styles.rowCard}>
                 <Text style={[styles.rowTitle, { color: colors.text }]}>{subject}</Text>
-                <Text style={[styles.rowValue, { color: ACCENT }]}>{count}</Text>
+                <Text style={[styles.rowValue, { color: colors.primary }]}>{count}</Text>
               </Card>
             ))}
 
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Circulation snapshot</Text>
           <View style={styles.grid}>
             <Card style={styles.metricCard}>
-              <Text style={[styles.metricValue, { color: ACCENT }]}>{activeLoans}</Text>
+              <Text style={[styles.metricValue, { color: colors.primary }]}>{activeLoans}</Text>
               <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Active loans</Text>
             </Card>
             <Card style={styles.metricCard}>
@@ -247,24 +179,24 @@ export default function ReportsScreen() {
           </Card>
           <Card style={styles.rowCard}>
             <Text style={[styles.rowTitle, { color: colors.text }]}>Notifications</Text>
-            <Text style={[styles.rowValue, { color: ACCENT }]}>{notifications}</Text>
+            <Text style={[styles.rowValue, { color: colors.primary }]}>{notifications}</Text>
           </Card>
 
           <Pressable
-            style={[styles.cta, { backgroundColor: ACCENT }]}
+            style={[styles.cta, { backgroundColor: colors.primary }]}
             onPress={() => router.push("/pay-fines" as any)}
           >
-            <Text style={{ color: ACCENT_DARK, fontWeight: "700" }}>Go to Pay Fines</Text>
+            <Text style={{ color: colors.textLight, fontWeight: "700" }}>Go to Pay Fines</Text>
           </Pressable>
           <Pressable
             style={[styles.ctaOutline, { borderColor: colors.border }]}
             onPress={load}
           >
-            <Text style={{ color: ACCENT, fontWeight: "700" }}>Refresh report</Text>
+            <Text style={{ color: colors.primary, fontWeight: "700" }}>Refresh report</Text>
           </Pressable>
         </>
       )}
-    </Screen>
+    </ScreenWrapper>
   );
 }
 
