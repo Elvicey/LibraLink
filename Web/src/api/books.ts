@@ -22,9 +22,34 @@ export interface StaffBook {
   authors: BookAuthor[];
 }
 
+// Matches Backend dto/BookRequest.java. institutionId is deliberately omitted - the
+// backend always resolves a non-platform staff caller's own school server-side
+// (SchoolContext.resolveTargetSchoolId), ignoring any client-supplied value.
+export interface BookFormPayload {
+  title: string;
+  subtitle?: string;
+  isbn?: string;
+  isbn13?: string;
+  publisherId?: number;
+  categoryId?: number;
+  publicationYear?: number;
+  edition?: string;
+  language?: string;
+  description?: string;
+  totalCopies: number;
+  availableCopies: number;
+  isDigitalOnly: boolean;
+  isActive: boolean;
+  authorIds: number[];
+}
+
 export const booksApi = {
   // Authenticated + school-scoped for non-platform callers (GET /api/books).
   list: () => api.get<StaffBook[]>("/api/books"),
 
   search: (q: string) => api.get<StaffBook[]>(`/api/books/search?q=${encodeURIComponent(q)}`),
+
+  // Both STAFF-only; school is always server-resolved, never client-supplied.
+  create: (payload: BookFormPayload) => api.post<StaffBook>("/api/books", payload),
+  update: (id: number, payload: BookFormPayload) => api.put<StaffBook>(`/api/books/${id}`, payload),
 };

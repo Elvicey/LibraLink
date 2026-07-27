@@ -114,6 +114,55 @@ class BookControllerTest extends BaseApiTest {
     }
 
     @Test
+    void createBook_negativePublicationYear_returns400() throws Exception {
+        mockMvc.perform(post("/api/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "title", "Bad Year Book",
+                                        "isbn", "000-0-000-00000-1",
+                                        "totalCopies", 1,
+                                        "availableCopies", 1,
+                                        "publicationYear", -100
+                                ))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createBook_implausibleFuturePublicationYear_returns400() throws Exception {
+        mockMvc.perform(post("/api/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "title", "Too Future Book",
+                                        "isbn", "000-0-000-00000-2",
+                                        "totalCopies", 1,
+                                        "availableCopies", 1,
+                                        "publicationYear", 9999
+                                ))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createBook_validPublicationYear_succeeds() throws Exception {
+        mockMvc.perform(post("/api/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "title", "Good Year Book",
+                                        "isbn", "000-0-000-00000-3",
+                                        "totalCopies", 1,
+                                        "availableCopies", 1,
+                                        "publicationYear", 2020
+                                ))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.publicationYear").value(2020));
+    }
+
+    @Test
     void updateBook_notFound() throws Exception {
         mockMvc.perform(put("/api/books/99999")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -38,6 +38,7 @@ public class BookService {
     @Transactional
     public Book addBook(BookRequest request) {
         assertIsbnAvailable(request.getIsbn(), request.getIsbn13(), null);
+        assertValidPublicationYear(request.getPublicationYear());
         Book book = new Book();
         applyRequestFields(book, request);
         return bookRepository.save(book);
@@ -47,9 +48,22 @@ public class BookService {
     public Optional<Book> updateBook(Integer id, BookRequest request) {
         return bookRepository.findById(id).map(book -> {
             assertIsbnAvailable(request.getIsbn(), request.getIsbn13(), id);
+            assertValidPublicationYear(request.getPublicationYear());
             applyRequestFields(book, request);
             return bookRepository.save(book);
         });
+    }
+
+    /** A 4-digit calendar year, not a negative offset or an implausible future date. */
+    private void assertValidPublicationYear(Short publicationYear) {
+        if (publicationYear == null) {
+            return;
+        }
+        int nextYear = java.time.Year.now().getValue() + 1;
+        if (publicationYear < 1000 || publicationYear > nextYear) {
+            throw new IllegalArgumentException(
+                    "Publication year must be a 4-digit year between 1000 and " + nextYear + ".");
+        }
     }
 
     private void assertIsbnAvailable(String isbn, String isbn13, Integer excludeBookId) {
