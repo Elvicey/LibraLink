@@ -48,6 +48,20 @@ class Group5ValidationMassAssignmentTest extends BaseApiTest {
         return librarianToken;
     }
 
+    private String platformAdminToken;
+
+    // Institution creation is PLATFORM_SUPER_ADMIN-only (see InstitutionController) - a
+    // Librarian creating untracked schools with no code/validation was the exact hole that
+    // restriction closed, so this mass-assignment check needs a role that's actually allowed.
+    private String platformAdmin() throws Exception {
+        if (platformAdminToken == null) {
+            String email = uniqueEmail("g5platform");
+            createTestPlatformSuperAdmin(email, "pass1234");
+            platformAdminToken = loginAs(email, "pass1234");
+        }
+        return platformAdminToken;
+    }
+
     // --- H7: forged id on create must never overwrite an existing row ---
 
     @Test
@@ -115,7 +129,7 @@ class Group5ValidationMassAssignmentTest extends BaseApiTest {
 
         mockMvc.perform(post("/api/institutions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .header("Authorization", bearerToken(librarian()))
+                        .header("Authorization", bearerToken(platformAdmin()))
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
                                         "institutionId", victim.getInstitutionId(),

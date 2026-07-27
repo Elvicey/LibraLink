@@ -166,7 +166,7 @@ class BookControllerTest extends BaseApiTest {
                                         "language", "English",
                                         "publicationYear", 2020
                                 ))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.publicationYear").value(2020));
     }
 

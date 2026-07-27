@@ -21,14 +21,10 @@ public class CurrentUserProvider {
 
     public Integer getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal() == null) {
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof AuthenticatedUser user)) {
             return null;
         }
-        try {
-            return Integer.valueOf(auth.getPrincipal().toString());
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        return user.userId();
     }
 
     public boolean isCurrentUser(Integer userId) {

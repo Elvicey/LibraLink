@@ -57,6 +57,7 @@ class Group3ConcurrencyTest extends BaseApiTest {
 
     private Book newBook(String title, int totalCopies, int availableCopies) {
         Book book = new Book();
+        book.setInstitution(testInstitution());
         book.setTitle(title);
         book.setIsbn("978-3-" + (int) (Math.random() * 900000000 + 100000000) + "-1");
         book.setTotalCopies(totalCopies);
@@ -169,6 +170,7 @@ class Group3ConcurrencyTest extends BaseApiTest {
         User student = createTestStudent(uniqueEmail("g3fine"), "pass1234");
         Fine fine = new Fine();
         fine.setUserId(student.getId());
+        fine.setSchoolId(testInstitution().getInstitutionId());
         fine.setAmount(new BigDecimal("15.00"));
         fine = fineRepository.save(fine);
         Integer fineId = fine.getId();

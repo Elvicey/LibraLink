@@ -6,9 +6,15 @@ import com.codequest.libralink.entity.User;
 import com.codequest.libralink.entity.VoiceCommand;
 import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.StudySummaryRepository;
+import com.codequest.libralink.security.AuthenticatedUser;
 import com.codequest.libralink.service.VoiceService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -34,12 +40,18 @@ class Group4AsyncTransactionTest extends BaseApiTest {
     @Autowired
     private BookRepository bookRepository;
 
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void voiceSummaryCommand_asyncProcessorSeesCommittedRow_neverThrowsNotFound() throws Exception {
         // Note: the title deliberately avoids the substring "book" - VoiceService's
         // naive intent detector checks for "reserve"/"hold"/"book" before "summarize",
         // so a title containing "book" would be misdetected as a RESERVE command.
         Book book = new Book();
+        book.setInstitution(testInstitution());
         book.setTitle("H1RaceNovelXyz123");
         book.setDescription("A sufficiently long description used as the summary source "
                 + "content for the Group 4 async/transaction race regression test.");
@@ -50,6 +62,14 @@ class Group4AsyncTransactionTest extends BaseApiTest {
         bookRepository.save(book);
 
         User student = createTestStudent(uniqueEmail("g4voice"), "pass1234");
+
+        // This test calls VoiceService directly rather than through mockMvc, so there's no
+        // JwtAuthenticationFilter to populate the SecurityContext - VoiceService.processVoiceCommand
+        // needs one (it stamps the VoiceCommand's schoolId via SchoolContext.requireSchoolId()).
+        AuthenticatedUser principal = new AuthenticatedUser(
+                student.getId(), student.getEmail(), testInstitution().getInstitutionId(), List.of("STUDENT"));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, List.of()));
 
         VoiceCommand command = voiceService.processVoiceCommand(student.getId(), "summarize H1RaceNovelXyz123");
 
