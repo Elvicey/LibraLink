@@ -37,6 +37,7 @@ public class BookService {
 
     @Transactional
     public Book addBook(BookRequest request) {
+        assertRequiredFields(request);
         assertIsbnAvailable(request.getIsbn(), request.getIsbn13(), null);
         assertValidPublicationYear(request.getPublicationYear());
         Book book = new Book();
@@ -47,11 +48,38 @@ public class BookService {
     @Transactional
     public Optional<Book> updateBook(Integer id, BookRequest request) {
         return bookRepository.findById(id).map(book -> {
+            assertRequiredFields(request);
             assertIsbnAvailable(request.getIsbn(), request.getIsbn13(), id);
             assertValidPublicationYear(request.getPublicationYear());
             applyRequestFields(book, request);
             return bookRepository.save(book);
         });
+    }
+
+    /** Title, subtitle, ISBN, language, and both copy counts are compulsory. */
+    private void assertRequiredFields(BookRequest request) {
+        if (isBlank(request.getTitle())) {
+            throw new IllegalArgumentException("Title is required.");
+        }
+        if (isBlank(request.getSubtitle())) {
+            throw new IllegalArgumentException("Subtitle is required.");
+        }
+        if (isBlank(request.getIsbn())) {
+            throw new IllegalArgumentException("ISBN is required.");
+        }
+        if (isBlank(request.getLanguage())) {
+            throw new IllegalArgumentException("Language is required.");
+        }
+        if (request.getTotalCopies() == null) {
+            throw new IllegalArgumentException("Total copies is required.");
+        }
+        if (request.getAvailableCopies() == null) {
+            throw new IllegalArgumentException("Available copies is required.");
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     /** A 4-digit calendar year, not a negative offset or an implausible future date. */
@@ -176,8 +204,9 @@ public class BookService {
         book.setDescription(request.getDescription());
         book.setCoverImageUrl(request.getCoverImageUrl());
         book.setDigitalUrl(request.getDigitalUrl());
-        book.setTotalCopies(request.getTotalCopies() != null ? request.getTotalCopies() : 1);
-        book.setAvailableCopies(request.getAvailableCopies() != null ? request.getAvailableCopies() : 1);
+        // Guaranteed non-null by assertRequiredFields - no silent default.
+        book.setTotalCopies(request.getTotalCopies());
+        book.setAvailableCopies(request.getAvailableCopies());
         book.setLocationCode(request.getLocationCode());
         book.setDeweyDecimal(request.getDeweyDecimal());
         book.setDigitalOnly(request.isDigitalOnly());

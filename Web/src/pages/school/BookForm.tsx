@@ -61,6 +61,30 @@ export default function BookForm({
     e.preventDefault();
     setError(null);
 
+    if (!title.trim()) {
+      setError("Title is required.");
+      return;
+    }
+    if (!subtitle.trim()) {
+      setError("Subtitle is required.");
+      return;
+    }
+    if (!isbn.trim()) {
+      setError("ISBN is required.");
+      return;
+    }
+    if (!language.trim()) {
+      setError("Language is required.");
+      return;
+    }
+    if (!totalCopies.trim() || !Number.isInteger(Number(totalCopies)) || Number(totalCopies) < 0) {
+      setError("Total copies is required and must be a non-negative whole number.");
+      return;
+    }
+    if (!availableCopies.trim() || !Number.isInteger(Number(availableCopies)) || Number(availableCopies) < 0) {
+      setError("Available copies is required and must be a non-negative whole number.");
+      return;
+    }
     if (publicationYear) {
       const year = Number(publicationYear);
       if (!Number.isInteger(year) || year < 1000 || year > NEXT_YEAR) {
@@ -73,14 +97,14 @@ export default function BookForm({
     try {
       const payload: BookFormPayload = {
         title: title.trim(),
-        subtitle: subtitle.trim() || undefined,
-        isbn: isbn.trim() || undefined,
+        subtitle: subtitle.trim(),
+        isbn: isbn.trim(),
         isbn13: isbn13.trim() || undefined,
         publisherId: publisherId ? Number(publisherId) : undefined,
         categoryId: categoryId ? Number(categoryId) : undefined,
         publicationYear: publicationYear ? Number(publicationYear) : undefined,
         edition: edition.trim() || undefined,
-        language: language.trim() || undefined,
+        language: language.trim(),
         description: description.trim() || undefined,
         totalCopies: Number(totalCopies),
         availableCopies: Number(availableCopies),
@@ -111,11 +135,11 @@ export default function BookForm({
       <form onSubmit={handleSubmit} noValidate>
         <div className="grid sm:grid-cols-2 gap-x-4">
           <FormField label="Title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={loading} required />
-          <FormField label="Subtitle" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} disabled={loading} />
-          <FormField label="ISBN" value={isbn} onChange={(e) => setIsbn(e.target.value)} disabled={loading} />
+          <FormField label="Subtitle" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} disabled={loading} required />
+          <FormField label="ISBN" value={isbn} onChange={(e) => setIsbn(e.target.value)} disabled={loading} required />
           <FormField label="ISBN-13" value={isbn13} onChange={(e) => setIsbn13(e.target.value)} disabled={loading} />
           <FormField label="Edition" value={edition} onChange={(e) => setEdition(e.target.value)} disabled={loading} />
-          <FormField label="Language" value={language} onChange={(e) => setLanguage(e.target.value)} disabled={loading} />
+          <FormField label="Language" value={language} onChange={(e) => setLanguage(e.target.value)} disabled={loading} required />
           <FormField
             label="Publication year"
             type="number"
