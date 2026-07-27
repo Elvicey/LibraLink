@@ -35,7 +35,7 @@ export default function SignIn() {
       }
 
       const roles: string[] = data.roles || [];
-      const isAcademic = roles.some((r) => r === "STUDENT" || r === "LECTURER");
+      const isAcademic = roles.some((r) => r === "STUDENT");
       if (!isAcademic) {
         throw new Error("Use the Librarian / Admin portal for staff accounts.");
       }
@@ -83,7 +83,7 @@ export default function SignIn() {
         <View style={styles.header}>
           <Text style={styles.title}>Academic Portal</Text>
           <Text style={styles.subtitle}>
-            Sign in as Student or Lecturer — same library screens
+            Sign in as a Student
           </Text>
         </View>
 

@@ -55,11 +55,9 @@ export default function Profile() {
   const initial = (displayName || "S").charAt(0).toUpperCase();
   const roleLabel = roles.includes("LIBRARIAN")
     ? "Librarian"
-    : roles.includes("LECTURER")
-      ? "Lecturer"
-      : roles.includes("ADMIN")
-        ? "Admin"
-        : "Student";
+    : roles.includes("ADMIN")
+      ? "Admin"
+      : "Student";
 
   return (
     <ScreenWrapper
@@ -89,9 +87,7 @@ export default function Profile() {
           <Text style={styles.statusBadge}>
             {roles.includes("LIBRARIAN") || roles.includes("ADMIN")
               ? "Staff member"
-              : roles.includes("LECTURER")
-                ? "Lecturer · academic app"
-                : "Student · academic app"}
+              : "Student · academic app"}
           </Text>
           </View>
         </View>
@@ -184,19 +180,6 @@ export default function Profile() {
                 <View style={styles.menuItemLeft}>
                   <Ionicons name="headset-outline" size={20} color={colors.textMuted} style={styles.menuIcon} />
                   <Text style={styles.menuText}>Audio Reader</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.borderDark} />
-              </View>
-            </Pressable>
-
-            <Pressable
-              style={styles.menuItem}
-              onPress={() => router.push("/podcasts" as any)}
-            >
-              <View style={styles.menuItemRow}>
-                <View style={styles.menuItemLeft}>
-                  <Ionicons name="mic-outline" size={20} color={colors.textMuted} style={styles.menuIcon} />
-                  <Text style={styles.menuText}>Podcasts</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color={colors.borderDark} />
               </View>

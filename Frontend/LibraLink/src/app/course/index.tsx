@@ -165,7 +165,7 @@ export default function CourseReadingLists() {
 
       {!loading && courses.length === 0 && (
         <Text style={{ color: colors.textMuted }}>
-          No courses are linked yet. When lecturers publish reading lists, they will appear here.
+          No courses are linked yet. When staff publish reading lists, they will appear here.
         </Text>
       )}
 
@@ -175,7 +175,7 @@ export default function CourseReadingLists() {
             Waiting for published lists
           </Text>
           <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-            Courses exist, but lecturers have not published reading lists yet.
+            Courses exist, but staff have not published reading lists yet.
           </Text>
         </Card>
       )}

@@ -33,10 +33,10 @@ export default function LibrarianSignIn() {
       }
 
       const roles: string[] = data.roles || [];
-      const isStaff = roles.some((r) => r === "LIBRARIAN" || r === "ADMIN");
+      const isStaff = roles.some((r) => r === "LIBRARIAN" || r === "ADMIN" || r === "SCHOOL_ADMIN");
 
       if (!isStaff) {
-        throw new Error("Use the Student / Lecturer portal for academic accounts.");
+        throw new Error("Use the Student portal for academic accounts.");
       }
 
       await setSession({

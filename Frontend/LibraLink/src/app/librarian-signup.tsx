@@ -14,11 +14,12 @@ export default function LibrarianSignUp() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [librarianCode, setLibrarianCode] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
-      Alert.alert("Error", "Please fill in all fields.");
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim() || !librarianCode.trim()) {
+      Alert.alert("Error", "Please fill in all fields, including the librarian code from your School Admin.");
       return;
     }
     setLoading(true);
@@ -39,6 +40,7 @@ export default function LibrarianSignUp() {
           lastName: lastName.trim(),
           email: email.trim(),
           password,
+          librarianCode: librarianCode.trim(),
         }),
       });
       const data = await res.json();
@@ -113,6 +115,14 @@ export default function LibrarianSignUp() {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
+          editable={!loading}
+        />
+        <Input
+          label="Librarian Code"
+          placeholder="Code from your School Admin"
+          autoCapitalize="characters"
+          value={librarianCode}
+          onChangeText={setLibrarianCode}
           editable={!loading}
         />
 
