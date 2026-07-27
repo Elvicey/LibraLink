@@ -4,6 +4,7 @@ import com.codequest.libralink.entity.Reservation;
 import com.codequest.libralink.service.ReservationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,7 +25,7 @@ public class ReservationController {
         return reservationService.createReservation(reservation);
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @GetMapping
     public List<Reservation> getAllReservations() {
         return reservationService.getAllReservations();
@@ -40,7 +41,7 @@ public class ReservationController {
         }
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @PutMapping("/{id}")
     public ResponseEntity<?> updateReservationStatus(@PathVariable Integer id,
                                                       @RequestBody Map<String, String> body) {

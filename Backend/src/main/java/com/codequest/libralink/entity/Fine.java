@@ -18,6 +18,9 @@ public class Fine {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @JsonAlias("loanId")
     @Column(name = "borrow_id")
     private Integer borrowId;
@@ -78,6 +81,9 @@ public class Fine {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public Integer getBorrowId() { return borrowId; }
     public void setBorrowId(Integer borrowId) { this.borrowId = borrowId; }

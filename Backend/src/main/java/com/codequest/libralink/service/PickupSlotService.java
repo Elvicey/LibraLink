@@ -4,6 +4,7 @@ import com.codequest.libralink.entity.PickupSlot;
 import com.codequest.libralink.entity.Reservation;
 import com.codequest.libralink.repository.PickupSlotRepository;
 import com.codequest.libralink.repository.ReservationRepository;
+import com.codequest.libralink.security.SchoolContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +17,14 @@ public class PickupSlotService {
 
     private final PickupSlotRepository pickupSlotRepository;
     private final ReservationRepository reservationRepository;
+    private final SchoolContext schoolContext;
 
     public PickupSlotService(PickupSlotRepository pickupSlotRepository,
-                              ReservationRepository reservationRepository) {
+                              ReservationRepository reservationRepository,
+                              SchoolContext schoolContext) {
         this.pickupSlotRepository = pickupSlotRepository;
         this.reservationRepository = reservationRepository;
+        this.schoolContext = schoolContext;
     }
 
     @Transactional
@@ -62,14 +66,16 @@ public class PickupSlotService {
             slot.setCreatedAt(LocalDateTime.now());
         }
         slot.setStatus("SCHEDULED");
+
+        Reservation reservation = reservationRepository.findById(slot.getReservationId()).orElse(null);
+        slot.setSchoolId(reservation != null ? reservation.getSchoolId() : null);
+
         PickupSlot saved = pickupSlotRepository.save(slot);
 
-        if (slot.getReservationId() != null) {
-            reservationRepository.findById(slot.getReservationId()).ifPresent(res -> {
-                res.setStatus("READY");
-                res.setReadyAt(LocalDateTime.now());
-                reservationRepository.save(res);
-            });
+        if (reservation != null) {
+            reservation.setStatus("READY");
+            reservation.setReadyAt(LocalDateTime.now());
+            reservationRepository.save(reservation);
         }
 
         return saved;
@@ -109,10 +115,18 @@ public class PickupSlotService {
     }
 
     public List<PickupSlot> getSlotsByUser(Integer userId) {
-        return pickupSlotRepository.findByUserId(userId);
+        return scoped(pickupSlotRepository.findByUserId(userId));
     }
 
     public List<PickupSlot> getAllScheduledSlots() {
-        return pickupSlotRepository.findByStatus("SCHEDULED");
+        return scoped(pickupSlotRepository.findByStatus("SCHEDULED"));
+    }
+
+    private List<PickupSlot> scoped(List<PickupSlot> slots) {
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return slots;
+        }
+        Integer schoolId = schoolContext.requireSchoolId();
+        return slots.stream().filter(s -> schoolId.equals(s.getSchoolId())).toList();
     }
 }

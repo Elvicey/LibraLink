@@ -14,6 +14,9 @@ public class AuditLog {
     @Column(name = "user_id")
     private Integer userId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(nullable = false, length = 100)
     private String action;
 
@@ -52,6 +55,9 @@ public class AuditLog {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public String getAction() { return action; }
     public void setAction(String action) { this.action = action; }

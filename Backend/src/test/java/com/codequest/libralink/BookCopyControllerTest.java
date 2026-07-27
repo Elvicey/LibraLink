@@ -35,11 +35,13 @@ class BookCopyControllerTest extends BaseApiTest {
         testBook.setTotalCopies(2);
         testBook.setAvailableCopies(2);
         testBook.setActive(true);
+        testBook.setInstitution(testInstitution());
         bookRepository.save(testBook);
 
         barcode = "BC-" + System.nanoTime();
         BookCopy copy = new BookCopy();
         copy.setBook(testBook);
+        copy.setSchoolId(testBook.getInstitution().getInstitutionId());
         copy.setBarcode(barcode);
         copy.setCondition("NEW");
         copy.setAvailable(true);

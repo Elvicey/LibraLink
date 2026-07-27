@@ -6,6 +6,7 @@ import com.codequest.libralink.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,13 +18,13 @@ public class BookController {
     @Autowired
     private BookService bookService;
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping
     public Book createBook(@RequestBody BookRequest request) {
         return bookService.addBook(request);
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @PutMapping("/{id}")
     public ResponseEntity<Book> updateBook(@PathVariable Integer id,
                                            @RequestBody BookRequest request) {

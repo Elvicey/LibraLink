@@ -19,6 +19,9 @@ public class BookView {
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(name = "viewed_at", nullable = false, updatable = false)
     private LocalDateTime viewedAt = LocalDateTime.now();
 
@@ -37,6 +40,9 @@ public class BookView {
 
     public Book getBook() { return book; }
     public void setBook(Book book) { this.book = book; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public LocalDateTime getViewedAt() { return viewedAt; }
 }

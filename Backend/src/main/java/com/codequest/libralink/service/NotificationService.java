@@ -2,6 +2,7 @@ package com.codequest.libralink.service;
 
 import com.codequest.libralink.entity.Notification;
 import com.codequest.libralink.repository.NotificationRepository;
+import com.codequest.libralink.security.SchoolContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -17,14 +18,23 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final ExpoPushNotificationService expoPushNotificationService;
+    private final SchoolContext schoolContext;
 
     public NotificationService(NotificationRepository notificationRepository,
-                               ExpoPushNotificationService expoPushNotificationService) {
+                               ExpoPushNotificationService expoPushNotificationService,
+                               SchoolContext schoolContext) {
         this.notificationRepository = notificationRepository;
         this.expoPushNotificationService = expoPushNotificationService;
+        this.schoolContext = schoolContext;
     }
 
     public Notification createNotification(Notification notification) {
+        // Most call sites derive and set schoolId themselves (from the related book/course/
+        // reservation); only stamp from the request context as a fallback for callers (like
+        // the direct staff POST /api/notifications endpoint) that don't set it.
+        if (notification.getSchoolId() == null) {
+            notification.setSchoolId(schoolContext.currentSchoolId());
+        }
         notification.setCreatedAt(LocalDateTime.now());
         notification.setIsRead(false);
         Notification saved = notificationRepository.save(notification);
@@ -48,11 +58,19 @@ public class NotificationService {
     }
 
     public List<Notification> getAllNotifications() {
-        return notificationRepository.findAll();
+        return scoped(notificationRepository.findAll());
     }
 
     public List<Notification> getUserNotifications(Integer userId) {
-        return notificationRepository.findByUserId(userId);
+        return scoped(notificationRepository.findByUserId(userId));
+    }
+
+    private List<Notification> scoped(List<Notification> notifications) {
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return notifications;
+        }
+        Integer schoolId = schoolContext.requireSchoolId();
+        return notifications.stream().filter(n -> schoolId.equals(n.getSchoolId())).toList();
     }
 
     public Notification markAsRead(Integer id) {

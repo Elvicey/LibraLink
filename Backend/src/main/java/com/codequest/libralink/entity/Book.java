@@ -19,9 +19,10 @@ public class Book {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // Many books beInteger to one Institution
+    // Many books beInteger to one Institution (= School). NOT NULL as of the
+    // multi-tenant retrofit - every book belongs to exactly one school.
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "institution_id")
+    @JoinColumn(name = "institution_id", nullable = false)
     private Institution institution;
 
     @Column(nullable = false, length = 500)

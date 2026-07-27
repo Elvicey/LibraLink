@@ -32,6 +32,7 @@ class BookControllerTest extends BaseApiTest {
         book.setAvailableCopies(3);
         book.setLanguage("English");
         book.setActive(true);
+        book.setInstitution(testInstitution());
         return bookRepository.save(book);
     }
 

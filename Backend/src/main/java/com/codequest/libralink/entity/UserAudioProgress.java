@@ -17,6 +17,9 @@ public class UserAudioProgress {
     @Column(name = "track_id", nullable = false)
     private Integer trackId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(name = "current_position_seconds", nullable = false)
     private Integer currentPositionSeconds = 0;
 
@@ -43,6 +46,9 @@ public class UserAudioProgress {
 
     public Integer getTrackId() { return trackId; }
     public void setTrackId(Integer trackId) { this.trackId = trackId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public Integer getCurrentPositionSeconds() { return currentPositionSeconds; }
     public void setCurrentPositionSeconds(Integer currentPositionSeconds) { this.currentPositionSeconds = currentPositionSeconds; }

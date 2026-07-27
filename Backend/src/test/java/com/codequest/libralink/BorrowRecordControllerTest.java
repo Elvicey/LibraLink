@@ -33,6 +33,7 @@ class BorrowRecordControllerTest extends BaseApiTest {
         testBook.setTotalCopies(5);
         testBook.setAvailableCopies(5);
         testBook.setActive(true);
+        testBook.setInstitution(testInstitution());
         bookRepository.save(testBook);
     }
 

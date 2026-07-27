@@ -20,6 +20,9 @@ public class FinePayment {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
@@ -79,6 +82,9 @@ public class FinePayment {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }

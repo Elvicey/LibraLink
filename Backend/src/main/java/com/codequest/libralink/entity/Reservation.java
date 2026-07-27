@@ -15,6 +15,9 @@ public class Reservation {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
@@ -60,6 +63,9 @@ public class Reservation {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public Book getBook() { return book; }
     public void setBook(Book book) { this.book = book; }

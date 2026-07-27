@@ -28,6 +28,9 @@ public class BorrowRecord {
     @JoinColumn(name = "reservation_id")
     private Reservation reservation;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(name = "status", nullable = false, length = 20)
     private String status = "BORROWED"; // CHECK (status IN ('BORROWED', 'RETURNED', 'OVERDUE', 'LOST', 'RENEWED'))
 
@@ -75,6 +78,9 @@ public class BorrowRecord {
 
     public Reservation getReservation() { return reservation; }
     public void setReservation(Reservation reservation) { this.reservation = reservation; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

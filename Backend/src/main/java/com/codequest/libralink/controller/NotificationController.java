@@ -4,6 +4,7 @@ import com.codequest.libralink.entity.Notification;
 import com.codequest.libralink.service.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,13 +20,13 @@ public class NotificationController {
         this.notificationService = notificationService;
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping
     public ResponseEntity<Notification> create(@RequestBody Notification notification) {
         return ResponseEntity.ok(notificationService.createNotification(notification));
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @GetMapping
     public ResponseEntity<List<Notification>> getAll() {
         return ResponseEntity.ok(notificationService.getAllNotifications());

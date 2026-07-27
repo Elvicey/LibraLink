@@ -16,6 +16,9 @@ public class PickupSlot {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(name = "loan_id")
     private Integer loanId;
 
@@ -91,6 +94,9 @@ public class PickupSlot {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public Integer getLoanId() { return loanId; }
     public void setLoanId(Integer loanId) { this.loanId = loanId; }

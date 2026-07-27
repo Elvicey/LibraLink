@@ -2,6 +2,8 @@ package com.codequest.libralink.service;
 
 import com.codequest.libralink.entity.BookCopy;
 import com.codequest.libralink.repository.BookCopyRepository;
+import com.codequest.libralink.repository.BookRepository;
+import com.codequest.libralink.security.SchoolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -13,6 +15,12 @@ public class BookCopyService {
     @Autowired
     private BookCopyRepository bookCopyRepository;
 
+    @Autowired
+    private BookRepository bookRepository;
+
+    @Autowired
+    private SchoolContext schoolContext;
+
     public BookCopy registerBookCopy(BookCopy copy) {
         if (copy.getBarcode() != null && !copy.getBarcode().isBlank()) {
             Optional<BookCopy> existing = bookCopyRepository.findByBarcode(copy.getBarcode());
@@ -22,14 +30,31 @@ public class BookCopyService {
                         "A book copy with barcode '" + copy.getBarcode() + "' already exists.");
             }
         }
+        if (copy.getSchoolId() == null && copy.getBook() != null) {
+            // A client-supplied Book sub-object may only carry an id - resolve the real
+            // row rather than trusting a partial deserialized object.
+            Integer schoolId = copy.getBook().getInstitution() != null
+                    ? copy.getBook().getInstitution().getInstitutionId()
+                    : bookRepository.findById(copy.getBook().getId())
+                            .map(b -> b.getInstitution() != null ? b.getInstitution().getInstitutionId() : null)
+                            .orElse(null);
+            copy.setSchoolId(schoolId);
+        }
         return bookCopyRepository.save(copy);
     }
 
     public List<BookCopy> getAllCopies() {
-        return bookCopyRepository.findAll();
+        List<BookCopy> copies = bookCopyRepository.findAll();
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return copies;
+        }
+        Integer schoolId = schoolContext.requireSchoolId();
+        return copies.stream().filter(c -> schoolId.equals(c.getSchoolId())).toList();
     }
 
     public Optional<BookCopy> getCopyByBarcode(String barcode) {
-        return bookCopyRepository.findByBarcode(barcode);
+        Optional<BookCopy> copy = bookCopyRepository.findByBarcode(barcode);
+        copy.ifPresent(c -> schoolContext.assertSameSchool(c.getSchoolId()));
+        return copy;
     }
 }

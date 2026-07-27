@@ -14,6 +14,9 @@ public class VoiceCommand {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(name = "transcribed_text", nullable = false, columnDefinition = "TEXT")
     private String transcribedText;
 
@@ -42,6 +45,9 @@ public class VoiceCommand {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public String getTranscribedText() { return transcribedText; }
     public void setTranscribedText(String transcribedText) { this.transcribedText = transcribedText; }

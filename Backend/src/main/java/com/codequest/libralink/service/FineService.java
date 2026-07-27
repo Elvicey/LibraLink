@@ -2,6 +2,7 @@ package com.codequest.libralink.service;
 
 import com.codequest.libralink.entity.Fine;
 import com.codequest.libralink.repository.FineRepository;
+import com.codequest.libralink.security.SchoolContext;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,13 +12,18 @@ import java.util.List;
 public class FineService {
 
     private final FineRepository fineRepository;
+    private final SchoolContext schoolContext;
 
     // Explicit constructor added to handle dependency injection manually
-    public FineService(FineRepository fineRepository) {
+    public FineService(FineRepository fineRepository, SchoolContext schoolContext) {
         this.fineRepository = fineRepository;
+        this.schoolContext = schoolContext;
     }
 
     public Fine createFine(Fine fine) {
+        // Server-stamped, not client-supplied - a Librarian/Admin always issues within
+        // their own school (this endpoint is staff-only, so a schoolId is always present).
+        fine.setSchoolId(schoolContext.requireSchoolId());
         if (fine.getCreatedAt() == null) {
             fine.setCreatedAt(java.time.LocalDateTime.now());
         }
@@ -40,6 +46,12 @@ public class FineService {
     }
 
     public List<Fine> getFinesByUser(Integer userId) {
-        return fineRepository.findByUserId(userId);
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return fineRepository.findByUserId(userId);
+        }
+        Integer schoolId = schoolContext.requireSchoolId();
+        return fineRepository.findByUserId(userId).stream()
+                .filter(f -> schoolId.equals(f.getSchoolId()))
+                .toList();
     }
 }

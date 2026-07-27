@@ -14,6 +14,9 @@ public class ReadingListItem {
     @Column(name = "reading_list_id", nullable = false)
     private Integer readingListId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(name = "book_id", nullable = false)
     private Integer bookId;
 
@@ -62,6 +65,9 @@ public class ReadingListItem {
 
     public Integer getReadingListId() { return readingListId; }
     public void setReadingListId(Integer readingListId) { this.readingListId = readingListId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public Integer getBookId() { return bookId; }
     public void setBookId(Integer bookId) { this.bookId = bookId; }

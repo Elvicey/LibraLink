@@ -20,6 +20,9 @@ public class RegisterRequest {
 
     private Integer institutionId;
 
+    /** Required only for /register-librarian - a School Admin-issued librarian_code. */
+    private String librarianCode;
+
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
 
@@ -34,4 +37,7 @@ public class RegisterRequest {
 
     public Integer getInstitutionId() { return institutionId; }
     public void setInstitutionId(Integer institutionId) { this.institutionId = institutionId; }
+
+    public String getLibrarianCode() { return librarianCode; }
+    public void setLibrarianCode(String librarianCode) { this.librarianCode = librarianCode; }
 }

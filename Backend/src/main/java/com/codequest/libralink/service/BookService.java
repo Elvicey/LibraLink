@@ -7,6 +7,7 @@ import com.codequest.libralink.entity.Institution;
 import com.codequest.libralink.repository.AuthorRepository;
 import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.InstitutionRepository;
+import com.codequest.libralink.security.SchoolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,9 @@ public class BookService {
 
     @Autowired
     private NlSearchService nlSearchService;
+
+    @Autowired
+    private SchoolContext schoolContext;
 
     @Transactional
     public Book addBook(BookRequest request) {
@@ -68,17 +72,38 @@ public class BookService {
         }
     }
 
+    /**
+     * Anonymous catalogue browsing stays unscoped (GET /api/books/** is permitAll -
+     * deliberately unchanged, no regression for unauthenticated clients). An
+     * authenticated, non-platform caller only sees their own school's books;
+     * PLATFORM_SUPER_ADMIN sees everything.
+     */
     public List<Book> getAllBooks() {
-        return bookRepository.findAll();
+        return scopeResults(bookRepository.findAll(), scopingSchoolId());
     }
 
+    /** Same scoping rule as getAllBooks - hides a cross-tenant book behind a 404 rather
+     *  than a 403, matching SchoolContext.assertSameSchool's existence-hiding convention. */
     public Optional<Book> getBookById(Integer id) {
-        return bookRepository.findById(id);
+        Integer schoolId = scopingSchoolId();
+        return bookRepository.findById(id)
+                .filter(b -> schoolId == null || (b.getInstitution() != null
+                        && schoolId.equals(b.getInstitution().getInstitutionId())));
+    }
+
+    /** Null = don't scope (anonymous caller, or a PLATFORM_SUPER_ADMIN). */
+    private Integer scopingSchoolId() {
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return null;
+        }
+        return schoolContext.currentUser().map(u -> u.schoolId()).orElse(null);
     }
 
     public List<Book> searchBooks(String query, String author, String subject, String availability) {
+        Integer schoolId = scopingSchoolId();
+
         if (query != null && !query.isBlank()) {
-            return nlSearchService.naturalLanguageSearch(query);
+            return scopeResults(nlSearchService.naturalLanguageSearch(query), schoolId);
         }
 
         List<Book> results = bookRepository.findAll();
@@ -106,7 +131,16 @@ public class BookService {
             }
         }
 
-        return results;
+        return scopeResults(results, schoolId);
+    }
+
+    private List<Book> scopeResults(List<Book> books, Integer schoolId) {
+        if (schoolId == null) {
+            return books;
+        }
+        return books.stream()
+                .filter(b -> b.getInstitution() != null && schoolId.equals(b.getInstitution().getInstitutionId()))
+                .toList();
     }
 
     public boolean isBookAvailable(Integer bookId) {
@@ -135,9 +169,12 @@ public class BookService {
         book.setDigitalOnly(request.isDigitalOnly());
         book.setActive(request.isActive());
 
-        if (request.getInstitutionId() != null) {
-            institutionRepository.findById(request.getInstitutionId())
-                    .ifPresent(book::setInstitution);
+        // Server-resolved: a Librarian/Admin always creates/edits within their own school
+        // (a client-supplied institutionId is ignored for them); only PLATFORM_SUPER_ADMIN
+        // may target a different school explicitly.
+        Integer targetSchoolId = schoolContext.resolveTargetSchoolId(request.getInstitutionId());
+        if (targetSchoolId != null) {
+            institutionRepository.findById(targetSchoolId).ifPresent(book::setInstitution);
         }
 
         if (request.getAuthorIds() != null && !request.getAuthorIds().isEmpty()) {

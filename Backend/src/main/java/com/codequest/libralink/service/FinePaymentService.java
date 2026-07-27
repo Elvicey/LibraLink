@@ -45,6 +45,7 @@ public class FinePaymentService {
         if (payment.getAmountPaid() == null) {
             payment.setAmountPaid(payment.getAmount());
         }
+        payment.setSchoolId(fine.getSchoolId());
         LocalDateTime now = LocalDateTime.now();
         if (payment.getPaidAt() == null) {
             payment.setPaidAt(now);

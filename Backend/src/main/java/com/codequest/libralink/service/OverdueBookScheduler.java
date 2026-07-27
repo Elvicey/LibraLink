@@ -43,6 +43,7 @@ public class OverdueBookScheduler {
             if (record.getUser() != null) {
                 Notification notification = new Notification();
                 notification.setUserId(record.getUser().getId());
+                notification.setSchoolId(record.getSchoolId());
                 notification.setType("OVERDUE");
                 notification.setTitle("Book Overdue");
                 notification.setMessage("The book \"" + record.getBook().getTitle()

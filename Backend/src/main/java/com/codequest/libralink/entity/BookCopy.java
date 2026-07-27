@@ -17,6 +17,9 @@ public class BookCopy {
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(unique = true, length = 100)
     private String barcode;
 
@@ -57,6 +60,9 @@ public class BookCopy {
 
     public Book getBook() { return book; }
     public void setBook(Book book) { this.book = book; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public String getBarcode() { return barcode; }
     public void setBarcode(String barcode) { this.barcode = barcode; }

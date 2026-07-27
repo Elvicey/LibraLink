@@ -5,6 +5,7 @@ import com.codequest.libralink.service.AuthorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -15,7 +16,7 @@ public class AuthorController {
     @Autowired
     private AuthorService authorService;
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping
     public Author createAuthor(@RequestBody Author author) {
         return authorService.addAuthor(author);

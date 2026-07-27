@@ -17,6 +17,9 @@ public class StudentReadingProgress {
     @Column(name = "list_item_id", nullable = false)
     private Integer listItemId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(nullable = false, length = 20)
     private String status = "UNREAD";
 
@@ -63,6 +66,9 @@ public class StudentReadingProgress {
 
     public Integer getListItemId() { return listItemId; }
     public void setListItemId(Integer listItemId) { this.listItemId = listItemId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

@@ -30,4 +30,9 @@ public class AuthResponse {
     public String getLastName() { return lastName; }
     public List<String> getRoles() { return roles; }
     public Integer getInstitutionId() { return institutionId; }
+
+    // Institution = School. Same underlying value as institutionId, exposed under the
+    // forward-looking name the new web portal standardizes on; the mobile app keeps
+    // reading institutionId unchanged.
+    public Integer getSchoolId() { return institutionId; }
 }

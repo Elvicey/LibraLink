@@ -2,6 +2,7 @@ package com.codequest.libralink.service;
 
 import com.codequest.libralink.entity.*;
 import com.codequest.libralink.repository.*;
+import com.codequest.libralink.security.SchoolContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ public class AiExamService {
     private final ExamQuestionRepository examQuestionRepository;
     private final StudySessionRepository studySessionRepository;
     private final BookRepository bookRepository;
+    private final SchoolContext schoolContext;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
@@ -41,11 +43,13 @@ public class AiExamService {
     public AiExamService(StudySummaryRepository studySummaryRepository,
                          ExamQuestionRepository examQuestionRepository,
                          StudySessionRepository studySessionRepository,
-                         BookRepository bookRepository) {
+                         BookRepository bookRepository,
+                         SchoolContext schoolContext) {
         this.studySummaryRepository = studySummaryRepository;
         this.examQuestionRepository = examQuestionRepository;
         this.studySessionRepository = studySessionRepository;
         this.bookRepository = bookRepository;
+        this.schoolContext = schoolContext;
         this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
     }
@@ -65,6 +69,7 @@ public class AiExamService {
         StudySummary summary = new StudySummary();
         summary.setBookId(bookId);
         summary.setUserId(userId);
+        summary.setSchoolId(book.getInstitution() != null ? book.getInstitution().getInstitutionId() : null);
         summary.setTitle((book.getTitle() != null ? book.getTitle() : "Book")
                 + " - " + (summaryType != null ? summaryType : "BRIEF") + " Summary");
         summary.setOriginalText(content);
@@ -132,20 +137,22 @@ public class AiExamService {
 
         int questionCount = (count != null && count > 0) ? Math.min(count, 20) : 5;
         String diff = (difficulty != null && !difficulty.isBlank()) ? difficulty : "MEDIUM";
+        Integer schoolId = book.getInstitution() != null ? book.getInstitution().getInstitutionId() : null;
 
         StudySession session = new StudySession();
         session.setUserId(userId);
         session.setBookId(bookId);
+        session.setSchoolId(schoolId);
         session.setSessionType("PRACTICE_EXAM");
         session.setTotalQuestions(questionCount);
         session = studySessionRepository.save(session);
 
-        return generateQuestionsFromAi(content, questionCount, diff, bookId, userId, session.getId());
+        return generateQuestionsFromAi(content, questionCount, diff, bookId, userId, session.getId(), schoolId);
     }
 
     private List<ExamQuestion> generateQuestionsFromAi(String bookContent, int count,
                                                         String difficulty, Integer bookId,
-                                                        Integer userId, Integer sessionId) {
+                                                        Integer userId, Integer sessionId, Integer schoolId) {
         if (aiApiKey == null || aiApiKey.isBlank()) {
             throw new RuntimeException("AI API key not configured. Question generation is unavailable.");
         }
@@ -153,7 +160,7 @@ public class AiExamService {
         try {
             String prompt = buildQuestionPrompt(bookContent, count, difficulty);
             String aiResponse = callAiApi(prompt);
-            return parseQuestionsFromAi(aiResponse, bookId, userId, sessionId);
+            return parseQuestionsFromAi(aiResponse, bookId, userId, sessionId, schoolId);
 
         } catch (Exception e) {
             log.error("AI question generation failed: {}", e.getMessage());
@@ -216,7 +223,7 @@ public class AiExamService {
     }
 
     private List<ExamQuestion> parseQuestionsFromAi(String aiResponse, Integer bookId,
-                                                     Integer userId, Integer sessionId) {
+                                                     Integer userId, Integer sessionId, Integer schoolId) {
         List<ExamQuestion> questions = new ArrayList<>();
         try {
             String jsonStr = aiResponse.trim();
@@ -230,6 +237,7 @@ public class AiExamService {
                     ExamQuestion q = new ExamQuestion();
                     q.setBookId(bookId);
                     q.setUserId(userId);
+                    q.setSchoolId(schoolId);
                     q.setSessionId(sessionId);
                     q.setQuestion(node.path("question").asText(""));
                     q.setCorrectAnswer(node.path("correctAnswer").asText(""));
@@ -276,22 +284,32 @@ public class AiExamService {
 
     @Transactional(readOnly = true)
     public Optional<StudySummary> getSummary(Integer id) {
-        return studySummaryRepository.findById(id);
+        Optional<StudySummary> summary = studySummaryRepository.findById(id);
+        summary.ifPresent(s -> schoolContext.assertSameSchool(s.getSchoolId()));
+        return summary;
     }
 
     @Transactional(readOnly = true)
     public List<StudySummary> getUserSummaries(Integer userId) {
-        return studySummaryRepository.findByUserId(userId);
+        return scoped(studySummaryRepository.findByUserId(userId), StudySummary::getSchoolId);
     }
 
     @Transactional(readOnly = true)
     public List<ExamQuestion> getSessionQuestions(Integer sessionId) {
-        return examQuestionRepository.findBySessionId(sessionId);
+        return scoped(examQuestionRepository.findBySessionId(sessionId), ExamQuestion::getSchoolId);
     }
 
     @Transactional(readOnly = true)
     public List<StudySession> getUserSessions(Integer userId) {
-        return studySessionRepository.findByUserId(userId);
+        return scoped(studySessionRepository.findByUserId(userId), StudySession::getSchoolId);
+    }
+
+    private <T> List<T> scoped(List<T> items, java.util.function.Function<T, Integer> schoolIdOf) {
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return items;
+        }
+        Integer schoolId = schoolContext.requireSchoolId();
+        return items.stream().filter(i -> schoolId.equals(schoolIdOf.apply(i))).toList();
     }
 
     @Transactional(readOnly = true)

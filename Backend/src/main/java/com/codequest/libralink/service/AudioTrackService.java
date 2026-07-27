@@ -62,6 +62,7 @@ public class AudioTrackService {
         AudioTrack track = new AudioTrack();
         track.setBookId(bookId);
         track.setUserId(userId);
+        track.setSchoolId(book.getInstitution() != null ? book.getInstitution().getInstitutionId() : null);
         track.setTitle((book.getTitle() != null ? book.getTitle() : "Book") + " - Audio Version");
         track.setContent(content);
         track.setVoiceName(voiceName != null && !voiceName.isBlank() ? voiceName : "en-US-Standard-A");

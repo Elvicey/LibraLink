@@ -4,6 +4,7 @@ import com.codequest.libralink.entity.Course;
 import com.codequest.libralink.service.CourseService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,7 +20,7 @@ public class CourseController {
         this.courseService = courseService;
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping
     public ResponseEntity<Course> createCourse(@RequestBody Course course) {
         return ResponseEntity.ok(courseService.saveCourse(course));
@@ -35,7 +36,7 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getCourseById(courseId));
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize(Roles.STAFF)
     @PutMapping("/{courseId}/books")
     public ResponseEntity<?> addBooksToCourse(@PathVariable Integer courseId,
                                                @RequestBody Map<String, Object> body) {
@@ -49,7 +50,7 @@ public class CourseController {
         }
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize(Roles.STAFF)
     @DeleteMapping("/{courseId}/books/{bookId}")
     public ResponseEntity<?> removeBookFromCourse(@PathVariable Integer courseId,
                                                    @PathVariable Integer bookId) {

@@ -7,6 +7,7 @@ import com.codequest.libralink.entity.User;
 import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.ReadingListItemRepository;
 import com.codequest.libralink.repository.UserRepository;
+import com.codequest.libralink.security.SchoolContext;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,15 +19,18 @@ public class ReadingListItemService {
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final SchoolContext schoolContext;
 
     public ReadingListItemService(ReadingListItemRepository readingListItemRepository,
                                   BookRepository bookRepository,
                                   UserRepository userRepository,
-                                  NotificationService notificationService) {
+                                  NotificationService notificationService,
+                                  SchoolContext schoolContext) {
         this.readingListItemRepository = readingListItemRepository;
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.schoolContext = schoolContext;
     }
 
     public ReadingListItem addItemToList(ReadingListItem item) {
@@ -36,6 +40,9 @@ public class ReadingListItemService {
         if (item.getBookId() == null) {
             throw new IllegalArgumentException("bookId is required");
         }
+        Book book = bookRepository.findById(item.getBookId())
+                .orElseThrow(() -> new IllegalArgumentException("Book not found with id: " + item.getBookId()));
+        item.setSchoolId(book.getInstitution() != null ? book.getInstitution().getInstitutionId() : null);
         if (item.getCreatedAt() == null) {
             item.setCreatedAt(java.time.LocalDateTime.now());
         }
@@ -59,7 +66,12 @@ public class ReadingListItemService {
     }
 
     public List<ReadingListItem> getItemsByReadingList(Integer readingListId) {
-        return readingListItemRepository.findByReadingListId(readingListId);
+        List<ReadingListItem> items = readingListItemRepository.findByReadingListId(readingListId);
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return items;
+        }
+        Integer schoolId = schoolContext.requireSchoolId();
+        return items.stream().filter(i -> schoolId.equals(i.getSchoolId())).toList();
     }
 
     public ReadingListItem getItemById(Integer itemId) {
@@ -97,9 +109,11 @@ public class ReadingListItemService {
                 }))
                 .toList();
 
+        Integer schoolId = book.getInstitution() != null ? book.getInstitution().getInstitutionId() : null;
         for (User user : staff) {
             Notification notification = new Notification();
             notification.setUserId(user.getId());
+            notification.setSchoolId(schoolId);
             notification.setType("LOW_STOCK");
             notification.setTitle("Lecture demand: low stock");
             notification.setMessage(
