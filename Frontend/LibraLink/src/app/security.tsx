@@ -1,19 +1,11 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../components/common/Button";
 import Card from "../components/common/Card";
-import {
-  AUTH_LIBRARY_OVERLAY,
-  AuthLibraryBackground,
-  LIGHT_LIBRARY_OVERLAY,
-} from "../components/auth/AuthLibraryBackground";
-import { loginColors } from "../constants/loginTheme";
+import ScreenWrapper from "../components/common/ScreenWrapper";
 import { useTheme } from "../constants/theme";
-
-const ACCENT = loginColors.teal;
 
 const INITIAL_DEVICES: { id: string; name: string; location: string; isPhone: boolean }[] = [];
 
@@ -49,27 +41,12 @@ export default function Security() {
   );
 
   return (
-    <View style={styles.screen}>
-      <AuthLibraryBackground
-        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
-      />
-      <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-        <StatusBar
-          barStyle={isDark ? "light-content" : "dark-content"}
-          translucent
-          backgroundColor="transparent"
-        />
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { padding: spacing.lg }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+    <ScreenWrapper scrollable contentContainerStyle={[styles.container, { padding: spacing.lg }]}>
       {/* Back button with chevron icon */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <View style={styles.backButtonRow}>
-          <Ionicons name="chevron-back" size={20} color={ACCENT} />
-          <Text style={[styles.backText, { color: ACCENT }]}>Back</Text>
+          <Ionicons name="chevron-back" size={20} color={colors.primary} />
+          <Text style={[styles.backText, { color: colors.primary }]}>Back</Text>
         </View>
       </Pressable>
 
@@ -150,24 +127,12 @@ export default function Security() {
           ))
         )}
       </Card>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
   container: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
     backgroundColor: "transparent",
   },
   backButton: {

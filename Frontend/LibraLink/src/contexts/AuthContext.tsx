@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { registerPushForUser } from "../services/push";
 
 interface AuthState {
   userId: number | null;
@@ -100,8 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       institutionId: data.institutionId ?? null,
       loading: false,
     });
-    // Best-effort: register this device for push once we have an authenticated user.
-    registerPushForUser(data.userId);
   }, []);
 
   const clearSession = useCallback(async () => {

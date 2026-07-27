@@ -56,10 +56,6 @@ export function slotWindowFromLabel(timeLabel: string): { slotStart: string; slo
 }
 
 export const reservationsService = {
-  /** A patron's own reservations, newest first — used to title their pickup slots. */
-  getForUser: (userId: number) =>
-    api.get<ReservationResponse[]>(`/api/reservations/user/${userId}`),
-
   create: (userId: number, bookId: number, notes?: string) =>
     api.post<ReservationResponse>("/api/reservations", {
       userId,
