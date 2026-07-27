@@ -27,14 +27,14 @@ export interface StaffBook {
 // (SchoolContext.resolveTargetSchoolId), ignoring any client-supplied value.
 export interface BookFormPayload {
   title: string;
-  subtitle?: string;
-  isbn?: string;
+  subtitle: string;
+  isbn: string;
   isbn13?: string;
   publisherId?: number;
   categoryId?: number;
   publicationYear?: number;
   edition?: string;
-  language?: string;
+  language: string;
   description?: string;
   totalCopies: number;
   availableCopies: number;

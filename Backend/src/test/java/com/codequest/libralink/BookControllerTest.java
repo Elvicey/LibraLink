@@ -80,6 +80,7 @@ class BookControllerTest extends BaseApiTest {
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
                                         "title", "Clean Code",
+                                        "subtitle", "A Handbook of Agile Software Craftsmanship",
                                         "isbn", "978-0-13-235088-4",
                                         "totalCopies", 5,
                                         "availableCopies", 5,
@@ -102,6 +103,7 @@ class BookControllerTest extends BaseApiTest {
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
                                         "title", "New Title",
+                                        "subtitle", "Revised Edition",
                                         "isbn", "999-9-999-99999-9",
                                         "totalCopies", 10,
                                         "availableCopies", 10,
@@ -121,9 +123,11 @@ class BookControllerTest extends BaseApiTest {
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
                                         "title", "Bad Year Book",
+                                        "subtitle", "A Test Subtitle",
                                         "isbn", "000-0-000-00000-1",
                                         "totalCopies", 1,
                                         "availableCopies", 1,
+                                        "language", "English",
                                         "publicationYear", -100
                                 ))))
                 .andExpect(status().isBadRequest());
@@ -137,9 +141,11 @@ class BookControllerTest extends BaseApiTest {
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
                                         "title", "Too Future Book",
+                                        "subtitle", "A Test Subtitle",
                                         "isbn", "000-0-000-00000-2",
                                         "totalCopies", 1,
                                         "availableCopies", 1,
+                                        "language", "English",
                                         "publicationYear", 9999
                                 ))))
                 .andExpect(status().isBadRequest());
@@ -153,13 +159,78 @@ class BookControllerTest extends BaseApiTest {
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
                                         "title", "Good Year Book",
+                                        "subtitle", "A Test Subtitle",
                                         "isbn", "000-0-000-00000-3",
                                         "totalCopies", 1,
                                         "availableCopies", 1,
+                                        "language", "English",
                                         "publicationYear", 2020
                                 ))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.publicationYear").value(2020));
+    }
+
+    @Test
+    void createBook_missingSubtitle_returns400() throws Exception {
+        mockMvc.perform(post("/api/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "title", "No Subtitle Book",
+                                        "isbn", "000-0-000-00000-4",
+                                        "language", "English",
+                                        "totalCopies", 1,
+                                        "availableCopies", 1
+                                ))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createBook_missingIsbn_returns400() throws Exception {
+        mockMvc.perform(post("/api/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "title", "No ISBN Book",
+                                        "subtitle", "A Test Subtitle",
+                                        "language", "English",
+                                        "totalCopies", 1,
+                                        "availableCopies", 1
+                                ))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createBook_missingLanguage_returns400() throws Exception {
+        mockMvc.perform(post("/api/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "title", "No Language Book",
+                                        "subtitle", "A Test Subtitle",
+                                        "isbn", "000-0-000-00000-5",
+                                        "totalCopies", 1,
+                                        "availableCopies", 1
+                                ))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createBook_missingCopyCounts_returns400() throws Exception {
+        mockMvc.perform(post("/api/books")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianToken))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "title", "No Copies Book",
+                                        "subtitle", "A Test Subtitle",
+                                        "isbn", "000-0-000-00000-6",
+                                        "language", "English"
+                                ))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
