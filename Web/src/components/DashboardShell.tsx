@@ -13,7 +13,7 @@ export function DashboardShell({
   tabs?: ReactNode;
   children: ReactNode;
 }) {
-  const { firstName, lastName, roles, schoolId, clearSession } = useAuth();
+  const { firstName, lastName, roles, schoolId, schoolShortName, clearSession } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -34,7 +34,7 @@ export function DashboardShell({
               </div>
               <div className="text-slate-500">
                 {roles.join(", ")}
-                {schoolId ? ` · School #${schoolId}` : " · Platform-wide"}
+                {schoolId ? ` · ${schoolShortName || `School #${schoolId}`}` : " · Platform-wide"}
               </div>
             </div>
             <button

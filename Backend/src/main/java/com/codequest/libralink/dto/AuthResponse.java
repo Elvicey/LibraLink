@@ -11,9 +11,10 @@ public class AuthResponse {
     private String lastName;
     private List<String> roles;
     private Integer institutionId;
+    private String schoolShortName;
 
     public AuthResponse(String token, Integer userId, String email, String firstName, String lastName,
-                        List<String> roles, Integer institutionId) {
+                        List<String> roles, Integer institutionId, String schoolShortName) {
         this.token = token;
         this.userId = userId;
         this.email = email;
@@ -21,6 +22,7 @@ public class AuthResponse {
         this.lastName = lastName;
         this.roles = roles;
         this.institutionId = institutionId;
+        this.schoolShortName = schoolShortName;
     }
 
     public String getToken() { return token; }
@@ -35,4 +37,8 @@ public class AuthResponse {
     // forward-looking name the new web portal standardizes on; the mobile app keeps
     // reading institutionId unchanged.
     public Integer getSchoolId() { return institutionId; }
+
+    // Null for PLATFORM_SUPER_ADMIN (no institution). Lets the web portal display
+    // "ATA" instead of a raw numeric school id.
+    public String getSchoolShortName() { return schoolShortName; }
 }
