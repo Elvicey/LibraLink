@@ -4,6 +4,7 @@ import com.codequest.libralink.entity.ReadingList;
 import com.codequest.libralink.service.ReadingListService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,7 +19,7 @@ public class ReadingListController {
         this.readingListService = readingListService;
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping
     public ResponseEntity<ReadingList> createReadingList(@RequestBody ReadingList list) {
         return ResponseEntity.ok(readingListService.saveReadingList(list));
@@ -29,7 +30,7 @@ public class ReadingListController {
         return ResponseEntity.ok(readingListService.getReadingListsByCourse(courseId));
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN','LECTURER')")
+    @PreAuthorize(Roles.STAFF)
     @PutMapping("/{id}/publish")
     public ResponseEntity<ReadingList> publishReadingList(
             @PathVariable Integer id,

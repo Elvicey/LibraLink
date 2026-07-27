@@ -25,6 +25,8 @@ public interface BookRepository extends JpaRepository<Book, Integer> {
 
     List<Book> findByAvailableCopiesGreaterThan(Integer count);
 
+    long countByInstitutionInstitutionId(Integer institutionId);
+
     @Query("SELECT b FROM Book b WHERE " +
            "LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(b.isbn) LIKE LOWER(CONCAT('%', :query, '%')) OR " +

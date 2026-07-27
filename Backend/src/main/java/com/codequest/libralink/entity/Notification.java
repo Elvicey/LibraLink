@@ -13,6 +13,9 @@ public class Notification {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(nullable = false)
     private String type;
 
@@ -80,6 +83,14 @@ public class Notification {
     // Bug 4 fixed: setUserId(Long userId) -> setUserId(Integer userId) to match field type
     public void setUserId(Integer userId) {
         this.userId = userId;
+    }
+
+    public Integer getSchoolId() {
+        return schoolId;
+    }
+
+    public void setSchoolId(Integer schoolId) {
+        this.schoolId = schoolId;
     }
 
     public String getType() {

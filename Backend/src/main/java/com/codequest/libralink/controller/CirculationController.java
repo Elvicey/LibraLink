@@ -9,6 +9,7 @@ import com.codequest.libralink.service.BookCopyService;
 import com.codequest.libralink.service.BorrowRecordService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -35,7 +36,7 @@ public class CirculationController {
         this.userRepository = userRepository;
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping("/scan")
     public ResponseEntity<?> scanBook(@RequestBody Map<String, Object> body) {
         String barcode = (String) body.get("barcode");

@@ -57,10 +57,10 @@ class UserControllerTest extends BaseApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", bearerToken(adminToken))
                         .content(objectMapper.writeValueAsString(
-                                java.util.Map.of("role", "LECTURER"))))
+                                java.util.Map.of("role", "LIBRARIAN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.roles", hasItem("STUDENT")))
-                .andExpect(jsonPath("$.roles", hasItem("LECTURER")));
+                .andExpect(jsonPath("$.roles", hasItem("LIBRARIAN")));
     }
 
     @Test

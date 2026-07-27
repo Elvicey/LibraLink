@@ -36,6 +36,19 @@ public class Institution {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
+    // "School" fields (multi-tenant retrofit). institutionId is the school id everywhere
+    // else in the codebase - Institution IS School, not a separate concept. The actual
+    // school_code/OTP/librarian_code values live only in InviteCode - not duplicated here.
+
+    // ACTIVE | SUSPENDED. Distinct from isActive above (which is never set false anywhere
+    // in the app and has different semantics - "does this row exist" vs "is this school
+    // allowed to operate").
+    @Column(name = "status", nullable = false, length = 20)
+    private String status = "ACTIVE";
+
+    @Column(name = "suspended_at")
+    private LocalDateTime suspendedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -81,6 +94,12 @@ public class Institution {
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public LocalDateTime getSuspendedAt() { return suspendedAt; }
+    public void setSuspendedAt(LocalDateTime suspendedAt) { this.suspendedAt = suspendedAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

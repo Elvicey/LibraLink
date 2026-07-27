@@ -4,6 +4,7 @@ import com.codequest.libralink.entity.PickupSlot;
 import com.codequest.libralink.service.PickupSlotService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public class PickupSlotController {
         }
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping("/scan")
     public ResponseEntity<?> scanQr(@RequestParam(required = false) String qrCode,
                                     @RequestParam(required = false) Integer librarianId) {
@@ -43,7 +44,7 @@ public class PickupSlotController {
         return ResponseEntity.ok(pickupSlotService.getSlotsByUser(userId));
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @GetMapping("/scheduled")
     public ResponseEntity<List<PickupSlot>> getScheduledSlots() {
         return ResponseEntity.ok(pickupSlotService.getAllScheduledSlots());

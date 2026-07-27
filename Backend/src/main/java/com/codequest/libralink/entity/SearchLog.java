@@ -14,6 +14,9 @@ public class SearchLog {
     @Column(name = "user_id")
     private Integer userId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(name = "query", nullable = false, length = 255)
     private String query;
 
@@ -43,6 +46,9 @@ public class SearchLog {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public String getQuery() { return query; }
     public void setQuery(String query) { this.query = query; }

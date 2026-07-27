@@ -14,6 +14,11 @@ public class User {
     @Column(name = "id")
     private Integer id;
 
+    // Institution = School. Nullable only for PLATFORM_SUPER_ADMIN users (not
+    // school-scoped); every other role must have one. Enforced in application code
+    // (AuthService / school-admin-signup / school-admin-join / register-librarian),
+    // not as a DB constraint - Postgres CHECK constraints can't subquery the roles
+    // table to express "non-null unless role X".
     @ManyToOne
     @JoinColumn(name = "institution_id")
     private Institution institution;

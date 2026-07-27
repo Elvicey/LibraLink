@@ -5,6 +5,7 @@ import com.codequest.libralink.service.BookCopyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,19 +17,19 @@ public class BookCopyController {
     @Autowired
     private BookCopyService bookCopyService;
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping
     public BookCopy createCopy(@RequestBody BookCopy copy) {
         return bookCopyService.registerBookCopy(copy);
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @GetMapping
     public List<BookCopy> getAllCopies() {
         return bookCopyService.getAllCopies();
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @GetMapping("/barcode/{barcode}")
     public ResponseEntity<BookCopy> getCopyByBarcode(@PathVariable String barcode) {
         return bookCopyService.getCopyByBarcode(barcode)
