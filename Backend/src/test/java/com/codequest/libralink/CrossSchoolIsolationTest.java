@@ -11,6 +11,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -72,6 +74,12 @@ class CrossSchoolIsolationTest extends BaseApiTest {
     @Autowired
     private VoiceCommandRepository voiceCommandRepository;
 
+    @Autowired
+    private com.codequest.libralink.service.FinePaymentService finePaymentService;
+
+    @Autowired
+    private com.codequest.libralink.service.AudioTrackService audioTrackService;
+
     private Institution schoolA;
     private Institution schoolB;
     private String librarianAEmail;
@@ -86,6 +94,8 @@ class CrossSchoolIsolationTest extends BaseApiTest {
     private BookCopy copyB;
     private ReadingListItem itemA;
     private ReadingListItem itemB;
+    private Fine fineA;
+    private Fine fineB;
     private StudySummary summaryA;
     private StudySummary summaryB;
     private Course courseA;
@@ -145,16 +155,16 @@ class CrossSchoolIsolationTest extends BaseApiTest {
         Integer schoolBId = schoolB.getInstitutionId();
         Integer studentAId = studentA.getId();
 
-        Fine fineA = new Fine();
+        fineA = new Fine();
         fineA.setUserId(studentAId);
         fineA.setSchoolId(schoolAId);
         fineA.setAmount(new BigDecimal("5.00"));
-        fineRepository.save(fineA);
-        Fine fineB = new Fine();
+        fineA = fineRepository.save(fineA);
+        fineB = new Fine();
         fineB.setUserId(studentAId);
         fineB.setSchoolId(schoolBId);
         fineB.setAmount(new BigDecimal("7.00"));
-        fineRepository.save(fineB);
+        fineB = fineRepository.save(fineB);
 
         Notification notifA = new Notification();
         notifA.setUserId(studentAId);
@@ -592,5 +602,36 @@ class CrossSchoolIsolationTest extends BaseApiTest {
                         .header("Authorization", bearerToken(platformToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].email", hasItem(studentA.getEmail())));
+    }
+
+    // --- Paystack payments / real AI-TTS: schoolId stamped on write. Neither
+    // FinePaymentController nor AudioController exposes a cross-school read endpoint (fine
+    // payments have no list endpoint at all; audio conversions are ownership-scoped rather
+    // than school-scoped, matching the documented /api/audio/** exception - see
+    // NEXT_STEPS.md), so these verify the write-side tagging directly instead of via HTTP,
+    // guarding the data for whenever a school-scoped read is added on top of it. ---
+
+    @Test
+    void finePaymentService_stampsSchoolIdFromTheFineBeingPaid() {
+        FinePayment payment = new FinePayment();
+        payment.setFineId(fineB.getId());
+        payment.setUserId(fineB.getUserId());
+        payment.setAmountPaid(fineB.getAmount());
+        payment.setPaymentMethod("CASH");
+
+        FinePayment saved = finePaymentService.processPayment(payment);
+
+        assertEquals(schoolB.getInstitutionId(), saved.getSchoolId());
+        assertNotEquals(schoolA.getInstitutionId(), saved.getSchoolId());
+    }
+
+    @Test
+    void audioTrackService_stampsSchoolIdFromTheSourceBook() {
+        AudioTrack track = audioTrackService.initiateConversion(
+                bookB.getId(), studentA.getId(), "en-US-Standard-A", "en-US",
+                "Content for the cross-school audio conversion regression test.");
+
+        assertEquals(schoolB.getInstitutionId(), track.getSchoolId());
+        assertNotEquals(schoolA.getInstitutionId(), track.getSchoolId());
     }
 }
