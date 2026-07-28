@@ -21,4 +21,9 @@ export interface StaffUser {
 export const usersApi = {
   // STAFF-only, school-scoped for non-platform callers (GET /api/users).
   list: () => api.get<StaffUser[]>("/api/users"),
+
+  // STAFF-only (POST /api/users/{id}/roles). Grants the given role to the user
+  // (additive - doesn't remove existing roles).
+  assignRole: (id: number, role: string) =>
+    api.post<{ userId: number; roles: string[] }>(`/api/users/${id}/roles`, { role }),
 };

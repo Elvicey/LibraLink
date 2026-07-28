@@ -45,8 +45,7 @@ function formatDuration(seconds?: number): string {
 export default function BookDetail() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { userId, token, roles } = useAuth();
-  const canEditText = roles.includes("LIBRARIAN") || roles.includes("ADMIN");
+  const { userId, token } = useAuth();
   const { colors, spacing, borderRadius, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, isDark);
 
@@ -383,24 +382,6 @@ export default function BookDetail() {
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </Pressable>
 
-            {canEditText && (
-              <Pressable
-                style={[styles.sheetRow, styles.sheetRowDivider]}
-                onPress={() => {
-                  setReadSheet(false);
-                  router.push({ pathname: "/edit-book-text", params: { bookId: String(bookId), title: book.title } } as any);
-                }}
-              >
-                <View style={[styles.sheetIcon, { backgroundColor: colors.warningLight }]}>
-                  <Ionicons name="create-outline" size={20} color={colors.warning} />
-                </View>
-                <View style={styles.sheetText}>
-                  <Text style={styles.sheetRowTitle}>Edit book</Text>
-                  <Text style={styles.sheetRowSubtitle}>Update text, availability & copies (librarian/admin)</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-              </Pressable>
-            )}
           </Pressable>
         </Pressable>
       </Modal>

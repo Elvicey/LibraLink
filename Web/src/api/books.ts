@@ -52,4 +52,10 @@ export const booksApi = {
   // Both STAFF-only; school is always server-resolved, never client-supplied.
   create: (payload: BookFormPayload) => api.post<StaffBook>("/api/books", payload),
   update: (id: number, payload: BookFormPayload) => api.put<StaffBook>(`/api/books/${id}`, payload),
+
+  // Full readable text for the in-app reader. GET is public like the other book reads;
+  // PUT is LIBRARIAN/ADMIN-only.
+  getContent: (id: number) => api.get<{ content: string }>(`/api/books/${id}/content`),
+  updateContent: (id: number, content: string) =>
+    api.put<{ id: number; hasContent: boolean }>(`/api/books/${id}/content`, { content }),
 };

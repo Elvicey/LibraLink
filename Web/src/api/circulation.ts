@@ -33,4 +33,8 @@ export const circulationApi = {
 
   scan: (barcode: string, action: "CHECK_OUT" | "CHECK_IN", userId?: number) =>
     api.post<ScanResult>("/api/circulation/scan", { barcode, action, userId }),
+
+  // STAFF-only. Flags every past-due loan OVERDUE and grows its fine; normally runs
+  // nightly via a scheduled job, this lets staff trigger it on demand.
+  runOverdueCheck: () => api.post<{ processed: number }>("/api/borrow-records/run-overdue-check"),
 };

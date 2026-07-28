@@ -10,9 +10,6 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="signin" />
           <Stack.Screen name="signup" />
-          <Stack.Screen name="librarian-signin" />
-          <Stack.Screen name="librarian-signup" />
-          <Stack.Screen name="admin-signin" />
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="search" />
           <Stack.Screen name="ai" />

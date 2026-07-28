@@ -4,8 +4,9 @@ import InviteCoAdmin from "./InviteCoAdmin";
 import LibrarianManagement from "./LibrarianManagement";
 import UserOversight from "./UserOversight";
 import BookOversight from "./BookOversight";
+import Reports from "./Reports";
 
-type Tab = "invite" | "librarians" | "users" | "books";
+type Tab = "invite" | "librarians" | "users" | "books" | "reports";
 
 export default function SchoolAdminDashboard() {
   const [tab, setTab] = useState<Tab>("invite");
@@ -28,6 +29,9 @@ export default function SchoolAdminDashboard() {
           <TabButton active={tab === "books"} onClick={() => setTab("books")}>
             Books
           </TabButton>
+          <TabButton active={tab === "reports"} onClick={() => setTab("reports")}>
+            Reports
+          </TabButton>
         </>
       }
     >
@@ -35,6 +39,7 @@ export default function SchoolAdminDashboard() {
       {tab === "librarians" && <LibrarianManagement />}
       {tab === "users" && <UserOversight />}
       {tab === "books" && <BookOversight />}
+      {tab === "reports" && <Reports />}
     </DashboardShell>
   );
 }

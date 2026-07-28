@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,7 +29,7 @@ public class BorrowRecordController {
     }
 
     /** Run the overdue check now (normally a daily cron): flag past-due loans and grow their fines. */
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping("/run-overdue-check")
     public ResponseEntity<Map<String, Object>> runOverdueCheck() {
         int processed = overdueBookScheduler.runOverdueCheck();

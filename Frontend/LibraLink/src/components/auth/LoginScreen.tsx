@@ -20,42 +20,6 @@ import { theme } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { authService } from "../../services/auth";
 
-export type LoginRole = "student" | "librarian" | "admin";
-
-const ROLES: { key: LoginRole; label: string }[] = [
-  { key: "student", label: "Student" },
-  { key: "librarian", label: "Librarian" },
-  { key: "admin", label: "Admin" },
-];
-
-const ROLE_HINTS: Record<LoginRole, string> = {
-  student: "Log in to your student account",
-  librarian: "Login as a librarian",
-  admin: "Login as an admin",
-};
-
-const EMAIL_LABELS: Record<LoginRole, string> = {
-  student: "Email or student ID",
-  librarian: "Email",
-  admin: "Email",
-};
-
-const EMAIL_PLACEHOLDERS: Record<LoginRole, string> = {
-  student: "student@university.edu.gh",
-  librarian: "librarian@university.edu.gh",
-  admin: "admin@libralink.com",
-};
-
-const SIGNUP_ROUTES: Partial<Record<LoginRole, string>> = {
-  student: "/signup",
-};
-
-const SHOW_SIGNUP: Record<LoginRole, boolean> = {
-  student: true,
-  librarian: false,
-  admin: false,
-};
-
 function EmailIcon() {
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -110,66 +74,19 @@ function getBorderStyle(hasError: boolean, isFocused: boolean): string {
   return Colors.borderDefault;
 }
 
-function GoogleIcon() {
-  return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-      <Path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-      <Path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-      <Path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-      <Path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-    </Svg>
-  );
-}
-
-function validateRoleAccess(role: LoginRole, roles: string[]): void {
-  switch (role) {
-    case "student":
-      if (!roles.includes("STUDENT")) {
-        throw new Error("This account does not have student privileges.");
-      }
-      break;
-    case "librarian":
-      if (!roles.includes("LIBRARIAN")) {
-        throw new Error("This account does not have librarian privileges.");
-      }
-      break;
-    case "admin":
-      if (!roles.includes("ADMIN")) {
-        throw new Error("This account does not have admin privileges.");
-      }
-      break;
+function validateRoleAccess(roles: string[]): void {
+  if (!roles.includes("STUDENT")) {
+    throw new Error("This account does not have student privileges.");
   }
 }
 
-function getPostLoginRoute(role: LoginRole): string {
-  switch (role) {
-    case "librarian":
-      return "/librarian";
-    case "admin":
-      return "/admin";
-    default:
-      return "/(tabs)/home";
-  }
-}
-
-function getEmailRequiredMessage(role: LoginRole): string {
-  return role === "student" ? "Enter your email or student ID." : "Enter your email.";
-}
-
-function getRoleLabel(role: LoginRole): string {
-  return ROLES.find((r) => r.key === role)?.label.toLowerCase() ?? role;
-}
-
-function getApiLoginErrors(
-  role: LoginRole,
-  message: string,
-): { banner: string; email: string | null; password: string | null } {
+function getApiLoginErrors(message: string): { banner: string; email: string | null; password: string | null } {
   const lower = message.toLowerCase();
 
   if (lower.includes("privileges") || lower.includes("does not have")) {
     return {
       banner: message,
-      email: `This account can't sign in as a ${getRoleLabel(role)}.`,
+      email: "This account can't sign in as a student.",
       password: null,
     };
   }
@@ -181,14 +98,9 @@ function getApiLoginErrors(
   };
 }
 
-interface LoginScreenProps {
-  initialRole?: LoginRole | null;
-}
-
-export default function LoginScreen({ initialRole = null }: LoginScreenProps) {
+export default function LoginScreen() {
   const router = useRouter();
   const { setSession } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<LoginRole | null>(initialRole);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -199,17 +111,10 @@ export default function LoginScreen({ initialRole = null }: LoginScreenProps) {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const formVisible = selectedRole !== null;
-
   const clearAllErrors = () => {
     setBannerError(null);
     setEmailError(null);
     setPasswordError(null);
-  };
-
-  const handleRoleSelect = (role: LoginRole) => {
-    setSelectedRole(role);
-    clearAllErrors();
   };
 
   const handleEmailChange = (text: string) => {
@@ -229,16 +134,11 @@ export default function LoginScreen({ initialRole = null }: LoginScreenProps) {
     setEmailError(null);
     setPasswordError(null);
 
-    if (!selectedRole) {
-      setBannerError("Choose a role to continue.");
-      return;
-    }
-
     const cleanEmail = email.trim().toLowerCase();
     let hasError = false;
 
     if (!cleanEmail) {
-      setEmailError(getEmailRequiredMessage(selectedRole));
+      setEmailError("Enter your email or student ID.");
       hasError = true;
     }
     if (!password.trim()) {
@@ -254,7 +154,7 @@ export default function LoginScreen({ initialRole = null }: LoginScreenProps) {
 
     try {
       const data = await authService.login(cleanEmail, password);
-      validateRoleAccess(selectedRole, data.roles || []);
+      validateRoleAccess(data.roles || []);
 
       await setSession({
         token: data.token,
@@ -266,10 +166,10 @@ export default function LoginScreen({ initialRole = null }: LoginScreenProps) {
         institutionId: data.institutionId ?? null,
       });
 
-      router.replace(getPostLoginRoute(selectedRole) as any);
+      router.replace("/(tabs)/home" as any);
     } catch (e: any) {
       const message = e.message || "Invalid email or password.";
-      const errors = getApiLoginErrors(selectedRole, message);
+      const errors = getApiLoginErrors(message);
       setBannerError(errors.banner);
       setEmailError(errors.email);
       setPasswordError(errors.password);
@@ -277,9 +177,6 @@ export default function LoginScreen({ initialRole = null }: LoginScreenProps) {
       setLoading(false);
     }
   };
-
-  const signupRoute = selectedRole ? SIGNUP_ROUTES[selectedRole] : "/signup";
-  const showSignup = selectedRole ? SHOW_SIGNUP[selectedRole] : false;
 
   return (
     <View style={styles.screen}>
@@ -298,32 +195,7 @@ export default function LoginScreen({ initialRole = null }: LoginScreenProps) {
             <BrandLogo variant="iconWithLabel" size="auth" style={styles.logoWrap} />
 
             <Text style={styles.heading}>Welcome back</Text>
-            <Text style={styles.subheading}>
-              {selectedRole ? ROLE_HINTS[selectedRole] : "Choose a role to continue"}
-            </Text>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.roleRow}
-              style={[styles.roleScroll, !bannerError && styles.roleScrollSpaced]}
-            >
-              {ROLES.map((role) => {
-                const active = selectedRole === role.key;
-                return (
-                  <TouchableOpacity
-                    key={role.key}
-                    style={[styles.roleChip, active && styles.roleChipActive]}
-                    onPress={() => handleRoleSelect(role.key)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.roleChipText, active && styles.roleChipTextActive]}>
-                      {role.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+            <Text style={styles.subheading}>Log in to your student account</Text>
 
             {bannerError && (
               <View style={styles.bannerToast}>
@@ -332,85 +204,79 @@ export default function LoginScreen({ initialRole = null }: LoginScreenProps) {
               </View>
             )}
 
-            {formVisible && selectedRole && (
-              <>
-                <View style={styles.fieldGroup}>
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>{EMAIL_LABELS[selectedRole]}</Text>
-                    <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!emailError, emailFocused) }]}>
-                      <EmailIcon />
-                      <TextInput
-                        style={styles.input}
-                        placeholder={EMAIL_PLACEHOLDERS[selectedRole]}
-                        placeholderTextColor={Colors.textPlaceholder}
-                        value={email}
-                        onChangeText={handleEmailChange}
-                        onFocus={() => setEmailFocused(true)}
-                        onBlur={() => setEmailFocused(false)}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        returnKeyType="next"
-                      />
-                      {emailError ? <ErrorIcon /> : null}
-                    </View>
-                    {emailError ? <Text style={styles.fieldError}>{emailError}</Text> : null}
-                  </View>
-
-                  <View style={styles.field}>
-                    <Text style={styles.fieldLabel}>Password</Text>
-                    <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!passwordError, passwordFocused) }]}>
-                      <LockIcon />
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Enter your password"
-                        placeholderTextColor={Colors.textPlaceholder}
-                        value={password}
-                        onChangeText={handlePasswordChange}
-                        onFocus={() => setPasswordFocused(true)}
-                        onBlur={() => setPasswordFocused(false)}
-                        secureTextEntry={!showPassword}
-                        returnKeyType="done"
-                        onSubmitEditing={handleLogin}
-                      />
-                      {passwordError ? <ErrorIcon /> : null}
-                      <TouchableOpacity
-                        onPress={() => setShowPassword(!showPassword)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <EyeIcon visible={showPassword} />
-                      </TouchableOpacity>
-                    </View>
-                    {passwordError ? <Text style={styles.fieldError}>{passwordError}</Text> : null}
-                  </View>
+            <View style={styles.fieldGroup}>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Email or student ID</Text>
+                <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!emailError, emailFocused) }]}>
+                  <EmailIcon />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="student@university.edu.gh"
+                    placeholderTextColor={Colors.textPlaceholder}
+                    value={email}
+                    onChangeText={handleEmailChange}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                  />
+                  {emailError ? <ErrorIcon /> : null}
                 </View>
+                {emailError ? <Text style={styles.fieldError}>{emailError}</Text> : null}
+              </View>
 
-                <TouchableOpacity
-                  onPress={() => router.push("/forgot-password" as any)}
-                  style={styles.forgotRow}
-                >
-                  <Text style={styles.forgotText}>Forgot password?</Text>
-                </TouchableOpacity>
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Password</Text>
+                <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!passwordError, passwordFocused) }]}>
+                  <LockIcon />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your password"
+                    placeholderTextColor={Colors.textPlaceholder}
+                    value={password}
+                    onChangeText={handlePasswordChange}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                    secureTextEntry={!showPassword}
+                    returnKeyType="done"
+                    onSubmitEditing={handleLogin}
+                  />
+                  {passwordError ? <ErrorIcon /> : null}
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <EyeIcon visible={showPassword} />
+                  </TouchableOpacity>
+                </View>
+                {passwordError ? <Text style={styles.fieldError}>{passwordError}</Text> : null}
+              </View>
+            </View>
 
-                <TouchableOpacity
-                  style={[styles.btnPrimary, loading && styles.btnPrimaryLoading]}
-                  onPress={handleLogin}
-                  activeOpacity={0.85}
-                  disabled={loading}
-                >
-                  <Text style={styles.btnPrimaryText}>{loading ? "Logging in..." : "Log in"}</Text>
-                </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/forgot-password" as any)}
+              style={styles.forgotRow}
+            >
+              <Text style={styles.forgotText}>Forgot password?</Text>
+            </TouchableOpacity>
 
-                {showSignup && signupRoute && (
-                  <View style={styles.footer}>
-                    <Text style={styles.footerText}>Don&apos;t have an account? </Text>
-                    <TouchableOpacity onPress={() => router.push(signupRoute as any)}>
-                      <Text style={styles.footerLink}>Create one</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </>
-            )}
+            <TouchableOpacity
+              style={[styles.btnPrimary, loading && styles.btnPrimaryLoading]}
+              onPress={handleLogin}
+              activeOpacity={0.85}
+              disabled={loading}
+            >
+              <Text style={styles.btnPrimaryText}>{loading ? "Logging in..." : "Log in"}</Text>
+            </TouchableOpacity>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Don&apos;t have an account? </Text>
+              <TouchableOpacity onPress={() => router.push("/signup" as any)}>
+                <Text style={styles.footerLink}>Create one</Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -446,37 +312,6 @@ const styles = StyleSheet.create({
   logoWrap: {
     marginBottom: 24,
   },
-  roleScroll: {
-    flexGrow: 0,
-  },
-  roleScrollSpaced: {
-    marginBottom: 24,
-  },
-  roleRow: {
-    flexDirection: "row",
-    gap: 8,
-    paddingRight: 8,
-  },
-  roleChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Colors.borderDefault,
-    backgroundColor: "rgba(255,255,255,0.04)",
-  },
-  roleChipActive: {
-    backgroundColor: Colors.teal,
-    borderColor: Colors.teal,
-  },
-  roleChipText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: Colors.textSecondary,
-  },
-  roleChipTextActive: {
-    color: Colors.tealDark,
-  },
   heading: {
     fontSize: 22,
     fontWeight: "500",
@@ -487,7 +322,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   fieldGroup: {
     gap: 12,
@@ -541,36 +376,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
     color: Colors.tealDark,
-  },
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 14,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 0.5,
-    backgroundColor: Colors.borderDefault,
-  },
-  dividerText: {
-    fontSize: 11,
-    color: Colors.textMuted,
-  },
-  btnGoogle: {
-    height: 48,
-    borderWidth: 0.5,
-    borderColor: Colors.borderStrong,
-    borderRadius: Radius.lg,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginBottom: 32,
-  },
-  btnGoogleText: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.72)",
   },
   footer: {
     flexDirection: "row",

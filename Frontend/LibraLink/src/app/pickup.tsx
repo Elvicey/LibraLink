@@ -92,10 +92,9 @@ function getCalendarDays(month: Date) {
 export default function BookPickup() {
   const router = useRouter();
   const { bookId } = useLocalSearchParams<{ bookId?: string }>();
-  const { userId, token, roles } = useAuth();
+  const { userId, token } = useAuth();
   const { colors, spacing, borderRadius, isDark } = useTheme();
   const styles = createStyles(colors, spacing, borderRadius, isDark);
-  const isStaff = roles.includes("LIBRARIAN") || roles.includes("ADMIN");
 
   const [slots, setSlots] = useState<PickupSlotResponse[]>([]);
   const [reservations, setReservations] = useState<ReservationResponse[]>([]);
@@ -404,15 +403,6 @@ export default function BookPickup() {
         <Text style={styles.description}>
           Your reservation pickup slots. Collect at the desk with your QR code.
         </Text>
-
-        {isStaff && (
-          <View style={styles.infoCard}>
-            <Ionicons name="information-circle-outline" size={19} color={ACCENT} />
-            <Text style={styles.infoText}>
-              Use Scan Barcode in the Admin console to collect scheduled pickups via QR.
-            </Text>
-          </View>
-        )}
 
         {loading && <ActivityIndicator color={ACCENT} style={{ marginTop: spacing.xl }} />}
 

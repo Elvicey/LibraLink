@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { booksApi, type StaffBook } from "../../api/books";
 import { Badge, Banner, Card, EmptyState } from "../../components/DashboardShell";
 import BookForm from "./BookForm";
+import BookContentEditor from "./BookContentEditor";
 
-type Mode = { kind: "list" } | { kind: "create" } | { kind: "edit"; book: StaffBook };
+type Mode = { kind: "list" } | { kind: "create" } | { kind: "edit"; book: StaffBook } | { kind: "content"; book: StaffBook };
 
 export default function BookOversight() {
   const [books, setBooks] = useState<StaffBook[]>([]);
@@ -45,6 +46,10 @@ export default function BookOversight() {
         }}
       />
     );
+  }
+
+  if (mode.kind === "content") {
+    return <BookContentEditor book={mode.book} onDone={() => setMode({ kind: "list" })} />;
   }
 
   return (
@@ -94,12 +99,18 @@ export default function BookOversight() {
                   <td className="py-3 pr-4">
                     <Badge tone={book.active ? "green" : "slate"}>{book.active ? "Active" : "Inactive"}</Badge>
                   </td>
-                  <td className="py-3 pr-4 text-right">
+                  <td className="py-3 pr-4 text-right whitespace-nowrap space-x-3">
                     <button
                       onClick={() => setMode({ kind: "edit", book })}
                       className="text-primary text-xs font-medium hover:underline"
                     >
                       Edit
+                    </button>
+                    <button
+                      onClick={() => setMode({ kind: "content", book })}
+                      className="text-primary text-xs font-medium hover:underline"
+                    >
+                      Edit text
                     </button>
                   </td>
                 </tr>

@@ -6,12 +6,6 @@ import { borrowsService } from "../../services/borrows";
 import { reservationsService } from "../../services/reservations";
 import { usersService } from "../../services/users";
 
-function roleLabelFromRoles(roles: string[]): string {
-  if (roles.includes("LIBRARIAN")) return "Librarian";
-  if (roles.includes("ADMIN")) return "Admin";
-  return "Student";
-}
-
 function initialsFromName(firstName?: string | null, lastName?: string | null): string | null {
   const first = (firstName || "").trim();
   const last = (lastName || "").trim();
@@ -99,7 +93,7 @@ export default function Profile() {
       user={{
         name: fullName || "No name set",
         initials: initialsFromName(displayFirstName, displayLastName),
-        role: roleLabelFromRoles(roles),
+        role: "Student",
         emailVerified: Boolean(displayEmail),
         booksBorrowed: isPopulated ? booksBorrowed : "-",
         activeHolds: isPopulated ? activeHolds : "-",
