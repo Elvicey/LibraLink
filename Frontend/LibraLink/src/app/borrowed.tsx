@@ -13,11 +13,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../components/common/Button";
-import {
-  AUTH_LIBRARY_OVERLAY,
-  AuthLibraryBackground,
-  LIGHT_LIBRARY_OVERLAY,
-} from "../components/auth/AuthLibraryBackground";
 import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
@@ -261,9 +256,6 @@ export default function Borrowed() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <AuthLibraryBackground
-        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
-      />
       <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
         <StatusBar
           barStyle={isDark ? "light-content" : "dark-content"}

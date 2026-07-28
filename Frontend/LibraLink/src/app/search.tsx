@@ -16,11 +16,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import BookGridCard from "../components/BookGridCard";
-import {
-  AUTH_LIBRARY_OVERLAY,
-  AuthLibraryBackground,
-  LIGHT_LIBRARY_OVERLAY,
-} from "../components/auth/AuthLibraryBackground";
 import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import {
@@ -268,9 +263,6 @@ export default function Search() {
 
   return (
     <View style={styles.screen}>
-      <AuthLibraryBackground
-        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
-      />
       <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
         <StatusBar
           barStyle={isDark ? "light-content" : "dark-content"}

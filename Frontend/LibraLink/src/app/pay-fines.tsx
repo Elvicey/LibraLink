@@ -14,11 +14,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import * as Linking from "expo-linking";
-import {
-  AUTH_LIBRARY_OVERLAY,
-  AuthLibraryBackground,
-  LIGHT_LIBRARY_OVERLAY,
-} from "../components/auth/AuthLibraryBackground";
 import { useTheme } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
 import { finesService, fineAmount, Fine as ApiFine } from "../services/fines";
@@ -54,9 +49,6 @@ const colors = {
 function Screen({ isDark, children }: { isDark: boolean; children: React.ReactNode }) {
   return (
     <View style={styles.screen}>
-      <AuthLibraryBackground
-        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
-      />
       <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
         <StatusBar
           barStyle={isDark ? "light-content" : "dark-content"}

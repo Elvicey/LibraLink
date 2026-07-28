@@ -3,11 +3,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  AUTH_LIBRARY_OVERLAY,
-  AuthLibraryBackground,
-  LIGHT_LIBRARY_OVERLAY,
-} from "../components/auth/AuthLibraryBackground";
 import Button from "../components/common/Button";
 import Card from "../components/common/Card";
 import Input from "../components/common/Input";
@@ -109,10 +104,7 @@ export default function ProfileDetails() {
   };
 
   return (
-    <View style={styles.screen}>
-      <AuthLibraryBackground
-        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
-      />
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScreenWrapper
         scrollable
         statusBarColor="transparent"

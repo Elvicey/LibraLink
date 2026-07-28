@@ -14,7 +14,6 @@ import {
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandLogo } from "../common/BrandLogo";
-import { AuthLibraryBackground } from "./AuthLibraryBackground";
 import { loginColors as Colors, loginRadius as Radius } from "../../constants/loginTheme";
 import { theme } from "../../constants/theme";
 import { useAuth } from "../../contexts/AuthContext";
@@ -181,7 +180,6 @@ export default function LoginScreen() {
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <AuthLibraryBackground />
 
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>

@@ -31,7 +31,6 @@ const Colors = {
   dotInactive: "rgba(255,255,255,0.25)",
   borderDefault: "rgba(255,255,255,0.12)",
   borderStrong: "rgba(255,255,255,0.28)",
-  overlay: "rgba(10, 22, 40, 0.72)",
   cardBg: "rgba(10, 22, 40, 0.82)",
   cardBorder: "rgba(255,255,255,0.14)",
 };
@@ -198,10 +197,6 @@ export default function Onboarding() {
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      <ImageBackground source={LIBRARY_BG} style={StyleSheet.absoluteFill} resizeMode="cover">
-        <View style={styles.overlay} />
-      </ImageBackground>
-
       <SafeAreaView style={styles.content} edges={["top", "bottom", "left", "right"]}>
         <View style={styles.logoArea}>
           <BrandLogo variant="iconWithLabel" size="onboarding" />
@@ -257,10 +252,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: Colors.bgDeep,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.overlay,
   },
   content: {
     flex: 1,

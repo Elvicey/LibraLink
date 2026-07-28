@@ -10,11 +10,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path, Rect, Circle } from "react-native-svg";
-import {
-  AUTH_LIBRARY_OVERLAY,
-  AuthLibraryBackground,
-  LIGHT_LIBRARY_OVERLAY,
-} from "../auth/AuthLibraryBackground";
 import { loginColors } from "../../constants/loginTheme";
 import { useTheme } from "../../constants/theme";
 
@@ -228,9 +223,6 @@ export default function ProfileScreen({
 
   return (
     <View style={styles.screen}>
-      <AuthLibraryBackground
-        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
-      />
       <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
         <StatusBar
           barStyle={isDark ? "light-content" : "dark-content"}

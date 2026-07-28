@@ -18,11 +18,6 @@ import {
   useAudioPlayer,
   useAudioPlayerStatus,
 } from "expo-audio";
-import {
-  AUTH_LIBRARY_OVERLAY,
-  AuthLibraryBackground,
-  LIGHT_LIBRARY_OVERLAY,
-} from "../components/auth/AuthLibraryBackground";
 import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
 import { useAuth } from "../contexts/AuthContext";
@@ -65,9 +60,6 @@ function Screen({
 }) {
   return (
     <View style={styles.screen}>
-      <AuthLibraryBackground
-        overlayColor={isDark ? AUTH_LIBRARY_OVERLAY : LIGHT_LIBRARY_OVERLAY}
-      />
       <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
         <StatusBar
           barStyle={isDark ? "light-content" : "dark-content"}
