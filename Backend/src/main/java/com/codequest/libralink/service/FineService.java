@@ -30,13 +30,18 @@ public class FineService {
         if (fine.getAmount() == null) {
             throw new IllegalArgumentException("amount is required");
         }
-        // Server-stamped when the caller hasn't already set one (e.g. a Librarian/Admin
-        // issuing a fine through the staff-only endpoint): a Librarian/Admin always issues
-        // within their own school. System-generated fines (overdue accrual, run from a
-        // scheduled job with no authenticated request) set schoolId explicitly beforehand
-        // instead, since schoolContext has no current user to resolve there.
-        if (fine.getSchoolId() == null) {
-            fine.setSchoolId(schoolContext.requireSchoolId());
+        // A Librarian/Admin/School Admin issuing a fine through the staff-only endpoint
+        // always issues within their own school, regardless of what schoolId (if any) the
+        // client sent - resolveTargetSchoolId ignores a client-supplied value for everyone
+        // except PLATFORM_SUPER_ADMIN (see SchoolContext), closing the mass-assignment gap
+        // where a client-supplied schoolId used to be trusted whenever present.
+        // System-generated fines (overdue accrual, run from a scheduled job with no
+        // authenticated request) set schoolId explicitly beforehand instead, since
+        // schoolContext has no current user to resolve there.
+        if (schoolContext.currentUser().isPresent()) {
+            fine.setSchoolId(schoolContext.resolveTargetSchoolId(fine.getSchoolId()));
+        } else if (fine.getSchoolId() == null) {
+            throw new IllegalArgumentException("schoolId is required");
         }
         if (fine.getCreatedAt() == null) {
             fine.setCreatedAt(java.time.LocalDateTime.now());

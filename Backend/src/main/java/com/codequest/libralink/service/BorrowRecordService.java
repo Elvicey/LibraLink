@@ -43,6 +43,7 @@ public class BorrowRecordService {
     private final BookCopyService bookCopyService;
     private final CurrentUserProvider currentUserProvider;
     private final FineService fineService;
+    private final UserService userService;
 
     public BorrowRecordService(BorrowRecordRepository borrowRecordRepository,
                                BookRepository bookRepository,
@@ -50,7 +51,8 @@ public class BorrowRecordService {
                                SchoolContext schoolContext,
                                BookCopyService bookCopyService,
                                CurrentUserProvider currentUserProvider,
-                               FineService fineService) {
+                               FineService fineService,
+                               UserService userService) {
         this.borrowRecordRepository = borrowRecordRepository;
         this.bookRepository = bookRepository;
         this.notificationService = notificationService;
@@ -58,6 +60,7 @@ public class BorrowRecordService {
         this.bookCopyService = bookCopyService;
         this.currentUserProvider = currentUserProvider;
         this.fineService = fineService;
+        this.userService = userService;
     }
 
     @Transactional
@@ -73,6 +76,16 @@ public class BorrowRecordService {
         if (rec.getBook() == null || rec.getBook().getId() == null) {
             throw new IllegalArgumentException("book.id is required");
         }
+
+        // Never trust the client-supplied User sub-object either - re-fetch the real row
+        // via UserService.getUserById, which enforces self-or-staff + SchoolContext.assertSameSchool
+        // the same way CirculationController's /scan flow does. Without this, a staff caller
+        // could create a loan (and later, real overdue fines via upsertOverdueFine) against a
+        // user from a different school entirely.
+        User user = userService.getUserById(rec.getUser().getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "User not found with id: " + rec.getUser().getId()));
+        rec.setUser(user);
 
         // Never trust the client-supplied Book sub-object (it can carry arbitrary
         // availableCopies/totalCopies/borrowCount/etc.) - re-fetch the real row instead,
@@ -128,15 +141,27 @@ public class BorrowRecordService {
                 .toList();
     }
 
+    /** Staff sees only this user's records within their own school; PLATFORM_SUPER_ADMIN sees all. */
     public List<BorrowRecord> getBorrowRecordsByUser(Integer userId) {
-        return borrowRecordRepository.findByUserId(userId);
+        List<BorrowRecord> records = borrowRecordRepository.findByUserId(userId);
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return records;
+        }
+        Integer schoolId = schoolContext.requireSchoolId();
+        return records.stream().filter(r -> schoolId.equals(r.getSchoolId())).toList();
     }
 
+    /** Staff sees only this user's records within their own school; PLATFORM_SUPER_ADMIN sees all. */
     public List<BorrowRecord> getCurrentBorrows(Integer userId) {
-        return borrowRecordRepository.findByUserIdAndStatusIn(
+        List<BorrowRecord> records = borrowRecordRepository.findByUserIdAndStatusIn(
                 userId,
                 List.of("BORROWED", "OVERDUE", "RENEWED")
         );
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return records;
+        }
+        Integer schoolId = schoolContext.requireSchoolId();
+        return records.stream().filter(r -> schoolId.equals(r.getSchoolId())).toList();
     }
 
     /**

@@ -13,7 +13,9 @@ import java.time.LocalDateTime;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import org.springframework.http.MediaType;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
@@ -73,9 +75,6 @@ class CrossSchoolIsolationTest extends BaseApiTest {
 
     @Autowired
     private VoiceCommandRepository voiceCommandRepository;
-
-    @Autowired
-    private com.codequest.libralink.service.FinePaymentService finePaymentService;
 
     @Autowired
     private com.codequest.libralink.service.AudioTrackService audioTrackService;
@@ -142,6 +141,17 @@ class CrossSchoolIsolationTest extends BaseApiTest {
         recordA.setStatus("BORROWED");
         recordA.setDueDate(LocalDate.now().plusDays(14));
         borrowRecordRepository.save(recordA);
+
+        // studentA also has a School B loan on the books (mirrors the fine/reservation/etc.
+        // "same user id, two schools" sweep fixtures below) so the by-user borrow-record
+        // endpoints have something cross-school to wrongly leak if the school filter regresses.
+        BorrowRecord recordB = new BorrowRecord();
+        recordB.setUser(studentA);
+        recordB.setBook(bookB);
+        recordB.setSchoolId(schoolB.getInstitutionId());
+        recordB.setStatus("BORROWED");
+        recordB.setDueDate(LocalDate.now().plusDays(14));
+        borrowRecordRepository.save(recordB);
 
         seedSweepFixtures();
     }
@@ -377,6 +387,38 @@ class CrossSchoolIsolationTest extends BaseApiTest {
     }
 
     @Test
+    void librarianA_cannotSeeSchoolBBorrowRecordsByUser() throws Exception {
+        // studentA has a loan in both School A and School B (see setUp); a School A
+        // librarian looking up studentA's records by userId must only see the School A one.
+        mockMvc.perform(get("/api/borrow-records/user/" + studentA.getId())
+                        .header("Authorization", bearerToken(librarianAToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].book.title", not(hasItem("School B Book"))))
+                .andExpect(jsonPath("$[*].book.title", hasItem("School A Book")));
+
+        mockMvc.perform(get("/api/borrow-records/user/" + studentA.getId() + "/current")
+                        .header("Authorization", bearerToken(librarianAToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].book.title", not(hasItem("School B Book"))))
+                .andExpect(jsonPath("$[*].book.title", hasItem("School A Book")));
+    }
+
+    @Test
+    void librarianA_cannotCreateLoanForSchoolBUser() throws Exception {
+        // librarianB is a real School B user id; librarianA (School A staff) must not be
+        // able to create a loan against it, even for a School A book.
+        mockMvc.perform(post("/api/borrow-records")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianAToken))
+                        .content(objectMapper.writeValueAsString(java.util.Map.of(
+                                "user", java.util.Map.of("id", librarianBId),
+                                "book", java.util.Map.of("id", bookA.getId()),
+                                "status", "BORROWED",
+                                "dueDate", LocalDate.now().plusDays(14).toString()))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void authenticatedLibrarian_seesOnlyOwnSchoolBooks() throws Exception {
         mockMvc.perform(get("/api/books")
                         .header("Authorization", bearerToken(librarianAToken)))
@@ -467,6 +509,37 @@ class CrossSchoolIsolationTest extends BaseApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].schoolId", not(hasItem(schoolB.getInstitutionId()))))
                 .andExpect(jsonPath("$[*].schoolId", hasItem(schoolA.getInstitutionId())));
+    }
+
+    @Test
+    void librarianA_cannotSeeSchoolBReservationsByUser() throws Exception {
+        // reservationA/reservationB (seeded in seedSweepFixtures) are both tagged to
+        // studentA's id but belong to different schools.
+        mockMvc.perform(get("/api/reservations/user/" + studentA.getId())
+                        .header("Authorization", bearerToken(librarianAToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].schoolId", not(hasItem(schoolB.getInstitutionId()))))
+                .andExpect(jsonPath("$[*].schoolId", hasItem(schoolA.getInstitutionId())));
+    }
+
+    @Test
+    void librarianA_issuingFine_ignoresClientSuppliedSchoolId() throws Exception {
+        // Even if the client explicitly requests School B, a School A librarian's fine
+        // must land on School A - the server must not trust a client-supplied schoolId.
+        var result = mockMvc.perform(post("/api/fines")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianAToken))
+                        .content(objectMapper.writeValueAsString(java.util.Map.of(
+                                "userId", studentA.getId(),
+                                "amount", new BigDecimal("3.00"),
+                                "reason", "Test fine",
+                                "schoolId", schoolB.getInstitutionId()))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        var saved = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertEquals(schoolA.getInstitutionId(), saved.get("schoolId").asInt());
+        assertNotEquals(schoolB.getInstitutionId(), saved.get("schoolId").asInt());
     }
 
     @Test
@@ -612,17 +685,36 @@ class CrossSchoolIsolationTest extends BaseApiTest {
     // guarding the data for whenever a school-scoped read is added on top of it. ---
 
     @Test
-    void finePaymentService_stampsSchoolIdFromTheFineBeingPaid() {
-        FinePayment payment = new FinePayment();
-        payment.setFineId(fineB.getId());
-        payment.setUserId(fineB.getUserId());
-        payment.setAmountPaid(fineB.getAmount());
-        payment.setPaymentMethod("CASH");
+    void finePaymentService_stampsSchoolIdFromTheFineBeingPaid() throws Exception {
+        // librarianB is School B's own librarian, so this must succeed and the resulting
+        // payment must be tagged to School B, not School A.
+        var result = mockMvc.perform(post("/api/fine-payments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianBToken))
+                        .content(objectMapper.writeValueAsString(java.util.Map.of(
+                                "fineId", fineB.getId(),
+                                "userId", fineB.getUserId(),
+                                "amountPaid", fineB.getAmount(),
+                                "paymentMethod", "CASH"))))
+                .andExpect(status().isCreated())
+                .andReturn();
 
-        FinePayment saved = finePaymentService.processPayment(payment);
+        var saved = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertEquals(schoolB.getInstitutionId(), saved.get("schoolId").asInt());
+        assertNotEquals(schoolA.getInstitutionId(), saved.get("schoolId").asInt());
+    }
 
-        assertEquals(schoolB.getInstitutionId(), saved.getSchoolId());
-        assertNotEquals(schoolA.getInstitutionId(), saved.getSchoolId());
+    @Test
+    void librarianA_cannotPaySchoolBFine() throws Exception {
+        mockMvc.perform(post("/api/fine-payments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianAToken))
+                        .content(objectMapper.writeValueAsString(java.util.Map.of(
+                                "fineId", fineB.getId(),
+                                "userId", fineB.getUserId(),
+                                "amountPaid", fineB.getAmount(),
+                                "paymentMethod", "CASH"))))
+                .andExpect(status().isNotFound());
     }
 
     @Test

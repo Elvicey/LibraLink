@@ -9,11 +9,15 @@ import com.codequest.libralink.entity.User;
 import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.FinePaymentRepository;
 import com.codequest.libralink.repository.FineRepository;
+import com.codequest.libralink.security.AuthenticatedUser;
 import com.codequest.libralink.service.BorrowRecordService;
 import com.codequest.libralink.service.FinePaymentService;
 import com.codequest.libralink.service.ReservationService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -66,6 +70,27 @@ class Group3ConcurrencyTest extends BaseApiTest {
         return bookRepository.save(book);
     }
 
+    /**
+     * These tests call BorrowRecordService/ReservationService/FinePaymentService directly
+     * (no mockMvc/JwtAuthenticationFilter), so SecurityContextHolder needs a principal for
+     * SchoolContext-backed checks (e.g. BorrowRecordService.saveRecord's UserService.getUserById
+     * call, or FinePaymentService.processPayment's assertSameSchool) - same pattern as
+     * Group4AsyncTransactionTest.
+     */
+    private void authenticateAsStaffOf(Integer schoolId) {
+        // userId must be non-null (never a real row id) - UserService.getUserById's
+        // isSelf check calls caller.userId().equals(id) unconditionally.
+        AuthenticatedUser principal = new AuthenticatedUser(
+                -1, "concurrency-test@example.com", schoolId, List.of("LIBRARIAN"));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, List.of()));
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
     // --- C5: BorrowRecordService must not trust the client-supplied Book object ---
 
     @Test
@@ -87,6 +112,7 @@ class Group3ConcurrencyTest extends BaseApiTest {
         rec.setStatus("BORROWED");
         rec.setDueDate(LocalDate.now().plusDays(14));
 
+        authenticateAsStaffOf(testInstitution().getInstitutionId());
         borrowRecordService.saveRecord(rec);
 
         Book reloaded = bookRepository.findById(book.getId()).orElseThrow();
@@ -110,6 +136,7 @@ class Group3ConcurrencyTest extends BaseApiTest {
         rec.setStatus("BORROWED");
         rec.setDueDate(LocalDate.now().plusDays(14));
 
+        authenticateAsStaffOf(testInstitution().getInstitutionId());
         assertThrows(IllegalStateException.class, () -> borrowRecordService.saveRecord(rec));
     }
 
@@ -128,10 +155,12 @@ class Group3ConcurrencyTest extends BaseApiTest {
         AtomicInteger failures = new AtomicInteger();
         List<Future<?>> futures = new ArrayList<>();
 
+        Integer schoolId = testInstitution().getInstitutionId();
         for (int i = 0; i < threads; i++) {
             User student = createTestStudent(uniqueEmail("g3race" + i), "pass1234");
             futures.add(pool.submit(() -> {
                 try {
+                    authenticateAsStaffOf(schoolId);
                     ready.countDown();
                     go.await();
                     Book bookRef = new Book();
@@ -145,6 +174,8 @@ class Group3ConcurrencyTest extends BaseApiTest {
                     successes.incrementAndGet();
                 } catch (Exception e) {
                     failures.incrementAndGet();
+                } finally {
+                    SecurityContextHolder.clearContext();
                 }
             }));
         }
@@ -184,9 +215,18 @@ class Group3ConcurrencyTest extends BaseApiTest {
         AtomicInteger failures = new AtomicInteger();
         List<Future<?>> futures = new ArrayList<>();
 
+        Integer schoolId = testInstitution().getInstitutionId();
         for (int i = 0; i < threads; i++) {
             futures.add(pool.submit(() -> {
                 try {
+                    // SecurityContextHolder is thread-local; this test calls FinePaymentService
+                    // directly (no mockMvc/JwtAuthenticationFilter), so each worker thread needs
+                    // its own authenticated principal for FinePaymentService.processPayment's
+                    // SchoolContext.assertSameSchool check - same pattern as Group4AsyncTransactionTest.
+                    AuthenticatedUser principal = new AuthenticatedUser(
+                            userId, "concurrency-test@example.com", schoolId, List.of("LIBRARIAN"));
+                    SecurityContextHolder.getContext().setAuthentication(
+                            new UsernamePasswordAuthenticationToken(principal, null, List.of()));
                     ready.countDown();
                     go.await();
                     FinePayment payment = new FinePayment();
@@ -197,6 +237,8 @@ class Group3ConcurrencyTest extends BaseApiTest {
                     successes.incrementAndGet();
                 } catch (Exception e) {
                     failures.incrementAndGet();
+                } finally {
+                    SecurityContextHolder.clearContext();
                 }
             }));
         }

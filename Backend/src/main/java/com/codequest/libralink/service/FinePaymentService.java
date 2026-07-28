@@ -3,6 +3,7 @@ package com.codequest.libralink.service;
 import com.codequest.libralink.entity.Fine;
 import com.codequest.libralink.entity.FinePayment;
 import com.codequest.libralink.repository.FinePaymentRepository;
+import com.codequest.libralink.security.SchoolContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,11 +14,14 @@ import java.time.LocalDateTime;
 public class FinePaymentService {
     private final FinePaymentRepository finePaymentRepository;
     private final FineService fineService;
+    private final SchoolContext schoolContext;
 
     // Lombok removed: explicit constructor added
-    public FinePaymentService(FinePaymentRepository finePaymentRepository, FineService fineService) {
+    public FinePaymentService(FinePaymentRepository finePaymentRepository, FineService fineService,
+                              SchoolContext schoolContext) {
         this.finePaymentRepository = finePaymentRepository;
         this.fineService = fineService;
+        this.schoolContext = schoolContext;
     }
 
     @Transactional
@@ -37,6 +41,9 @@ public class FinePaymentService {
         // Locked for the rest of this transaction so a concurrent payment attempt on the
         // same fine can't also read "not yet paid" and double-pay it (H4).
         Fine fine = fineService.getFineByIdForUpdate(payment.getFineId());
+        // Staff may only settle a fine that belongs to their own school (PLATFORM_SUPER_ADMIN
+        // bypasses this, same as everywhere else SchoolContext is used).
+        schoolContext.assertSameSchool(fine.getSchoolId());
         if (!fine.getUserId().equals(payment.getUserId())) {
             throw new IllegalArgumentException("Fine does not belong to this user");
         }

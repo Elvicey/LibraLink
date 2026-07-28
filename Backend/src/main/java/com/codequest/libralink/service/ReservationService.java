@@ -92,10 +92,18 @@ public class ReservationService {
                 .toList();
     }
 
-    /** A single patron's reservations, newest first. Book is EAGER, so titles come along. */
+    /**
+     * A single patron's reservations, newest first, scoped to the caller's own school
+     * (PLATFORM_SUPER_ADMIN sees all). Book is EAGER, so titles come along.
+     */
     @Transactional(readOnly = true)
     public List<Reservation> getReservationsForUser(Integer userId) {
-        return reservationRepository.findByUserIdOrderByReservedAtDesc(userId);
+        List<Reservation> reservations = reservationRepository.findByUserIdOrderByReservedAtDesc(userId);
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return reservations;
+        }
+        Integer schoolId = schoolContext.requireSchoolId();
+        return reservations.stream().filter(r -> schoolId.equals(r.getSchoolId())).toList();
     }
 
     @Transactional
