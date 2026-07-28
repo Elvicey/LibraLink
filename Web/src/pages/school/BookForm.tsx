@@ -24,14 +24,14 @@ export default function BookForm({
   const [isbn13, setIsbn13] = useState(book?.isbn13 ?? "");
   const [edition, setEdition] = useState(book?.edition ?? "");
   const [language, setLanguage] = useState(book?.language ?? "");
-  const [publicationYear, setPublicationYear] = useState("");
-  const [description, setDescription] = useState("");
+  const [publicationYear, setPublicationYear] = useState(book?.publicationYear ? String(book.publicationYear) : "");
+  const [description, setDescription] = useState(book?.description ?? "");
   const [totalCopies, setTotalCopies] = useState(String(book?.totalCopies ?? 1));
   const [availableCopies, setAvailableCopies] = useState(String(book?.availableCopies ?? 1));
   const [isDigitalOnly, setIsDigitalOnly] = useState(book?.digitalOnly ?? false);
   const [isActive, setIsActive] = useState(book?.active ?? true);
-  const [publisherId, setPublisherId] = useState<string>("");
-  const [categoryId, setCategoryId] = useState<string>("");
+  const [publisherId, setPublisherId] = useState<string>(book?.publisherId ? String(book.publisherId) : "");
+  const [categoryId, setCategoryId] = useState<string>(book?.categoryId ? String(book.categoryId) : "");
   const [authorIds, setAuthorIds] = useState<number[]>(book?.authors.map((a) => a.id) ?? []);
 
   const [authors, setAuthors] = useState<Author[]>([]);
@@ -106,6 +106,10 @@ export default function BookForm({
         edition: edition.trim() || undefined,
         language: language.trim(),
         description: description.trim() || undefined,
+        // Not editable from this form yet - pass the existing value through unchanged
+        // instead of silently clearing it on every save (there's no input for these).
+        coverImageUrl: book?.coverImageUrl ?? undefined,
+        digitalUrl: book?.digitalUrl ?? undefined,
         totalCopies: Number(totalCopies),
         availableCopies: Number(availableCopies),
         isDigitalOnly,

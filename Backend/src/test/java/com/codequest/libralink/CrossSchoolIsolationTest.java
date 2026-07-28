@@ -726,4 +726,19 @@ class CrossSchoolIsolationTest extends BaseApiTest {
         assertEquals(schoolB.getInstitutionId(), track.getSchoolId());
         assertNotEquals(schoolA.getInstitutionId(), track.getSchoolId());
     }
+
+    @Test
+    void askLibra_doesNotLeakOtherSchoolBooksIntoRecommendations() throws Exception {
+        // No AI_API_KEY in the test environment, so AiService falls back to its canned
+        // intent engine - a "book"/"recommend" prompt routes through handleRecommendationQuery,
+        // which must only draw from the caller's own school's catalogue.
+        String studentToken = loginAs(studentA.getEmail(), "pass1234");
+        mockMvc.perform(post("/api/ai/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(studentToken))
+                        .content(objectMapper.writeValueAsString(java.util.Map.of(
+                                "prompt", "Can you recommend a book to read?"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.suggestedBooks[*].title", not(hasItem("School B Book"))));
+    }
 }

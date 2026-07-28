@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "../components/common/Button";
@@ -7,42 +7,62 @@ import Input from "../components/common/Input";
 import ScreenWrapper from "../components/common/ScreenWrapper";
 import { loginColors } from "../constants/loginTheme";
 import { useTheme } from "../constants/theme";
+import { useAuth } from "../contexts/AuthContext";
+import { booksService, Book } from "../services/books";
+import { reservationsService } from "../services/reservations";
 
 const ACCENT = loginColors.teal;
 const ACCENT_DARK = loginColors.tealDark;
 
 export default function BarcodeScanner() {
   const router = useRouter();
+  const { userId } = useAuth();
   const [manualCode, setManualCode] = useState("");
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [reserving, setReserving] = useState(false);
+  const [matchedBook, setMatchedBook] = useState<Book | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
   const { colors, spacing, borderRadius, typography, isDark } = useTheme();
-  
+
   const styles = createStyles(colors, spacing, borderRadius, typography, isDark);
 
-  const triggerScanMock = () => {
-    setIsScanning(true);
-    setScanResult(null);
-    
-    // Simulate camera lock and scan after 1.5 seconds
-    setTimeout(() => {
-      setIsScanning(false);
-      setScanResult("Scanned Book (KNUST)");
-    }, 1500);
+  // There's no camera/barcode library wired in here yet - only the manual code entry
+  // below does a real lookup. Keeping the viewfinder chrome for visual continuity, but
+  // it no longer pretends a tap-to-scan actually reads anything.
+  const handleManualSubmit = async () => {
+    const code = manualCode.trim();
+    if (!code) return;
+    setSearching(true);
+    setLookupError(null);
+    setMatchedBook(null);
+    try {
+      const results = await booksService.search(code);
+      if (results.length === 0) {
+        setLookupError(`No book found for "${code}".`);
+      } else {
+        setMatchedBook(results[0]);
+      }
+    } catch {
+      setLookupError("Couldn't look up that code. Try again.");
+    } finally {
+      setSearching(false);
+    }
   };
 
-  const handleManualSubmit = () => {
-    if (!manualCode.trim()) return;
-    setIsScanning(true);
-    setTimeout(() => {
-      setIsScanning(false);
-      setScanResult(`${manualCode.trim()} (Custom Entry)`);
-    }, 1000);
-  };
-
-  const confirmCheckout = () => {
-    // Navigate to the borrowed screen (now a stack route, not a tab)
-    router.replace("/borrowed" as any);
+  // Students can't self-checkout (POST /api/borrow-records is staff-only) - this creates
+  // a real reservation instead and hands off to the existing pickup-scheduling flow.
+  const confirmReservation = async () => {
+    if (!matchedBook || !userId) return;
+    setReserving(true);
+    setLookupError(null);
+    try {
+      await reservationsService.create(userId, matchedBook.id);
+      router.replace(`/pickup?bookId=${matchedBook.id}` as any);
+    } catch (e) {
+      setLookupError(e instanceof Error ? e.message : "Couldn't reserve that book. Try again.");
+    } finally {
+      setReserving(false);
+    }
   };
 
   return (
@@ -58,58 +78,60 @@ export default function BarcodeScanner() {
 
         <Text style={[styles.title, { color: colors.textLight }]}>Barcode Scanner</Text>
         <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.6)" }]}>
-          Align the book barcode/QR code inside the viewport frame.
+          Enter a book's barcode/ISBN below to reserve it for pickup.
         </Text>
 
-        {/* Viewfinder scanner block */}
+        {/* Viewfinder block - decorative for now, no camera/barcode library wired in yet */}
         <View style={styles.viewfinderContainer}>
-          {/* Mock Camera Feed / Scanner Frame */}
           <View style={styles.cameraFrame}>
             <View style={styles.scannerLine} />
-            
+
             {/* Viewport Corners */}
             <View style={[styles.corner, styles.topLeft]} />
             <View style={[styles.corner, styles.topRight]} />
             <View style={[styles.corner, styles.bottomLeft]} />
             <View style={[styles.corner, styles.bottomRight]} />
 
-            {isScanning && (
+            {searching && (
               <View style={styles.overlayLoader}>
                 <ActivityIndicator size="large" color={ACCENT} />
-                <Text style={styles.scanText}>Reading code...</Text>
+                <Text style={styles.scanText}>Looking up code...</Text>
               </View>
             )}
 
-            {!isScanning && !scanResult && (
-              <Pressable style={styles.simulateTrigger} onPress={triggerScanMock}>
+            {!searching && !matchedBook && (
+              <View style={styles.simulateTrigger}>
                 <Ionicons name="scan-outline" size={32} color="rgba(255, 255, 255, 0.4)" />
-                <Text style={styles.simulateText}>Tap to Scan Code</Text>
-              </Pressable>
+                <Text style={styles.simulateText}>Camera scanning coming soon{"\n"}enter the code below</Text>
+              </View>
             )}
 
-            {scanResult && (
+            {matchedBook && (
               <View style={styles.overlaySuccess}>
                 <Ionicons name="checkmark-circle" size={40} color={colors.success} />
-                <Text style={[styles.successCode, { color: colors.textLight }]}>{scanResult}</Text>
-                <Text style={styles.successLabel}>Ready to Check-out</Text>
+                <Text style={[styles.successCode, { color: colors.textLight }]}>{matchedBook.title}</Text>
+                <Text style={styles.successLabel}>Ready to Reserve</Text>
               </View>
             )}
           </View>
         </View>
 
-        {/* Checkout actions */}
-        {scanResult ? (
+        {lookupError && !matchedBook && <Text style={styles.errorText}>{lookupError}</Text>}
+
+        {matchedBook ? (
           <View style={styles.actionRow}>
             <Button
               title="Cancel"
               variant="outline"
-              onPress={() => setScanResult(null)}
+              onPress={() => setMatchedBook(null)}
+              disabled={reserving}
               style={{ flex: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
               textStyle={{ color: colors.textLight }}
             />
             <Button
-              title="Borrow Book"
-              onPress={confirmCheckout}
+              title="Reserve for Pickup"
+              onPress={confirmReservation}
+              loading={reserving}
               accentColor={ACCENT}
               textStyle={{ color: ACCENT_DARK }}
               style={{ flex: 1 }}
@@ -118,7 +140,7 @@ export default function BarcodeScanner() {
         ) : (
           /* Manual code input entry row */
           <View style={styles.manualEntryBlock}>
-            <Text style={styles.manualLabel}>Having issues with the camera?</Text>
+            <Text style={styles.manualLabel}>Enter the book's barcode or ISBN</Text>
             <View style={styles.manualRow}>
               <Input
                 placeholder="Enter Barcode ID manually"
@@ -128,8 +150,9 @@ export default function BarcodeScanner() {
                 variant="glass"
               />
               <Button
-                title="Enter"
+                title="Look Up"
                 onPress={handleManualSubmit}
+                loading={searching}
                 accentColor={ACCENT}
                 textStyle={{ color: ACCENT_DARK }}
                 style={styles.manualBtn}
@@ -255,6 +278,14 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       marginTop: spacing.sm,
       fontSize: 13,
       fontWeight: "700",
+      textAlign: "center",
+    },
+    errorText: {
+      color: "#ef4444",
+      fontSize: 13,
+      fontWeight: "600",
+      marginTop: spacing.md,
+      textAlign: "center",
     },
     overlaySuccess: {
       ...StyleSheet.absoluteFillObject,

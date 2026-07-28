@@ -15,6 +15,12 @@ export interface StaffBook {
   isbn13: string | null;
   edition: string | null;
   language: string | null;
+  publicationYear: number | null;
+  description: string | null;
+  publisherId: number | null;
+  categoryId: number | null;
+  coverImageUrl: string | null;
+  digitalUrl: string | null;
   totalCopies: number;
   availableCopies: number;
   digitalOnly: boolean;
@@ -36,6 +42,8 @@ export interface BookFormPayload {
   edition?: string;
   language: string;
   description?: string;
+  coverImageUrl?: string;
+  digitalUrl?: string;
   totalCopies: number;
   availableCopies: number;
   isDigitalOnly: boolean;

@@ -50,8 +50,8 @@ const HERO_SLIDES: HeroSlide[] = [
   },
   {
     eyebrow: "SELF SERVICE",
-    title: "Scan to borrow\nin seconds",
-    body: "Point your camera at the barcode and check the book out yourself.",
+    title: "Scan to reserve\nin seconds",
+    body: "Look up a book's barcode/ISBN and reserve it for pickup yourself.",
     cta: "Open scanner",
     route: "/scan",
   },

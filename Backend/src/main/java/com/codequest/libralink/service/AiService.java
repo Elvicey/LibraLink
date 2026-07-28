@@ -9,6 +9,7 @@ import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.BorrowRecordRepository;
 import com.codequest.libralink.repository.FineRepository;
 import com.codequest.libralink.security.CurrentUserProvider;
+import com.codequest.libralink.security.SchoolContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,17 +35,32 @@ public class AiService {
     private final FineRepository fineRepository;
     private final LlmClient llmClient;
     private final CurrentUserProvider currentUserProvider;
+    private final SchoolContext schoolContext;
 
     public AiService(BookRepository bookRepository,
                      BorrowRecordRepository borrowRecordRepository,
                      FineRepository fineRepository,
                      LlmClient llmClient,
-                     CurrentUserProvider currentUserProvider) {
+                     CurrentUserProvider currentUserProvider,
+                     SchoolContext schoolContext) {
         this.bookRepository = bookRepository;
         this.borrowRecordRepository = borrowRecordRepository;
         this.fineRepository = fineRepository;
         this.llmClient = llmClient;
         this.currentUserProvider = currentUserProvider;
+        this.schoolContext = schoolContext;
+    }
+
+    /** Books visible to the caller: all books for a platform super admin, own-school only otherwise. */
+    private List<Book> scopedBooks() {
+        Integer schoolId = schoolContext.currentSchoolId();
+        List<Book> books = bookRepository.findAll();
+        if (schoolId == null) {
+            return books;
+        }
+        return books.stream()
+                .filter(b -> b.getInstitution() != null && schoolId.equals(b.getInstitution().getInstitutionId()))
+                .collect(Collectors.toList());
     }
 
     public AiChatResponse processQuery(AiChatRequest request) {
@@ -118,7 +134,7 @@ public class AiService {
         if (needle.isBlank()) {
             return List.of();
         }
-        return bookRepository.findAll().stream()
+        return scopedBooks().stream()
                 .filter(b -> (b.getTitle() != null && b.getTitle().toLowerCase().contains(needle))
                         || (b.getDescription() != null && b.getDescription().toLowerCase().contains(needle)))
                 .limit(5)
@@ -148,7 +164,7 @@ public class AiService {
                     List.of()
             );
         } else {
-            List<Book> allBooks = bookRepository.findAll();
+            List<Book> allBooks = scopedBooks();
             List<Book> matching = allBooks.stream()
                     .filter(b -> b.getTitle().toLowerCase().contains(rawPrompt) ||
                                  (b.getDescription() != null && b.getDescription().toLowerCase().contains(rawPrompt)))
@@ -173,7 +189,7 @@ public class AiService {
     }
 
     private AiChatResponse handleRecommendationQuery(String prompt) {
-        List<Book> catalog = bookRepository.findAll();
+        List<Book> catalog = scopedBooks();
         List<Book> recommended = catalog.stream().limit(2).collect(Collectors.toList());
 
         String responseText = "Based on your academic profile and course requirements, I recommend checking out " +
