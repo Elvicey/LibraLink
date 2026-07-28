@@ -33,7 +33,7 @@ class SecurityFilterChainTest extends BaseApiTest {
     void authEndpoints_accessibleWithoutAuth() throws Exception {
         mockMvc.perform(post("/api/auth/register")
                         .contentType("application/json")
-                        .content("{\"firstName\":\"A\",\"lastName\":\"B\",\"email\":\"x@x.com\",\"password\":\"x\"}"))
+                        .content("{\"firstName\":\"A\",\"lastName\":\"B\",\"email\":\"x@x.com\",\"password\":\"x\",\"studentId\":\"" + uniqueStudentId() + "\"}"))
                 .andExpect(status().isCreated());
     }
 

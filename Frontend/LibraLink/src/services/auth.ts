@@ -6,6 +6,7 @@ export interface RegisterPayload {
   email: string;
   passwordHash: string;
   institutionId: number;
+  studentId: string;
 }
 
 export interface LoginResponse {
@@ -26,6 +27,7 @@ export const authService = {
       email: payload.email,
       password: payload.passwordHash,
       institutionId: payload.institutionId,
+      studentId: payload.studentId,
     };
     const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: "POST",

@@ -1,20 +1,21 @@
 import { useState } from "react";
 import { finesApi, type Fine } from "../../api/fines";
+import { usersApi } from "../../api/users";
 import { FormField, SubmitButton } from "../../components/AuthLayout";
 import { Badge, Banner, Card, EmptyState } from "../../components/DashboardShell";
 
 export default function FinesLookup() {
-  const [userId, setUserId] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [fines, setFines] = useState<Fine[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function lookUp(id: string) {
     setError(null);
     setLoading(true);
     try {
-      setFines(await finesApi.getForUser(Number(userId)));
+      const borrower = await usersApi.getByStudentId(id.trim());
+      setFines(await finesApi.getForUser(borrower.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load fines.");
     } finally {
@@ -22,18 +23,22 @@ export default function FinesLookup() {
     }
   }
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await lookUp(studentId);
+  }
+
   return (
     <div className="space-y-6">
-      <IssueFineForm onIssued={() => userId && finesApi.getForUser(Number(userId)).then(setFines)} />
+      <IssueFineForm onIssued={() => studentId && lookUp(studentId)} />
       <Card title="Fines lookup">
         <Banner tone="error" message={error} />
       <form onSubmit={handleSubmit} className="flex items-end gap-3 max-w-sm mb-6">
         <div className="flex-1">
           <FormField
-            label="User ID"
-            type="number"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
+            label="Student number"
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
             disabled={loading}
             required
           />
@@ -44,7 +49,7 @@ export default function FinesLookup() {
       </form>
 
       {fines === null ? (
-        <EmptyState>Enter a user ID to see their fines.</EmptyState>
+        <EmptyState>Enter a student number to see their fines.</EmptyState>
       ) : fines.length === 0 ? (
         <EmptyState>No fines for this user.</EmptyState>
       ) : (
@@ -81,7 +86,7 @@ export default function FinesLookup() {
 }
 
 function IssueFineForm({ onIssued }: { onIssued: () => void }) {
-  const [userId, setUserId] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
@@ -93,13 +98,14 @@ function IssueFineForm({ onIssued }: { onIssued: () => void }) {
     setError(null);
     setSuccess(null);
     const amountValue = Number(amount);
-    if (!userId.trim() || Number.isNaN(amountValue) || amountValue <= 0) {
-      setError("A user ID and a positive amount are required.");
+    if (!studentId.trim() || Number.isNaN(amountValue) || amountValue <= 0) {
+      setError("A student number and a positive amount are required.");
       return;
     }
     setLoading(true);
     try {
-      await finesApi.issue({ userId: Number(userId), amount: amountValue, reason: reason.trim() || undefined });
+      const borrower = await usersApi.getByStudentId(studentId.trim());
+      await finesApi.issue({ userId: borrower.id, amount: amountValue, reason: reason.trim() || undefined });
       setSuccess("Fine issued.");
       setAmount("");
       setReason("");
@@ -117,10 +123,9 @@ function IssueFineForm({ onIssued }: { onIssued: () => void }) {
       <Banner tone="success" message={success} />
       <form onSubmit={handleSubmit} className="flex items-end gap-3 flex-wrap">
         <FormField
-          label="User ID"
-          type="number"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
+          label="Student number"
+          value={studentId}
+          onChange={(e) => setStudentId(e.target.value)}
           disabled={loading}
           required
         />

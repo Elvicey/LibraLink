@@ -211,11 +211,26 @@ public class AuthService {
             throw new IllegalArgumentException("An account with this email already exists");
         }
 
+        // Librarians don't know students' internal numeric ids - student number is the
+        // lookup key staff actually use (CirculationScan/FinesLookup), so it's required
+        // and unique from the moment a student account is created.
+        String studentId = request.getStudentId() != null ? request.getStudentId().trim() : "";
+        if (studentId.isEmpty()) {
+            throw new IllegalArgumentException("Student ID is required");
+        }
+        if (!studentId.matches("\\d{8}")) {
+            throw new IllegalArgumentException("Student ID must be 8 digits");
+        }
+        if (userRepository.findByStudentId(studentId).isPresent()) {
+            throw new IllegalArgumentException("An account with this student ID already exists");
+        }
+
         User user = new User();
         user.setFirstName(request.getFirstName() != null ? request.getFirstName().trim() : "");
         user.setLastName(request.getLastName() != null ? request.getLastName().trim() : "");
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setStudentId(studentId);
         user.setActive(true);
         attachInstitution(user, request.getInstitutionId());
 

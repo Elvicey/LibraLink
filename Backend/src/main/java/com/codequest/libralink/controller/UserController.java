@@ -47,6 +47,15 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // Librarians identify students by student number, not by internal numeric id -
+    // this is the lookup CirculationScan/FinesLookup use before calling their existing,
+    // id-based endpoints.
+    @PreAuthorize(Roles.STAFF)
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<User> getUserByStudentId(@PathVariable String studentId) {
+        return ResponseEntity.ok(userService.getUserByStudentId(studentId));
+    }
+
     @PreAuthorize(Roles.STAFF)
     @PostMapping("/{id}/roles")
     public ResponseEntity<?> assignRole(

@@ -20,6 +20,9 @@ public class RegisterRequest {
 
     private Integer institutionId;
 
+    /** Required only for /register (student signup) - an 8-digit student number. */
+    private String studentId;
+
     /** Required only for /register-librarian - a School Admin-issued librarian_code. */
     private String librarianCode;
 
@@ -37,6 +40,9 @@ public class RegisterRequest {
 
     public Integer getInstitutionId() { return institutionId; }
     public void setInstitutionId(Integer institutionId) { this.institutionId = institutionId; }
+
+    public String getStudentId() { return studentId; }
+    public void setStudentId(String studentId) { this.studentId = studentId; }
 
     public String getLibrarianCode() { return librarianCode; }
     public void setLibrarianCode(String librarianCode) { this.librarianCode = librarianCode; }

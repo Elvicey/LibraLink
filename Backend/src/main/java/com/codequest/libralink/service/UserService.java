@@ -126,6 +126,19 @@ public class UserService {
         return user;
     }
 
+    /**
+     * Staff-only lookup by student number - the librarian-facing alternative to the raw
+     * numeric id, since librarians know a student's student number, not their internal
+     * user id (used by CirculationScan/FinesLookup on the Web portal).
+     */
+    public User getUserByStudentId(String studentId) {
+        User user = userRepository.findByStudentId(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("No student found with that student ID."));
+        Integer userSchoolId = user.getInstitution() != null ? user.getInstitution().getInstitutionId() : null;
+        schoolContext.assertSameSchool(userSchoolId);
+        return user;
+    }
+
     private boolean isStaffRole(com.codequest.libralink.security.AuthenticatedUser user) {
         if (user.roles() == null) {
             return false;
@@ -159,6 +172,11 @@ public class UserService {
             if (!trimmed.matches("\\d{8}")) {
                 throw new IllegalArgumentException("Student ID must be 8 digits.");
             }
+            userRepository.findByStudentId(trimmed).ifPresent(existing -> {
+                if (!existing.getId().equals(userId)) {
+                    throw new IllegalArgumentException("This student ID is already in use.");
+                }
+            });
             user.setStudentId(trimmed);
         }
         if (indexNumber != null && !indexNumber.isBlank()) {

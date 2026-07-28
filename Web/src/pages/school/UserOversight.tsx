@@ -48,6 +48,7 @@ export default function UserOversight() {
               <tr className="text-left text-slate-500 border-b border-slate-100">
                 <th className="py-2 pr-4 font-medium">Name</th>
                 <th className="py-2 pr-4 font-medium">Email</th>
+                <th className="py-2 pr-4 font-medium">Student ID</th>
                 <th className="py-2 pr-4 font-medium">Roles</th>
                 <th className="py-2 pr-4 font-medium">Status</th>
                 <th className="py-2 pr-4 font-medium">Grant role</th>
@@ -60,6 +61,7 @@ export default function UserOversight() {
                     {user.firstName} {user.lastName}
                   </td>
                   <td className="py-3 pr-4 text-slate-600">{user.email}</td>
+                  <td className="py-3 pr-4 text-slate-600">{user.studentId || "—"}</td>
                   <td className="py-3 pr-4 space-x-1">
                     {user.roles.map((role) => (
                       <Badge key={role.id} tone="slate">

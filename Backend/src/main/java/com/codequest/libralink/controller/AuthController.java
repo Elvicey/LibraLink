@@ -51,7 +51,7 @@ public class AuthController {
             AuthResponse response = authService.register(request);
             return ResponseEntity.status(201).body(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+            return errorResponse(e);
         }
     }
 

@@ -47,7 +47,7 @@ public class User {
     @Column(name = "phone_number", length = 30)
     private String phoneNumber;
 
-    @Column(name = "student_id", length = 8)
+    @Column(name = "student_id", length = 8, unique = true)
     private String studentId;
 
     @Column(name = "index_number", length = 7)

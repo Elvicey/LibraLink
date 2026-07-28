@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { circulationApi } from "../../api/circulation";
+import { usersApi } from "../../api/users";
 import { FormField, SubmitButton } from "../../components/AuthLayout";
 import { Banner, Card } from "../../components/DashboardShell";
 
 export default function CirculationScan() {
   const [barcode, setBarcode] = useState("");
   const [action, setAction] = useState<"CHECK_OUT" | "CHECK_IN">("CHECK_OUT");
-  const [userId, setUserId] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -17,18 +18,19 @@ export default function CirculationScan() {
     setResult(null);
     setLoading(true);
     try {
-      const response = await circulationApi.scan(
-        barcode.trim(),
-        action,
-        action === "CHECK_OUT" ? Number(userId) : undefined
-      );
+      let userId: number | undefined;
+      if (action === "CHECK_OUT") {
+        const borrower = await usersApi.getByStudentId(studentId.trim());
+        userId = borrower.id;
+      }
+      const response = await circulationApi.scan(barcode.trim(), action, userId);
       setResult(
         action === "CHECK_OUT"
           ? `Checked out. Due back ${response.dueDate}.`
           : "Checked in successfully."
       );
       setBarcode("");
-      setUserId("");
+      setStudentId("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Scan failed.");
     } finally {
@@ -74,10 +76,9 @@ export default function CirculationScan() {
         />
         {action === "CHECK_OUT" && (
           <FormField
-            label="Borrower user ID"
-            type="number"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
+            label="Borrower's student number"
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
             disabled={loading}
             required
           />

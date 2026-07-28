@@ -22,7 +22,8 @@ class AuthControllerTest extends BaseApiTest {
                                         "firstName", "Kwame",
                                         "lastName", "Asante",
                                         "email", "kwame@test.com",
-                                        "password", "pass1234"
+                                        "password", "pass1234",
+                                        "studentId", uniqueStudentId()
                                 ))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token").isNotEmpty())
@@ -41,7 +42,8 @@ class AuthControllerTest extends BaseApiTest {
                                         "firstName", "First",
                                         "lastName", "User",
                                         "email", "dup@test.com",
-                                        "password", "pass1234"
+                                        "password", "pass1234",
+                                        "studentId", uniqueStudentId()
                                 ))))
                 .andExpect(status().isCreated());
 
@@ -52,7 +54,8 @@ class AuthControllerTest extends BaseApiTest {
                                         "firstName", "Second",
                                         "lastName", "User",
                                         "email", "dup@test.com",
-                                        "password", "pass5678"
+                                        "password", "pass5678",
+                                        "studentId", uniqueStudentId()
                                 ))))
                 .andExpect(status().isConflict());
     }
@@ -63,6 +66,64 @@ class AuthControllerTest extends BaseApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"x@test.com\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void register_missingStudentId_returns400() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "firstName", "No",
+                                        "lastName", "StudentId",
+                                        "email", uniqueEmail("nostudentid"),
+                                        "password", "pass1234"
+                                ))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void register_invalidStudentIdFormat_returns400() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "firstName", "Bad",
+                                        "lastName", "Format",
+                                        "email", uniqueEmail("badformat"),
+                                        "password", "pass1234",
+                                        "studentId", "12"
+                                ))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void register_duplicateStudentId_returns409() throws Exception {
+        String studentId = uniqueStudentId();
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "firstName", "First",
+                                        "lastName", "Owner",
+                                        "email", uniqueEmail("sid1"),
+                                        "password", "pass1234",
+                                        "studentId", studentId
+                                ))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "firstName", "Second",
+                                        "lastName", "Claimant",
+                                        "email", uniqueEmail("sid2"),
+                                        "password", "pass1234",
+                                        "studentId", studentId
+                                ))))
+                .andExpect(status().isConflict());
     }
 
     @Test

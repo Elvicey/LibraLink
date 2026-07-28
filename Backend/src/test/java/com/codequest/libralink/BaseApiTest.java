@@ -48,8 +48,16 @@ public abstract class BaseApiTest {
 
     private static int emailCounter = 0;
 
+    private static final java.util.concurrent.atomic.AtomicInteger studentIdCounter =
+            new java.util.concurrent.atomic.AtomicInteger(10_000_000);
+
     protected String uniqueEmail(String prefix) {
         return prefix + "-" + UUID.randomUUID().toString().substring(0, 8) + "@test.com";
+    }
+
+    /** An 8-digit student number, unique within this test run. */
+    protected String uniqueStudentId() {
+        return String.valueOf(studentIdCounter.incrementAndGet());
     }
 
     /**
@@ -110,7 +118,8 @@ public abstract class BaseApiTest {
                                         "firstName", "Test",
                                         "lastName", "Student",
                                         "email", email,
-                                        "password", password
+                                        "password", password,
+                                        "studentId", uniqueStudentId()
                                 ))))
                 .andExpect(status().isCreated())
                 .andReturn();

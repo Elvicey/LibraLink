@@ -90,6 +90,7 @@ export default function SignupScreen() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
@@ -99,11 +100,13 @@ export default function SignupScreen() {
   const [firstNameError, setFirstNameError] = useState<string | null>(null);
   const [lastNameError, setLastNameError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [studentIdError, setStudentIdError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [institutionError, setInstitutionError] = useState<string | null>(null);
   const [firstNameFocused, setFirstNameFocused] = useState(false);
   const [lastNameFocused, setLastNameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
+  const [studentIdFocused, setStudentIdFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
   useEffect(() => {
@@ -123,6 +126,7 @@ export default function SignupScreen() {
     setFirstNameError(null);
     setLastNameError(null);
     setEmailError(null);
+    setStudentIdError(null);
     setPasswordError(null);
     setInstitutionError(null);
   };
@@ -133,6 +137,7 @@ export default function SignupScreen() {
     const cleanFirst = firstName.trim();
     const cleanLast = lastName.trim();
     const cleanEmail = email.trim().toLowerCase();
+    const cleanStudentId = studentId.trim();
     let hasError = false;
 
     if (!cleanFirst) {
@@ -145,6 +150,13 @@ export default function SignupScreen() {
     }
     if (!cleanEmail) {
       setEmailError("Enter your email.");
+      hasError = true;
+    }
+    if (!cleanStudentId) {
+      setStudentIdError("Enter your student ID.");
+      hasError = true;
+    } else if (!/^\d{8}$/.test(cleanStudentId)) {
+      setStudentIdError("Student ID must be 8 digits.");
       hasError = true;
     }
     if (!password.trim()) {
@@ -170,6 +182,7 @@ export default function SignupScreen() {
         email: cleanEmail,
         passwordHash: password,
         institutionId: institutionId!,
+        studentId: cleanStudentId,
       });
 
       await setSession({
@@ -320,6 +333,31 @@ export default function SignupScreen() {
                   {institutionError ? <Text style={styles.fieldError}>{institutionError}</Text> : null}
                 </View>
               )}
+
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>Student ID</Text>
+                <View style={[styles.inputWrap, { borderColor: getBorderStyle(!!studentIdError, studentIdFocused) }]}>
+                  <UserIcon />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="20250001"
+                    placeholderTextColor={Colors.textPlaceholder}
+                    value={studentId}
+                    onChangeText={(text) => {
+                      setStudentId(text);
+                      if (studentIdError) setStudentIdError(null);
+                      if (bannerError) setBannerError(null);
+                    }}
+                    onFocus={() => setStudentIdFocused(true)}
+                    onBlur={() => setStudentIdFocused(false)}
+                    keyboardType="number-pad"
+                    maxLength={8}
+                    returnKeyType="next"
+                  />
+                  {studentIdError ? <ErrorIcon /> : null}
+                </View>
+                {studentIdError ? <Text style={styles.fieldError}>{studentIdError}</Text> : null}
+              </View>
 
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>Password</Text>

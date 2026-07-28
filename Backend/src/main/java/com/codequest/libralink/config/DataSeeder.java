@@ -262,6 +262,7 @@ public class DataSeeder implements CommandLineRunner {
         student.setLastName("Student");
         student.setEmail(email);
         student.setPasswordHash(passwordEncoder.encode("student123"));
+        student.setStudentId("20250001");
         student.setActive(true);
         student.setInstitution(institution);
         Set<Role> roles = new HashSet<>();
