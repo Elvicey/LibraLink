@@ -362,6 +362,23 @@ class CrossSchoolIsolationTest extends BaseApiTest {
     }
 
     @Test
+    void staffEndpoint_excludesStudents() throws Exception {
+        mockMvc.perform(get("/api/users/staff")
+                        .header("Authorization", bearerToken(librarianAToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].email", hasItem(librarianAEmail)))
+                .andExpect(jsonPath("$[*].email", not(hasItem(studentA.getEmail()))));
+    }
+
+    @Test
+    void staffEndpoint_stillSchoolScoped() throws Exception {
+        mockMvc.perform(get("/api/users/staff")
+                        .header("Authorization", bearerToken(librarianAToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].email", not(hasItem(librarianBEmail))));
+    }
+
+    @Test
     void librarianA_cannotFetchSchoolBUserById() throws Exception {
         mockMvc.perform(get("/api/users/" + librarianBId)
                         .header("Authorization", bearerToken(librarianAToken)))
@@ -675,6 +692,20 @@ class CrossSchoolIsolationTest extends BaseApiTest {
                         .header("Authorization", bearerToken(platformToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].email", hasItem(studentA.getEmail())));
+    }
+
+    @Test
+    void platformSuperAdmin_staffEndpoint_seesAcrossAllSchools() throws Exception {
+        String platformEmail = uniqueEmail("platform");
+        createTestPlatformSuperAdmin(platformEmail, "pass1234");
+        String platformToken = loginAs(platformEmail, "pass1234");
+
+        mockMvc.perform(get("/api/users/staff")
+                        .header("Authorization", bearerToken(platformToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].email", hasItem(librarianAEmail)))
+                .andExpect(jsonPath("$[*].email", hasItem(librarianBEmail)))
+                .andExpect(jsonPath("$[*].email", not(hasItem(studentA.getEmail()))));
     }
 
     // --- Paystack payments / real AI-TTS: schoolId stamped on write. Neither

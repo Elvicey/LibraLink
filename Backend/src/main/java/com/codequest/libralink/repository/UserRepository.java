@@ -25,4 +25,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     // Java just to notify them of a newly-published list - a single targeted query
     // instead of loading the entire users table.
     List<User> findByRoles_NameIgnoreCase(String roleName);
+
+    @Query("SELECT DISTINCT u FROM User u JOIN u.roles r " +
+           "WHERE u.institution.institutionId = :schoolId AND r.name IN :roleNames")
+    List<User> findByInstitutionAndRolesIn(@Param("schoolId") Integer schoolId, @Param("roleNames") List<String> roleNames);
+
+    List<User> findByRoles_NameIn(List<String> roleNames);
 }

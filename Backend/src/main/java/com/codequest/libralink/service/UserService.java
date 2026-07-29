@@ -20,6 +20,8 @@ import java.util.Set;
 @Service
 public class UserService {
 
+    private static final List<String> STAFF_ROLES = List.of("LIBRARIAN", "ADMIN", "SCHOOL_ADMIN");
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -100,6 +102,18 @@ public class UserService {
             return userRepository.findAll();
         }
         return userRepository.findByInstitutionInstitutionId(schoolContext.requireSchoolId());
+    }
+
+    /**
+     * Same school-scoping as {@link #getAllUsers()}, narrowed to staff roles - students
+     * don't belong in a staff-management view; they're looked up by student id instead
+     * (see {@link #getUserByStudentId}).
+     */
+    public List<User> getStaffUsers() {
+        if (schoolContext.isPlatformSuperAdmin()) {
+            return userRepository.findByRoles_NameIn(STAFF_ROLES);
+        }
+        return userRepository.findByInstitutionAndRolesIn(schoolContext.requireSchoolId(), STAFF_ROLES);
     }
 
     /**

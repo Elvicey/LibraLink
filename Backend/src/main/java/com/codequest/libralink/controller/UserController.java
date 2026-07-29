@@ -38,6 +38,15 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    // Staff-only, school-scoped, narrowed to LIBRARIAN/ADMIN/SCHOOL_ADMIN - the School
+    // Admin dashboard's Staff tab uses this instead of getAllUsers so students never show
+    // up in a staff-management view; students are looked up by student id instead.
+    @PreAuthorize(Roles.STAFF)
+    @GetMapping("/staff")
+    public ResponseEntity<List<User>> getStaffUsers() {
+        return ResponseEntity.ok(userService.getStaffUsers());
+    }
+
     // Self-or-staff check lives in UserService (a student fetching their own record has
     // no staff role to check against a path variable) - see UserService.getUserById.
     @GetMapping("/{id}")

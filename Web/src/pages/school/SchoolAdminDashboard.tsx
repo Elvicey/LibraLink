@@ -24,7 +24,7 @@ export default function SchoolAdminDashboard() {
             Librarians
           </TabButton>
           <TabButton active={tab === "users"} onClick={() => setTab("users")}>
-            Users
+            Staff
           </TabButton>
           <TabButton active={tab === "books"} onClick={() => setTab("books")}>
             Books

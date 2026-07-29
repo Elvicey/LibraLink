@@ -23,6 +23,9 @@ export const usersApi = {
   // STAFF-only, school-scoped for non-platform callers (GET /api/users).
   list: () => api.get<StaffUser[]>("/api/users"),
 
+  // STAFF-only, school-scoped, narrowed to LIBRARIAN/ADMIN/SCHOOL_ADMIN (GET /api/users/staff).
+  listStaff: () => api.get<StaffUser[]>("/api/users/staff"),
+
   // STAFF-only (POST /api/users/{id}/roles). Grants the given role to the user
   // (additive - doesn't remove existing roles).
   assignRole: (id: number, role: string) =>
