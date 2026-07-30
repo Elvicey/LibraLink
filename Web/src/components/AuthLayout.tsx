@@ -128,7 +128,7 @@ export function SubmitButton({ loading, children }: { loading: boolean; children
     <button
       type="submit"
       disabled={loading}
-      className="w-full rounded-lg bg-primary text-white font-semibold py-2.5 text-sm hover:opacity-90 disabled:opacity-60 transition"
+      className="w-full rounded-lg bg-primary text-white font-semibold px-6 py-2.5 text-sm hover:opacity-90 disabled:opacity-60 transition"
     >
       {loading ? "Please wait…" : children}
     </button>
