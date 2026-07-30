@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { UserCheck, UserPlus, UserX } from "lucide-react";
 import { staffApi } from "../../api/staff";
 import { usersApi, type StaffUser } from "../../api/users";
-import { Badge, Banner, Card, CodeReveal, EmptyState } from "../../components/DashboardShell";
+import { Badge, Banner, Card, CodeReveal, EmptyState, StatCard } from "../../components/DashboardShell";
+
+function initialsOf(librarian: StaffUser) {
+  return `${librarian.firstName[0] ?? ""}${librarian.lastName[0] ?? ""}`.toUpperCase();
+}
 
 export default function LibrarianManagement() {
   const [librarians, setLibrarians] = useState<StaffUser[]>([]);
@@ -35,16 +40,26 @@ export default function LibrarianManagement() {
     }
   }
 
+  const activeCount = librarians.filter((l) => l.active).length;
+  const inactiveCount = librarians.length - activeCount;
+
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <StatCard label="Total librarians" value={librarians.length} icon={UserCheck} tone="primary" />
+        <StatCard label="Active" value={activeCount} icon={UserCheck} tone="success" />
+        <StatCard label="Inactive" value={inactiveCount} icon={UserX} tone="danger" />
+      </div>
+
       <Card
         title="Add a librarian"
         action={
           <button
             onClick={handleIssueCode}
             disabled={issuing}
-            className="rounded-lg bg-primary text-white text-sm font-semibold px-3 py-1.5 hover:opacity-90 disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-lg bg-primary text-white text-sm font-semibold px-3 py-1.5 hover:opacity-90 disabled:opacity-60"
           >
+            <UserPlus className="h-4 w-4" />
             {issuing ? "Issuing…" : "Issue librarian code"}
           </button>
         }
@@ -81,8 +96,15 @@ export default function LibrarianManagement() {
               <tbody>
                 {librarians.map((librarian) => (
                   <tr key={librarian.id} className="border-b border-slate-50 last:border-0">
-                    <td className="py-3 pr-4 font-medium text-ink">
-                      {librarian.firstName} {librarian.lastName}
+                    <td className="py-3 pr-4">
+                      <div className="flex items-center gap-2.5">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">
+                          {initialsOf(librarian)}
+                        </span>
+                        <span className="font-medium text-ink">
+                          {librarian.firstName} {librarian.lastName}
+                        </span>
+                      </div>
                     </td>
                     <td className="py-3 pr-4 text-slate-600">{librarian.email}</td>
                     <td className="py-3 pr-4">

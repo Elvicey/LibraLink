@@ -1,84 +1,151 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search, type LucideIcon } from "lucide-react";
+import { BookMarked } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
-export function DashboardShell({
-  title,
-  subtitle,
-  tabs,
+export interface NavItem {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+export function AppShell({
+  portalLabel,
+  nav,
+  activeKey,
+  onNavigate,
+  pageTitle,
+  pageSubtitle,
+  headerAction,
+  search,
   children,
 }: {
-  title: string;
-  subtitle?: string;
-  tabs?: ReactNode;
+  portalLabel: string;
+  nav: NavItem[];
+  activeKey: string;
+  onNavigate: (key: string) => void;
+  pageTitle: string;
+  pageSubtitle?: string;
+  headerAction?: ReactNode;
+  search?: { value: string; onChange: (value: string) => void; placeholder?: string };
   children: ReactNode;
 }) {
-  const { firstName, lastName, roles, schoolId, schoolShortName, clearSession } = useAuth();
+  const { firstName, lastName, roles, schoolShortName, clearSession } = useAuth();
   const navigate = useNavigate();
+  const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
+
+  function handleSignOut() {
+    clearSession();
+    navigate("/login", { replace: true });
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📚</span>
-              <h1 className="text-lg font-bold text-ink">{title}</h1>
-            </div>
-            {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right text-sm">
-              <div className="font-medium text-ink">
-                {firstName} {lastName}
-              </div>
-              <div className="text-slate-500">
-                {roles.join(", ")}
-                {schoolId ? ` · ${schoolShortName || `School #${schoolId}`}` : " · Platform-wide"}
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                clearSession();
-                navigate("/login", { replace: true });
-              }}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50"
-            >
-              Sign out
-            </button>
+    <div className="min-h-screen flex bg-surface">
+      <aside className="hidden md:flex md:w-60 md:flex-col shrink-0 bg-sidebar">
+        <div className="flex items-center gap-2.5 px-5 py-5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white shrink-0">
+            <BookMarked className="h-5 w-5" />
+          </span>
+          <div className="leading-tight min-w-0">
+            <div className="text-white font-bold text-sm">LibraLink</div>
+            <div className="text-[11px] text-slate-400 truncate">{portalLabel}</div>
           </div>
         </div>
-        {tabs && <div className="max-w-6xl mx-auto px-6 flex gap-1 -mb-px">{tabs}</div>}
-      </header>
-      <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
+        <nav className="flex-1 px-3 space-y-0.5 mt-2">
+          {nav.map((item) => {
+            const active = item.key === activeKey;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.key}
+                onClick={() => onNavigate(item.key)}
+                className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                  active ? "bg-primary text-white" : "text-slate-300 hover:bg-sidebar-hover hover:text-white"
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="bg-white border-b border-slate-200">
+          <div className="flex items-center gap-4 px-4 sm:px-6 py-3">
+            {search ? (
+              <div className="relative flex-1 max-w-sm">
+                <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  value={search.value}
+                  onChange={(e) => search.onChange(e.target.value)}
+                  placeholder={search.placeholder ?? "Search…"}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                />
+              </div>
+            ) : (
+              <div className="flex-1" />
+            )}
+            <div className="flex items-center gap-3">
+              <div className="text-right text-sm hidden sm:block">
+                <div className="font-semibold text-ink leading-tight">
+                  {firstName} {lastName}
+                </div>
+                <div className="text-xs text-slate-500">
+                  {roles.join(", ")}
+                  {schoolShortName ? ` · ${schoolShortName}` : ""}
+                </div>
+              </div>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold shrink-0">
+                {initials}
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 whitespace-nowrap"
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+
+          <div className="md:hidden flex gap-2 overflow-x-auto px-3 pb-2">
+            {nav.map((item) => {
+              const active = item.key === activeKey;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => onNavigate(item.key)}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap ${
+                    active ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </header>
+
+        <main className="flex-1 px-4 sm:px-6 py-6 max-w-6xl w-full mx-auto">
+          <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+            <div>
+              <h1 className="text-xl font-bold text-ink">{pageTitle}</h1>
+              {pageSubtitle && <p className="text-sm text-slate-500 mt-0.5">{pageSubtitle}</p>}
+            </div>
+            {headerAction}
+          </div>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
 
-export function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2.5 text-sm font-medium border-b-2 transition ${
-        active
-          ? "border-primary text-primary"
-          : "border-transparent text-slate-500 hover:text-slate-700"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-export function Card({ title, action, children }: { title?: string; action?: ReactNode; children: ReactNode }) {
+export function Card({ title, action, children }: { title?: ReactNode; action?: ReactNode; children: ReactNode }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
       {(title || action) && (
@@ -92,11 +159,36 @@ export function Card({ title, action, children }: { title?: string; action?: Rea
   );
 }
 
-export function StatTile({ label, value }: { label: string; value: string | number }) {
+const STAT_TONE_CLASSES: Record<"primary" | "success" | "warning" | "danger", string> = {
+  primary: "bg-primary/10 text-primary",
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
+  danger: "bg-danger/10 text-danger",
+};
+
+export function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tone = "primary",
+  hint,
+}: {
+  label: string;
+  value: string | number;
+  icon: LucideIcon;
+  tone?: "primary" | "success" | "warning" | "danger";
+  hint?: string;
+}) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-      <div className="text-2xl font-bold text-ink">{value}</div>
-      <div className="text-sm text-slate-500 mt-1">{label}</div>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+        <span className={`flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ${STAT_TONE_CLASSES[tone]}`}>
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      <div className="text-2xl font-bold text-ink tabular-nums">{value}</div>
+      {hint && <div className="text-xs text-slate-500 mt-1">{hint}</div>}
     </div>
   );
 }
@@ -136,4 +228,63 @@ export function CodeReveal({ label, code, hint }: { label: string; code: string;
 
 export function EmptyState({ children }: { children: ReactNode }) {
   return <div className="text-sm text-slate-400 text-center py-8">{children}</div>;
+}
+
+export function usePagination<T>(items: T[], pageSize = 8) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const start = (page - 1) * pageSize;
+  const pageItems = items.slice(start, start + pageSize);
+
+  return { page, setPage, totalPages, pageItems, pageSize, total: items.length };
+}
+
+export function PaginationFooter({
+  page,
+  totalPages,
+  onChange,
+  total,
+  pageSize,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void;
+  total: number;
+  pageSize: number;
+}) {
+  if (total === 0) return null;
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+
+  return (
+    <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 text-sm">
+      <span className="text-slate-500">
+        Showing {start}-{end} of {total}
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onChange(page - 1)}
+          disabled={page <= 1}
+          className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+        >
+          Prev
+        </button>
+        <span className="text-slate-500 tabular-nums">
+          Page {page} of {totalPages}
+        </span>
+        <button
+          onClick={() => onChange(page + 1)}
+          disabled={page >= totalPages}
+          className="rounded-lg border border-slate-300 px-2.5 py-1 text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
 }

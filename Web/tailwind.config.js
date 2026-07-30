@@ -4,8 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: "#0b6efd",
-        ink: "#0d253f",
+        primary: "#2F6FED",
+        "primary-dark": "#1E4FC4",
+        ink: "#0F172A",
+        sidebar: "#0F1B2E",
+        "sidebar-hover": "#182B45",
+        surface: "#F7F9FC",
+        success: "#16A34A",
+        warning: "#D97706",
+        danger: "#DC2626",
       },
     },
   },

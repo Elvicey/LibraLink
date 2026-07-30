@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Lock, Mail } from "lucide-react";
 import { authApi } from "../api/auth";
 import { useAuth } from "../auth/AuthContext";
 import { AuthLayout, ErrorBanner, FormField, SubmitButton } from "../components/AuthLayout";
@@ -64,7 +65,9 @@ export default function LoginPage() {
         <FormField
           label="Email"
           type="email"
+          icon={Mail}
           autoComplete="username"
+          placeholder="name@school.edu"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={loading}
@@ -73,6 +76,7 @@ export default function LoginPage() {
         <FormField
           label="Password"
           type="password"
+          icon={Lock}
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

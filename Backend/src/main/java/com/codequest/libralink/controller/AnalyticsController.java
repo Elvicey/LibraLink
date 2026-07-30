@@ -2,6 +2,7 @@ package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.SearchLog;
 import com.codequest.libralink.security.CurrentUserProvider;
+import com.codequest.libralink.security.Roles;
 import com.codequest.libralink.service.AnalyticsService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -43,14 +44,16 @@ public class AnalyticsController {
         return ResponseEntity.ok(analyticsService.getLogsByUser(userId));
     }
 
-    // Cross-user aggregate views are a staff-only analytics concern.
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    // Cross-user aggregate views are a staff-only analytics concern. Uses the shared
+    // Roles.STAFF constant (LIBRARIAN, ADMIN, SCHOOL_ADMIN, PLATFORM_SUPER_ADMIN) so the
+    // school Reports page (SCHOOL_ADMIN-gated) can call these the same as a librarian can.
+    @PreAuthorize(Roles.STAFF)
     @GetMapping("/search-logs/type/{searchType}")
     public ResponseEntity<List<SearchLog>> getLogsBySearchType(@PathVariable String searchType) {
         return ResponseEntity.ok(analyticsService.getLogsBySearchType(searchType));
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    @PreAuthorize(Roles.STAFF)
     @GetMapping("/search-logs/date-range")
     public ResponseEntity<List<SearchLog>> getLogsByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,

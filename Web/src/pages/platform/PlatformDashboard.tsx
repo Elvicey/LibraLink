@@ -1,7 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { BookCopy, Building2, School, Users } from "lucide-react";
 import { schoolsApi, type SchoolCodeResponse, type SchoolResponse } from "../../api/schools";
-import { Badge, Banner, Card, CodeReveal, DashboardShell, EmptyState, StatTile } from "../../components/DashboardShell";
+import {
+  AppShell,
+  Badge,
+  Banner,
+  Card,
+  CodeReveal,
+  EmptyState,
+  PaginationFooter,
+  StatCard,
+  usePagination,
+} from "../../components/DashboardShell";
 import { FormField, SubmitButton } from "../../components/AuthLayout";
+
+const NAV = [{ key: "schools", label: "Schools", icon: Building2 }];
 
 export default function PlatformDashboard() {
   const [schools, setSchools] = useState<SchoolResponse[]>([]);
@@ -9,6 +22,7 @@ export default function PlatformDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [revealedCode, setRevealedCode] = useState<SchoolCodeResponse | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [query, setQuery] = useState("");
 
   async function loadSchools() {
     setLoading(true);
@@ -51,15 +65,40 @@ export default function PlatformDashboard() {
   const totalBooks = schools.reduce((sum, s) => sum + s.bookCount, 0);
   const activeCount = schools.filter((s) => s.status === "ACTIVE").length;
 
+  const filteredSchools = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return schools;
+    return schools.filter(
+      (s) => s.name.toLowerCase().includes(q) || (s.shortName ?? "").toLowerCase().includes(q)
+    );
+  }, [schools, query]);
+  const { page, setPage, totalPages, pageItems, pageSize, total } = usePagination(filteredSchools, 8);
+
   return (
-    <DashboardShell title="Platform Super Admin" subtitle="Cross-school oversight">
+    <AppShell
+      portalLabel="Platform Super Admin"
+      nav={NAV}
+      activeKey="schools"
+      onNavigate={() => {}}
+      pageTitle="Schools Directory"
+      pageSubtitle="Manage and monitor every school on the LibraLink platform"
+      search={{ value: query, onChange: setQuery, placeholder: "Search schools…" }}
+      headerAction={
+        <button
+          onClick={() => setShowCreate((v) => !v)}
+          className="rounded-lg bg-primary text-white text-sm font-semibold px-4 py-2 hover:opacity-90"
+        >
+          {showCreate ? "Cancel" : "+ Create school"}
+        </button>
+      }
+    >
       <Banner tone="error" message={error} />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <StatTile label="Schools" value={schools.length} />
-        <StatTile label="Active schools" value={activeCount} />
-        <StatTile label="Total users" value={totalUsers} />
-        <StatTile label="Total books" value={totalBooks} />
+        <StatCard label="Schools" value={schools.length} icon={Building2} tone="primary" />
+        <StatCard label="Active schools" value={activeCount} icon={School} tone="success" />
+        <StatCard label="Total users" value={totalUsers} icon={Users} tone="warning" />
+        <StatCard label="Total books" value={totalBooks} icon={BookCopy} tone="primary" />
       </div>
 
       {revealedCode && (
@@ -72,17 +111,7 @@ export default function PlatformDashboard() {
         </div>
       )}
 
-      <Card
-        title="Schools"
-        action={
-          <button
-            onClick={() => setShowCreate((v) => !v)}
-            className="rounded-lg bg-primary text-white text-sm font-semibold px-3 py-1.5 hover:opacity-90"
-          >
-            {showCreate ? "Cancel" : "+ New school"}
-          </button>
-        }
-      >
+      <Card title="Schools">
         {showCreate && (
           <CreateSchoolForm
             onCreated={(result) => {
@@ -97,6 +126,8 @@ export default function PlatformDashboard() {
           <EmptyState>Loading schools…</EmptyState>
         ) : schools.length === 0 ? (
           <EmptyState>No schools yet. Create the first one above.</EmptyState>
+        ) : filteredSchools.length === 0 ? (
+          <EmptyState>No schools match "{query}".</EmptyState>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -112,7 +143,7 @@ export default function PlatformDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {schools.map((school) => (
+                {pageItems.map((school) => (
                   <tr key={school.id} className="border-b border-slate-50 last:border-0">
                     <td className="py-3 pr-4">
                       <div className="font-medium text-ink">{school.name}</div>
@@ -156,10 +187,11 @@ export default function PlatformDashboard() {
                 ))}
               </tbody>
             </table>
+            <PaginationFooter page={page} totalPages={totalPages} onChange={setPage} total={total} pageSize={pageSize} />
           </div>
         )}
       </Card>
-    </DashboardShell>
+    </AppShell>
   );
 }
 
