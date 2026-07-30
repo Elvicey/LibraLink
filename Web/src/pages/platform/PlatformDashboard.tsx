@@ -11,10 +11,27 @@ import {
   PaginationFooter,
   StatCard,
   usePagination,
+  type HelpTopic,
 } from "../../components/DashboardShell";
 import { FormField, SubmitButton } from "../../components/AuthLayout";
 
 const NAV = [{ key: "schools", label: "Schools", icon: Building2 }];
+
+const HELP_TOPICS: HelpTopic[] = [
+  {
+    question: "How do I add a new school?",
+    answer:
+      "Click \"+ Create school\", fill in its name, then share the generated school code with their first School Admin so they can sign up.",
+  },
+  {
+    question: "How do I suspend or reactivate a school?",
+    answer: "Use the Suspend / Reactivate action in the schools table for that row.",
+  },
+  {
+    question: "How do I regenerate a school's signup code?",
+    answer: "Click \"Regenerate code\" next to that school — the previous code stops working once a new one is issued.",
+  },
+];
 
 export default function PlatformDashboard() {
   const [schools, setSchools] = useState<SchoolResponse[]>([]);
@@ -83,6 +100,7 @@ export default function PlatformDashboard() {
       pageTitle="Schools Directory"
       pageSubtitle="Manage and monitor every school on the LibraLink platform"
       search={{ value: query, onChange: setQuery, placeholder: "Search schools…" }}
+      helpTopics={HELP_TOPICS}
       headerAction={
         <button
           onClick={() => setShowCreate((v) => !v)}

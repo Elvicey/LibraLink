@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, type LucideIcon } from "lucide-react";
+import { HelpCircle, Search, X, type LucideIcon } from "lucide-react";
 import { BookMarked } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 
@@ -8,6 +8,11 @@ export interface NavItem {
   key: string;
   label: string;
   icon: LucideIcon;
+}
+
+export interface HelpTopic {
+  question: string;
+  answer: string;
 }
 
 export function AppShell({
@@ -19,6 +24,7 @@ export function AppShell({
   pageSubtitle,
   headerAction,
   search,
+  helpTopics,
   children,
 }: {
   portalLabel: string;
@@ -29,10 +35,12 @@ export function AppShell({
   pageSubtitle?: string;
   headerAction?: ReactNode;
   search?: { value: string; onChange: (value: string) => void; placeholder?: string };
+  helpTopics?: HelpTopic[];
   children: ReactNode;
 }) {
   const { firstName, lastName, roles, schoolShortName, clearSession } = useAuth();
   const navigate = useNavigate();
+  const [helpOpen, setHelpOpen] = useState(false);
   const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
 
   function handleSignOut() {
@@ -70,7 +78,20 @@ export function AppShell({
             );
           })}
         </nav>
+        {helpTopics && helpTopics.length > 0 && (
+          <div className="px-3 pb-4 pt-2 border-t border-white/10">
+            <button
+              onClick={() => setHelpOpen(true)}
+              className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-sidebar-hover hover:text-white transition"
+            >
+              <HelpCircle className="h-4 w-4 shrink-0" />
+              Help Center
+            </button>
+          </div>
+        )}
       </aside>
+
+      {helpOpen && helpTopics && <HelpCenterModal topics={helpTopics} onClose={() => setHelpOpen(false)} />}
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white border-b border-slate-200">
@@ -127,6 +148,15 @@ export function AppShell({
                 </button>
               );
             })}
+            {helpTopics && helpTopics.length > 0 && (
+              <button
+                onClick={() => setHelpOpen(true)}
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap bg-slate-100 text-slate-600"
+              >
+                <HelpCircle className="h-3.5 w-3.5" />
+                Help Center
+              </button>
+            )}
           </div>
         </header>
 
@@ -140,6 +170,45 @@ export function AppShell({
           </div>
           {children}
         </main>
+      </div>
+    </div>
+  );
+}
+
+function HelpCenterModal({ topics, onClose }: { topics: HelpTopic[]; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Help Center"
+        className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 sticky top-0 bg-white">
+          <h2 className="font-semibold text-ink flex items-center gap-2">
+            <HelpCircle className="h-4 w-4 text-primary" />
+            Help Center
+          </h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-50"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="p-5 space-y-5">
+          {topics.map((topic, i) => (
+            <div key={i}>
+              <div className="text-sm font-semibold text-ink mb-1">{topic.question}</div>
+              <div className="text-sm text-slate-600">{topic.answer}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
