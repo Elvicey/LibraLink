@@ -11,6 +11,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/borrow-records")
 public class BorrowRecordController {
+<<<<<<< HEAD
+=======
+
+    @Autowired
+    private BorrowRecordService borrowRecordService;
+>>>>>>> origin/main
 
     @Autowired
     private BorrowRecordService borrowRecordService;
@@ -21,11 +27,15 @@ public class BorrowRecordController {
         return borrowRecordService.saveRecord(record);
     }
 
+<<<<<<< HEAD
     @PreAuthorize("hasRole('LIBRARIAN')")
+=======
+>>>>>>> origin/main
     @GetMapping
     public List<BorrowRecord> getAllBorrowRecords() {
         return borrowRecordService.getAllBorrowRecords();
     }
+<<<<<<< HEAD
 
     @GetMapping("/user/{userId}")
     public List<BorrowRecord> getBorrowRecordsByUser(@PathVariable Integer userId) {
@@ -36,4 +46,6 @@ public class BorrowRecordController {
     public List<BorrowRecord> getCurrentBorrows(@PathVariable Integer userId) {
         return borrowRecordService.getCurrentBorrows(userId);
     }
+=======
+>>>>>>> origin/main
 }

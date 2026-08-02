@@ -11,9 +11,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+<<<<<<< HEAD
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+=======
+import java.util.List;
+>>>>>>> origin/main
 
 @Service
 public class UserService {
@@ -63,6 +67,7 @@ public class UserService {
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
+<<<<<<< HEAD
 
     public java.util.Optional<User> getUserById(Integer id) {
         return userRepository.findById(id);
@@ -75,4 +80,6 @@ public class UserService {
         user.setPushToken(pushToken);
         userRepository.save(user);
     }
+=======
+>>>>>>> origin/main
 }

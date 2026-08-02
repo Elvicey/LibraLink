@@ -19,23 +19,36 @@ public class NotificationController {
         this.notificationService = notificationService;
     }
 
+<<<<<<< HEAD
     @PreAuthorize("hasRole('LIBRARIAN')")
+=======
+    // CREATE notification
+>>>>>>> origin/main
     @PostMapping
     public ResponseEntity<Notification> create(@RequestBody Notification notification) {
         return ResponseEntity.ok(notificationService.createNotification(notification));
     }
 
+<<<<<<< HEAD
     @PreAuthorize("hasRole('LIBRARIAN')")
+=======
+    // GET ALL notifications  👈 ADD THIS (fixes your GET issue)
+>>>>>>> origin/main
     @GetMapping
     public ResponseEntity<List<Notification>> getAll() {
         return ResponseEntity.ok(notificationService.getAllNotifications());
     }
 
+<<<<<<< HEAD
+=======
+    // GET notifications by user
+>>>>>>> origin/main
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Notification>> getByUserId(@PathVariable Integer userId) {
         return ResponseEntity.ok(notificationService.getUserNotifications(userId));
     }
 
+    // MARK AS READ
     @PutMapping("/{id}/read")
     public ResponseEntity<Notification> markRead(@PathVariable Integer id) {
         return ResponseEntity.ok(notificationService.markAsRead(id));

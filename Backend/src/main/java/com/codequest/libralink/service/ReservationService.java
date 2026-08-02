@@ -10,9 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import java.util.List;
+
 @Service
 public class ReservationService {
 
+<<<<<<< HEAD
     private final ReservationRepository reservationRepository;
     private final BookService bookService;
     private final NotificationService notificationService;
@@ -56,11 +59,19 @@ public class ReservationService {
         }
 
         return saved;
+=======
+    @Autowired
+    private ReservationRepository reservationRepository;
+
+    public Reservation createReservation(Reservation res) {
+        return reservationRepository.save(res);
+>>>>>>> origin/main
     }
 
     public List<Reservation> getAllReservations() {
         return reservationRepository.findAll();
     }
+<<<<<<< HEAD
 
     @Transactional
     public Reservation cancelReservation(Integer id) {
@@ -79,3 +90,6 @@ public class ReservationService {
         return reservationRepository.save(reservation);
     }
 }
+=======
+}
+>>>>>>> origin/main

@@ -15,17 +15,23 @@ public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
+<<<<<<< HEAD
     private final NotificationRepository notificationRepository;
     private final ExpoPushNotificationService expoPushNotificationService;
 
     public NotificationService(NotificationRepository notificationRepository,
                                ExpoPushNotificationService expoPushNotificationService) {
+=======
+    public NotificationService(NotificationRepository notificationRepository) {
+>>>>>>> origin/main
         this.notificationRepository = notificationRepository;
         this.expoPushNotificationService = expoPushNotificationService;
     }
 
+    // CREATE notification
     public Notification createNotification(Notification notification) {
         notification.setCreatedAt(LocalDateTime.now());
+<<<<<<< HEAD
         notification.setIsRead(false);
         Notification saved = notificationRepository.save(notification);
 
@@ -49,12 +55,23 @@ public class NotificationService {
 
     public List<Notification> getAllNotifications() {
         return notificationRepository.findAll();
+=======
+        notification.setIsRead(false); // default value
+        return notificationRepository.save(notification);
+>>>>>>> origin/main
     }
 
+    // GET ALL notifications
+    public List<Notification> getAllNotifications() {
+        return notificationRepository.findAll();
+    }
+
+    // GET notifications for a specific user
     public List<Notification> getUserNotifications(Integer userId) {
         return notificationRepository.findByUserId(userId);
     }
 
+    // MARK AS READ
     public Notification markAsRead(Integer id) {
         Notification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Notification not found"));

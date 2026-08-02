@@ -9,7 +9,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+<<<<<<< HEAD
 import java.util.Map;
+=======
+>>>>>>> origin/main
 
 @RestController
 @RequestMapping("/api/users")
@@ -23,17 +26,23 @@ public class UserController {
         this.roleService = roleService;
     }
 
+    // Create User
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
         User registeredUser = userService.registerUser(user);
         return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
     }
 
+<<<<<<< HEAD
+=======
+    // Get All Users
+>>>>>>> origin/main
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
+<<<<<<< HEAD
 
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable Integer id) {
@@ -70,4 +79,6 @@ public class UserController {
         userService.updatePushToken(id, token);
         return ResponseEntity.ok(Map.of("message", "Push token updated"));
     }
+=======
+>>>>>>> origin/main
 }
