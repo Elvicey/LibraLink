@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface BookCopyRepository extends JpaRepository<BookCopy, Long> {
+public interface BookCopyRepository extends JpaRepository<BookCopy, Integer> {
 
     // Crucial for scanning barcodes on physical collection/return desks
     Optional<BookCopy> findByBarcode(String barcode);

@@ -3,6 +3,7 @@ package com.codequest.libralink.controller;
 import com.codequest.libralink.entity.Publisher;
 import com.codequest.libralink.service.PublisherService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -13,6 +14,7 @@ public class PublisherController {
     @Autowired
     private PublisherService publisherService;
 
+    @PreAuthorize("hasRole('LIBRARIAN')")
     @PostMapping
     public Publisher createPublisher(@RequestBody Publisher publisher) {
         return publisherService.addPublisher(publisher);

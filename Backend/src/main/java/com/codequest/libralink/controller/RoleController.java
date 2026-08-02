@@ -3,6 +3,7 @@ package com.codequest.libralink.controller;
 import com.codequest.libralink.entity.Role;
 import com.codequest.libralink.service.RoleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 public class RoleController {
     @Autowired private RoleService roleService;
 
+    @PreAuthorize("hasRole('LIBRARIAN')")
     @PostMapping
     public Role createRole(@RequestBody Role role) {
         return roleService.saveRole(role);
