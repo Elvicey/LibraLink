@@ -28,6 +28,27 @@ class UserControllerTest extends BaseApiTest {
     }
 
     @Test
+    void createUser_asAdmin_setsPasswordThatCanLogIn() throws Exception {
+        // Regression: passwordHash used to have @JsonIgnore directly on the field, which
+        // blocks deserialization as well as serialization - every POST /api/users request
+        // silently lost its password and failed "password is required" no matter what the
+        // body sent. If that regresses, the login below will 401 instead of succeeding.
+        String email = uniqueEmail("newstaffuser");
+        mockMvc.perform(post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(adminToken))
+                        .content(objectMapper.writeValueAsString(java.util.Map.of(
+                                "firstName", "New",
+                                "lastName", "User",
+                                "email", email,
+                                "passwordHash", "pass1234",
+                                "institution", java.util.Map.of("institutionId", testInstitution().getInstitutionId())))))
+                .andExpect(status().isCreated());
+
+        loginAs(email, "pass1234");
+    }
+
+    @Test
     void getAllUsers_asAdmin() throws Exception {
         mockMvc.perform(get("/api/users")
                         .header("Authorization", bearerToken(adminToken)))

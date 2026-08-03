@@ -1,6 +1,6 @@
 package com.codequest.libralink.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
@@ -40,7 +40,13 @@ public class User {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
-    @JsonIgnore
+    // WRITE_ONLY (not @JsonIgnore): @JsonIgnore on the field blocks BOTH directions, which
+    // silently dropped passwordHash on the way in too - POST /api/users (registerUser) could
+    // never actually set a password, always failing "password is required" no matter what
+    // the request body sent. WRITE_ONLY still keeps it out of every response (the field is
+    // never populated from a read query result set through this entity's JSON output), it
+    // just stops blocking deserialization.
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(name = "password", nullable = false, length = 255)
     private String passwordHash;
 
