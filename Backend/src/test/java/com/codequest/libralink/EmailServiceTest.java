@@ -1,17 +1,17 @@
 package com.codequest.libralink;
 
+import com.codequest.libralink.service.BrevoEmailClient;
 import com.codequest.libralink.service.EmailService;
 import org.junit.jupiter.api.Test;
-import org.springframework.mail.MailSendException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * The forgot-password endpoint must stay non-500 and email-enumeration-safe, so a mail
@@ -21,25 +21,25 @@ class EmailServiceTest {
 
     @Test
     void sendPasswordResetCode_swallowsSendFailure() {
-        JavaMailSender mailSender = mock(JavaMailSender.class);
-        doThrow(new MailSendException("smtp unavailable"))
-                .when(mailSender).send(any(SimpleMailMessage.class));
+        BrevoEmailClient brevoEmailClient = mock(BrevoEmailClient.class);
+        doReturn(true).when(brevoEmailClient).isConfigured();
+        doThrow(new IllegalStateException("Brevo unavailable"))
+                .when(brevoEmailClient).sendEmail(anyString(), anyString(), anyString());
 
-        // mailHost non-blank => "configured", so it attempts a real send.
-        EmailService service = new EmailService(mailSender, "smtp.example.com", "noreply@libralink.com");
+        EmailService service = new EmailService(brevoEmailClient);
 
         assertDoesNotThrow(() -> service.sendPasswordResetCode("user@test.com", "123456"));
-        verify(mailSender).send(any(SimpleMailMessage.class));
+        verify(brevoEmailClient).sendEmail(any(), any(), any());
     }
 
     @Test
     void sendPasswordResetCode_skipsSendWhenNotConfigured() {
-        JavaMailSender mailSender = mock(JavaMailSender.class);
+        BrevoEmailClient brevoEmailClient = mock(BrevoEmailClient.class);
+        doReturn(false).when(brevoEmailClient).isConfigured();
 
-        // Blank mailHost => not configured => console fallback, no send attempted.
-        EmailService service = new EmailService(mailSender, "", "noreply@libralink.com");
+        EmailService service = new EmailService(brevoEmailClient);
 
         service.sendPasswordResetCode("user@test.com", "123456");
-        verifyNoInteractions(mailSender);
+        verify(brevoEmailClient, never()).sendEmail(any(), any(), any());
     }
 }

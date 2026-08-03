@@ -28,4 +28,22 @@ public class RestTemplateConfig {
         factory.setReadTimeout(Duration.ofMillis(readTimeoutMs));
         return new RestTemplate(factory);
     }
+
+    /**
+     * Separate, longer-timeout RestTemplate for Gemini TTS specifically. A book with even
+     * a few hundred characters of real content (as opposed to a one-line blurb) can take
+     * Gemini's TTS model well past the 20s default read timeout to synthesize, which was
+     * surfacing as a spurious "Read timed out" failure on longer books. Safe to run much
+     * longer than the shared default: AudioTrackService.processConversion runs this call
+     * inside an @Async method with no transaction/DB connection held open across it.
+     */
+    @Bean
+    public RestTemplate ttsApiRestTemplate(
+            @Value("${http.client.connect-timeout-ms:5000}") long connectTimeoutMs,
+            @Value("${http.client.tts-read-timeout-ms:90000}") long readTimeoutMs) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofMillis(connectTimeoutMs));
+        factory.setReadTimeout(Duration.ofMillis(readTimeoutMs));
+        return new RestTemplate(factory);
+    }
 }

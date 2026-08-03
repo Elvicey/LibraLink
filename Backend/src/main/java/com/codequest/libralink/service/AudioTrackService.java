@@ -54,10 +54,10 @@ public class AudioTrackService {
 
     public AudioTrackService(AudioTrackRepository audioTrackRepository,
                              BookRepository bookRepository,
-                             RestTemplate externalApiRestTemplate) {
+                             RestTemplate ttsApiRestTemplate) {
         this.audioTrackRepository = audioTrackRepository;
         this.bookRepository = bookRepository;
-        this.restTemplate = externalApiRestTemplate;
+        this.restTemplate = ttsApiRestTemplate;
         this.objectMapper = new ObjectMapper();
     }
 
