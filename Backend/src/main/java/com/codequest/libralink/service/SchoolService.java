@@ -54,6 +54,7 @@ public class SchoolService {
         }
         school.setEmail(request.getEmail());
         school.setPhone(request.getPhone());
+        school.setEmailDomain(normalizeDomain(request.getEmailDomain()));
         school.setStatus("ACTIVE");
         school = institutionRepository.save(school);
 
@@ -80,6 +81,11 @@ public class SchoolService {
             }
             school.setStatus(status);
             school.setSuspendedAt(status.equals("SUSPENDED") ? java.time.LocalDateTime.now() : null);
+            institutionRepository.save(school);
+        }
+
+        if (request.getEmailDomain() != null) {
+            school.setEmailDomain(normalizeDomain(request.getEmailDomain()));
             institutionRepository.save(school);
         }
 
@@ -112,6 +118,14 @@ public class SchoolService {
         long bookCount = bookRepository.countByInstitutionInstitutionId(id);
         long schoolAdminCount = userRepository.countByInstitutionAndRole(id, "SCHOOL_ADMIN");
         return new SchoolResponse(id, school.getName(), school.getShortName(), school.getStatus(),
-                pending, userCount, bookCount, schoolAdminCount);
+                pending, userCount, bookCount, schoolAdminCount, school.getEmailDomain());
+    }
+
+    /** Trims/lowercases; blank/null collapses to null (no restriction). Strips a leading
+     *  "@" or "." for forgiving input. */
+    private String normalizeDomain(String raw) {
+        if (raw == null) return null;
+        String trimmed = raw.trim().toLowerCase().replaceFirst("^[@.]+", "");
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

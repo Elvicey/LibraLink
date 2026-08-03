@@ -268,6 +268,7 @@ public class AuthService {
         user.setActive(true);
         user.setEmailVerified(false);
         attachInstitution(user, request.getInstitutionId());
+        assertEmailMatchesSchoolDomain(email, user.getInstitution());
 
         Role role = roleRepository.findByName(roleName)
                 .orElseGet(() -> roleRepository.save(new Role(roleName)));
@@ -288,6 +289,27 @@ public class AuthService {
     private void assertSchoolNotSuspended(Institution school) {
         if (school != null && "SUSPENDED".equals(school.getStatus())) {
             throw new IllegalArgumentException("This school has been suspended.");
+        }
+    }
+
+    /**
+     * A school with no configured emailDomain (every school by default) accepts any email -
+     * the restriction only activates once a Platform Super Admin sets one. Case-insensitive
+     * suffix match, so configuring "knust.edu.gh" also allows "st.knust.edu.gh"; a school
+     * that wants ONLY the subdomain must configure that subdomain string itself.
+     */
+    private void assertEmailMatchesSchoolDomain(String email, Institution school) {
+        if (school == null) {
+            return;
+        }
+        String domain = school.getEmailDomain();
+        if (domain == null || domain.isBlank()) {
+            return;
+        }
+        String emailDomainPart = email.contains("@") ? email.substring(email.indexOf('@') + 1) : "";
+        if (!emailDomainPart.endsWith(domain.toLowerCase())) {
+            throw new IllegalArgumentException(
+                    "Please register with your " + school.getName() + " email address (must end in @" + domain + ").");
         }
     }
 

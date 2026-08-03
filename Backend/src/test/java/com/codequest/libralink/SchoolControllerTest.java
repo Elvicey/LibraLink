@@ -158,4 +158,122 @@ class SchoolControllerTest extends BaseApiTest {
                         .content("{\"status\":\"SUSPENDED\"}"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void createSchool_withEmailDomain_persistsAndReturnsInResponse() throws Exception {
+        String token = platformToken();
+        String shortName = "DOM" + System.nanoTime() % 100000;
+
+        mockMvc.perform(post("/api/schools")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(token))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "name", "Domain School", "shortName", shortName,
+                                        "emailDomain", "knust.edu.gh"))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/schools")
+                        .header("Authorization", bearerToken(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.shortName == '" + shortName + "')].emailDomain",
+                        hasItem("knust.edu.gh")));
+    }
+
+    @Test
+    void createSchool_withoutEmailDomain_defaultsToNull() throws Exception {
+        String token = platformToken();
+        String shortName = "NODOM" + System.nanoTime() % 100000;
+
+        mockMvc.perform(post("/api/schools")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(token))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of("name", "No Domain School", "shortName", shortName))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/schools")
+                        .header("Authorization", bearerToken(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.shortName == '" + shortName + "')].emailDomain", hasItem(nullValue())));
+    }
+
+    @Test
+    void updateSchool_setsEmailDomain() throws Exception {
+        String token = platformToken();
+        String shortName = "SETDOM" + System.nanoTime() % 100000;
+
+        MvcResult createResult = mockMvc.perform(post("/api/schools")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(token))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of("name", "Retrofit School", "shortName", shortName))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        Integer schoolId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("schoolId").asInt();
+
+        mockMvc.perform(patch("/api/schools/" + schoolId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(token))
+                        .content("{\"emailDomain\":\"knust.edu.gh\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.emailDomain").value("knust.edu.gh"));
+    }
+
+    @Test
+    void updateSchool_blankEmailDomain_clearsIt() throws Exception {
+        String token = platformToken();
+        String shortName = "CLRDOM" + System.nanoTime() % 100000;
+
+        MvcResult createResult = mockMvc.perform(post("/api/schools")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(token))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "name", "Clear Domain School", "shortName", shortName,
+                                        "emailDomain", "knust.edu.gh"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        Integer schoolId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("schoolId").asInt();
+
+        mockMvc.perform(patch("/api/schools/" + schoolId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(token))
+                        .content("{\"emailDomain\":\"\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.emailDomain", nullValue()));
+    }
+
+    @Test
+    void updateSchool_omittedEmailDomain_leavesUnchanged() throws Exception {
+        String token = platformToken();
+        String shortName = "KEEPDOM" + System.nanoTime() % 100000;
+
+        MvcResult createResult = mockMvc.perform(post("/api/schools")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(token))
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "name", "Keep Domain School", "shortName", shortName,
+                                        "emailDomain", "knust.edu.gh"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        Integer schoolId = objectMapper.readTree(createResult.getResponse().getContentAsString())
+                .get("schoolId").asInt();
+
+        // Only status is sent - emailDomain key is entirely absent from the body.
+        mockMvc.perform(patch("/api/schools/" + schoolId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(token))
+                        .content("{\"status\":\"SUSPENDED\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/schools")
+                        .header("Authorization", bearerToken(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.shortName == '" + shortName + "')].emailDomain",
+                        hasItem("knust.edu.gh")));
+    }
 }

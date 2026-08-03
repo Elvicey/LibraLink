@@ -12,6 +12,7 @@ public class CreateSchoolRequest {
     private String country;
     private String email;
     private String phone;
+    private String emailDomain;
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -30,4 +31,7 @@ public class CreateSchoolRequest {
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+
+    public String getEmailDomain() { return emailDomain; }
+    public void setEmailDomain(String emailDomain) { this.emailDomain = emailDomain; }
 }
