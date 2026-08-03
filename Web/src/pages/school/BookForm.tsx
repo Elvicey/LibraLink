@@ -38,6 +38,11 @@ export default function BookForm({
   const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +60,24 @@ export default function BookForm({
 
   function toggleAuthor(id: number) {
     setAuthorIds((current) => (current.includes(id) ? current.filter((a) => a !== id) : [...current, id]));
+  }
+
+  async function handleAddCategory() {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    setCategoryError(null);
+    setAddingCategory(true);
+    try {
+      const created = await metadataApi.createCategory(name);
+      setCategories((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setCategoryId(String(created.id));
+      setNewCategoryName("");
+      setShowNewCategory(false);
+    } catch (err) {
+      setCategoryError(err instanceof Error ? err.message : "Failed to add category.");
+    } finally {
+      setAddingCategory(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -164,14 +187,56 @@ export default function BookForm({
               </option>
             ))}
           </SelectField>
-          <SelectField label="Category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} disabled={loading}>
-            <option value="">—</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </SelectField>
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="block text-sm font-medium text-slate-700">Category</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewCategory((v) => !v);
+                  setCategoryError(null);
+                }}
+                disabled={loading}
+                className="text-xs font-medium text-primary hover:underline disabled:opacity-50"
+              >
+                {showNewCategory ? "Cancel" : "+ New category"}
+              </button>
+            </div>
+            {showNewCategory ? (
+              <div className="flex items-center gap-2">
+                <input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="e.g. Science Fiction"
+                  disabled={addingCategory}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:bg-slate-100"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCategory}
+                  disabled={addingCategory || !newCategoryName.trim()}
+                  className="rounded-lg bg-primary text-white text-sm font-semibold px-4 py-2 hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
+                >
+                  {addingCategory ? "Adding…" : "Add"}
+                </button>
+              </div>
+            ) : (
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                disabled={loading}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:bg-slate-100"
+              >
+                <option value="">—</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            {categoryError && <p className="text-xs text-red-600 mt-1">{categoryError}</p>}
+          </div>
           <FormField
             label="Total copies"
             type="number"
