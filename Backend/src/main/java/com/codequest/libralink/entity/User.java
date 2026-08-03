@@ -71,6 +71,13 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
+    // Defaults true (see V7 migration) so every existing account and every OTHER signup
+    // path (librarian, school admin, platform admin, admin-created) is unaffected - only
+    // student self-registration (AuthService.register) explicitly sets this false, and
+    // login() rejects an unverified account.
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = true;
+
     public User() {}
 
     public Integer getId() { return id; }
@@ -114,4 +121,7 @@ public class User {
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
+
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
 }

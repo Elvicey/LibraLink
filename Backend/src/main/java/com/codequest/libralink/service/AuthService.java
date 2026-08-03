@@ -1,6 +1,7 @@
 package com.codequest.libralink.service;
 
 import com.codequest.libralink.dto.AuthResponse;
+import com.codequest.libralink.dto.EmailVerificationPendingResponse;
 import com.codequest.libralink.dto.RegisterRequest;
 import com.codequest.libralink.dto.SchoolAdminSignupRequest;
 import com.codequest.libralink.entity.Institution;
@@ -32,12 +33,14 @@ public class AuthService {
     private final SchoolContext schoolContext;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final EmailVerificationService emailVerificationService;
 
     public AuthService(UserRepository userRepository, RoleRepository roleRepository,
                        InstitutionRepository institutionRepository,
                        InviteCodeService inviteCodeService,
                        SchoolContext schoolContext,
-                       PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+                       PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
+                       EmailVerificationService emailVerificationService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.institutionRepository = institutionRepository;
@@ -45,6 +48,7 @@ public class AuthService {
         this.schoolContext = schoolContext;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.emailVerificationService = emailVerificationService;
     }
 
     public AuthResponse login(String email, String password) {
@@ -56,9 +60,33 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid email or password");
         }
 
+        if (!user.isEmailVerified()) {
+            throw new IllegalArgumentException("Please verify your email before logging in.");
+        }
+
         assertSchoolNotSuspended(user.getInstitution());
 
         return toAuthResponse(user);
+    }
+
+    /** Confirms a student self-registration's emailed code and, only then, issues a session. */
+    @Transactional
+    public AuthResponse verifyEmail(String email, String code) {
+        User user = emailVerificationService.confirmCode(email, code);
+        assertSchoolNotSuspended(user.getInstitution());
+        return toAuthResponse(user);
+    }
+
+    /**
+     * Re-sends a fresh code for an account that registered but hasn't verified yet.
+     * Silently no-ops for a missing/already-verified account (non-committal, same
+     * enumeration-safety convention as {@link PasswordResetService#requestReset}).
+     */
+    public void resendVerificationCode(String email) {
+        String normalizedEmail = email != null ? email.trim().toLowerCase() : "";
+        userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .filter(user -> !user.isEmailVerified())
+                .ifPresent(user -> emailVerificationService.sendCode(normalizedEmail));
     }
 
     @Transactional
@@ -90,8 +118,11 @@ public class AuthService {
     // entry points rather than on registerWithRole itself - Spring's proxy-based
     // @Transactional has no effect on self-invoked private/internal calls.
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
-        return registerWithRole(request, "STUDENT");
+    public EmailVerificationPendingResponse register(RegisterRequest request) {
+        User user = registerWithRole(request, "STUDENT");
+        emailVerificationService.sendCode(user.getEmail());
+        return new EmailVerificationPendingResponse(user.getEmail(),
+                "Account created. Enter the verification code sent to your email to finish signing in.");
     }
 
     /**
@@ -205,7 +236,10 @@ public class AuthService {
         return toAuthResponse(user);
     }
 
-    private AuthResponse registerWithRole(RegisterRequest request, String roleName) {
+    // Sole caller is register() (student self-registration) - the emailVerified(false) here
+    // is deliberately unconditional rather than gated on roleName, since no other caller
+    // exists for this method.
+    private User registerWithRole(RegisterRequest request, String roleName) {
         String email = normalizeEmail(request.getEmail());
         if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
             throw new IllegalArgumentException("An account with this email already exists");
@@ -232,6 +266,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setStudentId(studentId);
         user.setActive(true);
+        user.setEmailVerified(false);
         attachInstitution(user, request.getInstitutionId());
 
         Role role = roleRepository.findByName(roleName)
@@ -240,7 +275,7 @@ public class AuthService {
         roles.add(role);
         user.setRoles(roles);
 
-        return toAuthResponse(userRepository.save(user));
+        return userRepository.save(user);
     }
 
     /**

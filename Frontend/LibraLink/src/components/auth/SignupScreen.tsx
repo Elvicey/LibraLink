@@ -17,7 +17,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BrandLogo } from "../common/BrandLogo";
 import { loginColors as Colors, loginRadius as Radius } from "../../constants/loginTheme";
 import { theme } from "../../constants/theme";
-import { useAuth } from "../../contexts/AuthContext";
 import { authService } from "../../services/auth";
 import { coursesService, Institution } from "../../services/courses";
 
@@ -86,7 +85,6 @@ function getBorderStyle(hasError: boolean, isFocused: boolean): string {
 
 export default function SignupScreen() {
   const router = useRouter();
-  const { setSession } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -176,7 +174,7 @@ export default function SignupScreen() {
     setLoading(true);
 
     try {
-      const data = await authService.register({
+      await authService.register({
         firstName: cleanFirst,
         lastName: cleanLast,
         email: cleanEmail,
@@ -185,17 +183,9 @@ export default function SignupScreen() {
         studentId: cleanStudentId,
       });
 
-      await setSession({
-        token: data.token,
-        userId: data.userId,
-        roles: data.roles || [],
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        institutionId: data.institutionId,
-      });
-
-      router.replace("/(tabs)/home" as any);
+      // No session yet - registration only sends a verification code. The new screen
+      // confirms it and is what actually logs the account in.
+      router.push(`/verify-email?email=${encodeURIComponent(cleanEmail)}` as any);
     } catch (e: any) {
       setBannerError(e.message || "Registration failed. Please try again.");
     } finally {

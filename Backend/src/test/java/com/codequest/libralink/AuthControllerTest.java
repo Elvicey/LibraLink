@@ -1,36 +1,142 @@
 package com.codequest.libralink;
 
+import com.codequest.libralink.entity.EmailVerificationCode;
 import com.codequest.libralink.entity.Institution;
+import com.codequest.libralink.entity.User;
+import com.codequest.libralink.repository.EmailVerificationCodeRepository;
+import com.codequest.libralink.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class AuthControllerTest extends BaseApiTest {
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private EmailVerificationCodeRepository verificationCodeRepository;
+
     @Test
-    void register_returnsTokenAndUserInfo() throws Exception {
+    void register_returnsNoTokenUntilEmailIsVerified() throws Exception {
+        // Registration now only signals that a code was sent - it must not issue a token,
+        // and the account must be unusable (login blocked) until verify-email confirms it.
+        String email = "kwame@test.com";
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
                                         "firstName", "Kwame",
                                         "lastName", "Asante",
-                                        "email", "kwame@test.com",
+                                        "email", email,
                                         "password", "pass1234",
                                         "studentId", uniqueStudentId()
                                 ))))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.email").value(email));
+
+        User user = userRepository.findByEmailIgnoreCase(email).orElseThrow();
+        assertTrue(!user.isEmailVerified(), "newly self-registered student must start unverified");
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of("email", email, "password", "pass1234"))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error", containsStringIgnoringCase("verify")));
+    }
+
+    @Test
+    void verifyEmail_withValidCode_verifiesAndReturnsToken() throws Exception {
+        String email = uniqueEmail("verifyme");
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "firstName", "Verify",
+                                        "lastName", "Me",
+                                        "email", email,
+                                        "password", "pass1234",
+                                        "studentId", uniqueStudentId()
+                                ))))
+                .andExpect(status().isCreated());
+
+        // A real code was already emailed (or logged, with no BREVO_API_KEY in tests) by
+        // register() itself - insert a known one directly, same shortcut
+        // PasswordResetControllerTest takes for reset codes, since the stored value is
+        // hashed and can't be read back from the response.
+        String code = "135791";
+        EmailVerificationCode verificationCode = new EmailVerificationCode();
+        verificationCode.setEmail(email);
+        verificationCode.setCodeHash(passwordEncoder.encode(code));
+        verificationCode.setExpiresAt(Instant.now().plus(15, ChronoUnit.MINUTES));
+        verificationCode.setUsed(false);
+        verificationCode.setCreatedAt(Instant.now());
+        verificationCodeRepository.save(verificationCode);
+
+        mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of("email", email, "code", code))))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.email").value("kwame@test.com"))
-                .andExpect(jsonPath("$.firstName").value("Kwame"))
-                .andExpect(jsonPath("$.lastName").value("Asante"))
+                .andExpect(jsonPath("$.email").value(email))
                 .andExpect(jsonPath("$.roles", hasItem("STUDENT")));
+
+        User user = userRepository.findByEmailIgnoreCase(email).orElseThrow();
+        assertTrue(user.isEmailVerified());
+
+        // Login now works too, since the account is verified.
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of("email", email, "password", "pass1234"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty());
+    }
+
+    @Test
+    void verifyEmail_wrongCode_returns400() throws Exception {
+        String email = uniqueEmail("wrongcode");
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of(
+                                        "firstName", "Wrong",
+                                        "lastName", "Code",
+                                        "email", email,
+                                        "password", "pass1234",
+                                        "studentId", uniqueStudentId()
+                                ))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of("email", email, "code", "000000"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void resendVerification_unknownEmail_returnsGenericSuccess() throws Exception {
+        mockMvc.perform(post("/api/auth/resend-verification")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                java.util.Map.of("email", "nosuchaccount@test.com"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").isNotEmpty());
     }
 
     @Test

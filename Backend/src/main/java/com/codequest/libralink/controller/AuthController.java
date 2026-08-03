@@ -2,12 +2,15 @@ package com.codequest.libralink.controller;
 
 import com.codequest.libralink.dto.AuthResponse;
 import com.codequest.libralink.dto.ChangePasswordRequest;
+import com.codequest.libralink.dto.EmailVerificationPendingResponse;
 import com.codequest.libralink.dto.ForgotPasswordRequest;
 import com.codequest.libralink.dto.LoginRequest;
 import com.codequest.libralink.dto.RegisterRequest;
+import com.codequest.libralink.dto.ResendVerificationRequest;
 import com.codequest.libralink.dto.SchoolAdminJoinRequest;
 import com.codequest.libralink.dto.SchoolAdminSignupRequest;
 import com.codequest.libralink.dto.ResetPasswordRequest;
+import com.codequest.libralink.dto.VerifyEmailRequest;
 import com.codequest.libralink.dto.VerifyResetCodeRequest;
 import com.codequest.libralink.service.AuthService;
 import com.codequest.libralink.service.PasswordResetService;
@@ -40,7 +43,8 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             String message = e.getMessage() != null ? e.getMessage() : "";
-            int status = message.toLowerCase().contains("suspended") ? 403 : 401;
+            String lower = message.toLowerCase();
+            int status = lower.contains("suspended") || lower.contains("verify your email") ? 403 : 401;
             return ResponseEntity.status(status).body(Map.of("error", message));
         }
     }
@@ -48,11 +52,30 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         try {
-            AuthResponse response = authService.register(request);
+            EmailVerificationPendingResponse response = authService.register(request);
             return ResponseEntity.status(201).body(response);
         } catch (IllegalArgumentException e) {
             return errorResponse(e);
         }
+    }
+
+    /** Confirms a student self-registration's emailed code and returns a real session. */
+    @PostMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        try {
+            AuthResponse response = authService.verifyEmail(request.getEmail(), request.getCode());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** Public, non-committal (same response whether or not the account/verification state matches). */
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+        authService.resendVerificationCode(request.getEmail());
+        return ResponseEntity.ok(Map.of(
+                "message", "If an unverified account exists for this email, a new code has been sent."));
     }
 
     @PreAuthorize(Roles.STAFF)

@@ -110,8 +110,14 @@ public abstract class BaseApiTest {
         return userRepository.save(user);
     }
 
+    // Registration no longer returns a token directly (see AuthController.register) - it
+    // now requires confirming an emailed code via /api/auth/verify-email first. Rather than
+    // faking that whole round trip in every caller of this fixture helper, mark the account
+    // verified directly (same shortcut PasswordResetControllerTest already takes for reset
+    // codes) and log in for real - keeps this helper's contract (register a student, return
+    // a working token) unchanged for its 4 existing callers.
     protected String registerStudent(String email, String password) throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
                                 java.util.Map.of(
@@ -121,11 +127,14 @@ public abstract class BaseApiTest {
                                         "password", password,
                                         "studentId", uniqueStudentId()
                                 ))))
-                .andExpect(status().isCreated())
-                .andReturn();
+                .andExpect(status().isCreated());
 
-        JsonNode json = objectMapper.readTree(result.getResponse().getContentAsString());
-        return json.get("token").asText();
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new IllegalStateException("Registered user not found: " + email));
+        user.setEmailVerified(true);
+        userRepository.save(user);
+
+        return loginAs(email, password);
     }
 
     protected String loginAs(String email, String password) throws Exception {
