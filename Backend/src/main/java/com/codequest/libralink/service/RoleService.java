@@ -4,6 +4,7 @@ import com.codequest.libralink.entity.Role;
 import com.codequest.libralink.entity.User;
 import com.codequest.libralink.repository.RoleRepository;
 import com.codequest.libralink.repository.UserRepository;
+import com.codequest.libralink.security.SchoolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ public class RoleService {
 
     @Autowired private RoleRepository roleRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private SchoolContext schoolContext;
 
     @Transactional
     public Role saveRole(Role role) {
@@ -38,6 +40,12 @@ public class RoleService {
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        // Every other lookup-by-id path (UserService.getUserById/getUserByStudentId) scopes
+        // a staff caller to their own school via assertSameSchool; this one was missing it,
+        // letting any staff role (including a plain LIBRARIAN) grant ADMIN to a user in a
+        // school they don't belong to.
+        Integer userSchoolId = user.getInstitution() != null ? user.getInstitution().getInstitutionId() : null;
+        schoolContext.assertSameSchool(userSchoolId);
         Role role = roleRepository.findByName(normalized)
                 .orElseGet(() -> roleRepository.save(new Role(normalized)));
         user.getRoles().add(role);

@@ -26,6 +26,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class CrossSchoolIsolationTest extends BaseApiTest {
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private BookRepository bookRepository;
 
     @Autowired
@@ -433,6 +436,22 @@ class CrossSchoolIsolationTest extends BaseApiTest {
                                 "status", "BORROWED",
                                 "dueDate", LocalDate.now().plusDays(14).toString()))))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void librarianA_cannotAssignRoleToSchoolBUser() throws Exception {
+        // librarianB is a real School B user id; librarianA (School A staff) must not be
+        // able to grant them a role - previously RoleService.assignRoleToUser skipped the
+        // school check every other by-id lookup in UserService performs, letting a School
+        // A librarian hand out ADMIN (full School Admin dashboard access) to a School B user.
+        mockMvc.perform(post("/api/users/" + librarianBId + "/roles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", bearerToken(librarianAToken))
+                        .content(objectMapper.writeValueAsString(java.util.Map.of("role", "ADMIN"))))
+                .andExpect(status().isNotFound());
+
+        User librarianB = userRepository.findById(librarianBId).orElseThrow();
+        assertEquals(false, librarianB.getRoles().stream().anyMatch(r -> r.getName().equals("ADMIN")));
     }
 
     @Test
