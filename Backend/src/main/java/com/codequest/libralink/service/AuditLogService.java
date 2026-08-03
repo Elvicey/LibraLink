@@ -4,6 +4,7 @@ import com.codequest.libralink.entity.AuditLog;
 import com.codequest.libralink.repository.AuditLogRepository;
 import com.codequest.libralink.security.SchoolContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +27,30 @@ public class AuditLogService {
         log.setSchoolId(schoolContext.requireSchoolId());
         log.setCreatedAt(LocalDateTime.now());
         return auditLogRepository.save(log);
+    }
+
+    /**
+     * For services logging a real action as it happens - unlike {@link #saveLog}, which
+     * backs the generic staff-facing POST /api/audit-logs endpoint and derives schoolId
+     * from the caller via SchoolContext, this takes schoolId explicitly since the right
+     * value differs by call site: the acting staff member's own school for most actions,
+     * but the TARGET school when a PLATFORM_SUPER_ADMIN acts cross-school (e.g. suspending
+     * a school they don't belong to). Callers should skip logging entirely rather than
+     * pass null - schoolId is NOT NULL on the entity (e.g. a PLATFORM_SUPER_ADMIN login,
+     * who has no school at all, is simply never logged).
+     */
+    @Transactional
+    public void log(Integer userId, Integer schoolId, String action, String entityType,
+                     Integer entityId, String details) {
+        AuditLog entry = new AuditLog();
+        entry.setUserId(userId);
+        entry.setSchoolId(schoolId);
+        entry.setAction(action);
+        entry.setEntityType(entityType);
+        entry.setEntityId(entityId);
+        entry.setDetails(details);
+        entry.setCreatedAt(LocalDateTime.now());
+        auditLogRepository.save(entry);
     }
 
     public List<AuditLog> getLogsByUser(Integer userId) {

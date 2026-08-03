@@ -35,6 +35,9 @@ public class BookService {
     @Autowired
     private SchoolContext schoolContext;
 
+    @Autowired
+    private AuditLogService auditLogService;
+
     @Transactional
     public Book addBook(BookRequest request) {
         assertRequiredFields(request);
@@ -42,7 +45,9 @@ public class BookService {
         assertValidPublicationYear(request.getPublicationYear());
         Book book = new Book();
         applyRequestFields(book, request);
-        return bookRepository.save(book);
+        Book saved = bookRepository.save(book);
+        logBookAction(saved, "BOOK_CREATED", "Created \"" + saved.getTitle() + "\"");
+        return saved;
     }
 
     @Transactional
@@ -52,8 +57,20 @@ public class BookService {
             assertIsbnAvailable(request.getIsbn(), request.getIsbn13(), id);
             assertValidPublicationYear(request.getPublicationYear());
             applyRequestFields(book, request);
-            return bookRepository.save(book);
+            Book saved = bookRepository.save(book);
+            logBookAction(saved, "BOOK_UPDATED", "Updated \"" + saved.getTitle() + "\"");
+            return saved;
         });
+    }
+
+    // Not logged if the book has no institution (rare - digital-only/no-school catalogue
+    // entries created directly by a PLATFORM_SUPER_ADMIN). schoolId is required on audit_logs.
+    private void logBookAction(Book book, String action, String details) {
+        if (book.getInstitution() == null) {
+            return;
+        }
+        Integer actorId = schoolContext.currentUser().map(u -> u.userId()).orElse(null);
+        auditLogService.log(actorId, book.getInstitution().getInstitutionId(), action, "BOOK", book.getId(), details);
     }
 
     /** Title, subtitle, ISBN, language, and both copy counts are compulsory. */

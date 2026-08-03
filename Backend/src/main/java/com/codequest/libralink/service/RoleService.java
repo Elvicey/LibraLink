@@ -20,6 +20,7 @@ public class RoleService {
     @Autowired private RoleRepository roleRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private SchoolContext schoolContext;
+    @Autowired private AuditLogService auditLogService;
 
     @Transactional
     public Role saveRole(Role role) {
@@ -49,6 +50,16 @@ public class RoleService {
         Role role = roleRepository.findByName(normalized)
                 .orElseGet(() -> roleRepository.save(new Role(normalized)));
         user.getRoles().add(role);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+
+        // Not logged if the target user has no school (rare - e.g. a PLATFORM_SUPER_ADMIN
+        // caller granting a role to another schoolless user; assertSameSchool above already
+        // bypasses its own check in that case). schoolId is required on audit_logs.
+        if (userSchoolId != null) {
+            Integer actorId = schoolContext.currentUser().map(u -> u.userId()).orElse(null);
+            auditLogService.log(actorId, userSchoolId, "ROLE_GRANTED", "USER", userId,
+                    "Granted role " + normalized);
+        }
+        return saved;
     }
 }
