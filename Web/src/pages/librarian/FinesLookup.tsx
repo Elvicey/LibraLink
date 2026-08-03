@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { finesApi, type Fine } from "../../api/fines";
+import { finePaymentsApi } from "../../api/finePayments";
 import { usersApi } from "../../api/users";
 import { FormField, SubmitButton } from "../../components/AuthLayout";
 import { Badge, Banner, Card, EmptyState } from "../../components/DashboardShell";
+
+const PAYMENT_METHODS = ["CASH", "MOBILE_MONEY", "OTHER"];
 
 export default function FinesLookup() {
   const [studentId, setStudentId] = useState("");
@@ -61,20 +64,12 @@ export default function FinesLookup() {
                 <th className="py-2 pr-4 font-medium">Status</th>
                 <th className="py-2 pr-4 font-medium">Reason</th>
                 <th className="py-2 pr-4 font-medium">Due</th>
+                <th className="py-2 pr-4 font-medium"></th>
               </tr>
             </thead>
             <tbody>
               {fines.map((fine) => (
-                <tr key={fine.id} className="border-b border-slate-50 last:border-0">
-                  <td className="py-3 pr-4 font-medium text-ink">GHS {fine.amount.toFixed(2)}</td>
-                  <td className="py-3 pr-4">
-                    <Badge tone={fine.status === "PAID" ? "green" : "amber"}>{fine.status}</Badge>
-                  </td>
-                  <td className="py-3 pr-4 text-slate-600">{fine.reason || "—"}</td>
-                  <td className="py-3 pr-4 text-slate-500">
-                    {fine.dueDate ? new Date(fine.dueDate).toLocaleDateString() : "—"}
-                  </td>
-                </tr>
+                <FineRow key={fine.id} fine={fine} onPaid={() => lookUp(studentId)} />
               ))}
             </tbody>
           </table>
@@ -82,6 +77,79 @@ export default function FinesLookup() {
       )}
       </Card>
     </div>
+  );
+}
+
+function FineRow({ fine, onPaid }: { fine: Fine; onPaid: () => void }) {
+  const [recording, setRecording] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("CASH");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleRecordPayment() {
+    setError(null);
+    setSaving(true);
+    try {
+      await finePaymentsApi.pay({ fineId: fine.id, userId: fine.userId, amountPaid: fine.amount, paymentMethod });
+      setRecording(false);
+      onPaid();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to record payment.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <tr className="border-b border-slate-50 last:border-0 align-top">
+      <td className="py-3 pr-4 font-medium text-ink">GHS {fine.amount.toFixed(2)}</td>
+      <td className="py-3 pr-4">
+        <Badge tone={fine.status === "PAID" ? "green" : "amber"}>{fine.status}</Badge>
+      </td>
+      <td className="py-3 pr-4 text-slate-600">{fine.reason || "—"}</td>
+      <td className="py-3 pr-4 text-slate-500">{fine.dueDate ? new Date(fine.dueDate).toLocaleDateString() : "—"}</td>
+      <td className="py-3 pr-4 text-right">
+        {fine.status !== "PAID" &&
+          (recording ? (
+            <div className="flex items-center justify-end gap-2">
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                disabled={saving}
+                className="rounded-lg border border-slate-300 px-2 py-1 text-xs disabled:opacity-60"
+              >
+                {PAYMENT_METHODS.map((m) => (
+                  <option key={m} value={m}>
+                    {m.replace("_", " ")}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleRecordPayment}
+                disabled={saving}
+                className="rounded-lg bg-primary text-white text-xs font-semibold px-3 py-1.5 hover:opacity-90 disabled:opacity-60"
+              >
+                {saving ? "Saving…" : "Confirm"}
+              </button>
+              <button
+                onClick={() => setRecording(false)}
+                disabled={saving}
+                className="text-xs font-medium text-slate-500 hover:underline disabled:opacity-60"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setRecording(true)}
+              className="text-primary text-xs font-medium hover:underline"
+            >
+              Record payment
+            </button>
+          ))}
+        {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+      </td>
+    </tr>
   );
 }
 
