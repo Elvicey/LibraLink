@@ -7,8 +7,14 @@ import { metadataApi, type Category } from "../../api/metadata";
 import { Badge, Banner, Card, EmptyState, PaginationFooter, StatCard, usePagination } from "../../components/DashboardShell";
 import BookForm from "./BookForm";
 import BookContentEditor from "./BookContentEditor";
+import BookCopies from "./BookCopies";
 
-type Mode = { kind: "list" } | { kind: "create" } | { kind: "edit"; book: StaffBook } | { kind: "content"; book: StaffBook };
+type Mode =
+  | { kind: "list" }
+  | { kind: "create" }
+  | { kind: "edit"; book: StaffBook }
+  | { kind: "content"; book: StaffBook }
+  | { kind: "copies"; book: StaffBook };
 
 export default function BookOversight() {
   const [books, setBooks] = useState<StaffBook[]>([]);
@@ -84,6 +90,10 @@ export default function BookOversight() {
 
   if (mode.kind === "content") {
     return <BookContentEditor book={mode.book} onDone={() => setMode({ kind: "list" })} />;
+  }
+
+  if (mode.kind === "copies") {
+    return <BookCopies book={mode.book} onDone={() => setMode({ kind: "list" })} />;
   }
 
   const checkedOutCopies = books.reduce((sum, b) => sum + Math.max(0, b.totalCopies - b.availableCopies), 0);
@@ -209,6 +219,12 @@ export default function BookOversight() {
                           className="text-primary text-xs font-medium hover:underline"
                         >
                           Edit text
+                        </button>
+                        <button
+                          onClick={() => setMode({ kind: "copies", book })}
+                          className="text-primary text-xs font-medium hover:underline"
+                        >
+                          Copies
                         </button>
                       </td>
                     </tr>
