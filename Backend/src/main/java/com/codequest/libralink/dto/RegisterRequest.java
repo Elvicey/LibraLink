@@ -18,6 +18,14 @@ public class RegisterRequest {
     @NotBlank
     private String password;
 
+    private Integer institutionId;
+
+    /** Required only for /register (student signup) - an 8-digit student number. */
+    private String studentId;
+
+    /** Required only for /register-librarian - a School Admin-issued librarian_code. */
+    private String librarianCode;
+
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
 
@@ -29,4 +37,13 @@ public class RegisterRequest {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public Integer getInstitutionId() { return institutionId; }
+    public void setInstitutionId(Integer institutionId) { this.institutionId = institutionId; }
+
+    public String getStudentId() { return studentId; }
+    public void setStudentId(String studentId) { this.studentId = studentId; }
+
+    public String getLibrarianCode() { return librarianCode; }
+    public void setLibrarianCode(String librarianCode) { this.librarianCode = librarianCode; }
 }

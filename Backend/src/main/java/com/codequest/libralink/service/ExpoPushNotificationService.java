@@ -26,9 +26,10 @@ public class ExpoPushNotificationService {
     @Value("${expo.push.enabled:false}")
     private boolean pushEnabled;
 
-    public ExpoPushNotificationService(UserRepository userRepository) {
+    public ExpoPushNotificationService(UserRepository userRepository,
+                                       RestTemplate externalApiRestTemplate) {
         this.userRepository = userRepository;
-        this.restTemplate = new RestTemplate();
+        this.restTemplate = externalApiRestTemplate;
         this.objectMapper = new ObjectMapper();
     }
 

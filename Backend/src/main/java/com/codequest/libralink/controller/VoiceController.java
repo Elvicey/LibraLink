@@ -1,6 +1,7 @@
 package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.VoiceCommand;
+import com.codequest.libralink.security.CurrentUserProvider;
 import com.codequest.libralink.service.VoiceService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,15 +15,18 @@ import java.util.Map;
 public class VoiceController {
 
     private final VoiceService voiceService;
+    private final CurrentUserProvider currentUserProvider;
 
-    public VoiceController(VoiceService voiceService) {
+    public VoiceController(VoiceService voiceService, CurrentUserProvider currentUserProvider) {
         this.voiceService = voiceService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @PostMapping("/process")
     public ResponseEntity<?> processVoice(@RequestBody Map<String, Object> body) {
         try {
-            Integer userId = (Integer) body.get("userId");
+            // Voice commands are always attributed to the caller, never a client-supplied userId.
+            Integer userId = currentUserProvider.getCurrentUserId();
             String transcribedText = (String) body.get("text");
 
             if (userId == null || transcribedText == null || transcribedText.isBlank()) {
@@ -43,6 +47,7 @@ public class VoiceController {
         }
     }
 
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#userId, 'LIBRARIAN', 'ADMIN')")
     @GetMapping("/history/user/{userId}")
     public ResponseEntity<List<VoiceCommand>> getCommandHistory(@PathVariable Integer userId) {
         return ResponseEntity.ok(voiceService.getUserCommands(userId));

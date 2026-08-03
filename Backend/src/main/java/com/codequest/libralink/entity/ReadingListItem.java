@@ -14,6 +14,9 @@ public class ReadingListItem {
     @Column(name = "reading_list_id", nullable = false)
     private Integer readingListId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
     @Column(name = "book_id", nullable = false)
     private Integer bookId;
 
@@ -24,12 +27,26 @@ public class ReadingListItem {
     private LocalDateTime requiredBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public ReadingListItem() {}
+
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
     public ReadingListItem(Integer id, Integer readingListId, Integer bookId,
                            String notes, LocalDateTime requiredBy,
@@ -48,6 +65,9 @@ public class ReadingListItem {
 
     public Integer getReadingListId() { return readingListId; }
     public void setReadingListId(Integer readingListId) { this.readingListId = readingListId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public Integer getBookId() { return bookId; }
     public void setBookId(Integer bookId) { this.bookId = bookId; }

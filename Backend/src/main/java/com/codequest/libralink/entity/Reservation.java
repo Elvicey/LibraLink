@@ -4,7 +4,11 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "reservations")
+@Table(name = "reservations", indexes = {
+        @Index(name = "idx_reservation_user_id", columnList = "user_id"),
+        @Index(name = "idx_reservation_book_id", columnList = "book_id"),
+        @Index(name = "idx_reservation_status", columnList = "status")
+})
 public class Reservation {
 
     @Id
@@ -14,6 +18,9 @@ public class Reservation {
     // Hardcoded column mapping for user_id until User entity is fully implemented
     @Column(name = "user_id", nullable = false)
     private Integer userId;
+
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "book_id", nullable = false)
@@ -60,6 +67,9 @@ public class Reservation {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public Book getBook() { return book; }
     public void setBook(Book book) { this.book = book; }

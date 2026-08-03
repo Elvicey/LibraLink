@@ -1,76 +1,186 @@
+import { useState } from "react";
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import ExploreSheet from "../../components/ExploreSheet";
+import { loginColors } from "../../constants/loginTheme";
+import { useTheme } from "../../constants/theme";
 
-const iconStyle = {
-  fontSize: 20,
-  marginBottom: 4,
-};
+const ACCENT = loginColors.teal;
+const ACCENT_DARK = loginColors.tealDark;
 
-export default function TabsLayout() {
+const PILL_TABS: { name: string; icon: string; iconOutline: string }[] = [
+  { name: "reading-lists", icon: "bookmark", iconOutline: "bookmark-outline" },
+  { name: "profile", icon: "person", iconOutline: "person-outline" },
+];
+
+interface FloatingTabBarProps extends BottomTabBarProps {
+  exploreOpen: boolean;
+  onExplorePress: () => void;
+}
+
+function FloatingTabBar({
+  state,
+  navigation,
+  exploreOpen,
+  onExplorePress,
+}: FloatingTabBarProps) {
+  const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
+  const styles = createStyles(colors, isDark);
+
+  const activeRouteName = state.routes[state.index]?.name;
+
+  const navigateTo = (routeName: string) => {
+    const route = state.routes.find((r) => r.name === routeName);
+    if (!route) return;
+    const event = navigation.emit({
+      type: "tabPress",
+      target: route.key,
+      canPreventDefault: true,
+    });
+    if (!event.defaultPrevented) {
+      navigation.navigate(route.name);
+    }
+  };
+
+  const homeActive = activeRouteName === "home" && !exploreOpen;
+
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: "#0b6efd",
-        tabBarInactiveTintColor: "#6b7280",
-        tabBarStyle: {
-          backgroundColor: "#ffffff",
-          borderTopColor: "#e5e7eb",
-          height: 70,
-          paddingBottom: 10,
-          paddingTop: 6,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "700",
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => (
-            <Text style={[iconStyle, { color }]}>🏠</Text>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: "Search",
-          tabBarIcon: ({ color }) => (
-            <Text style={[iconStyle, { color }]}>🔍</Text>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="borrowed"
-        options={{
-          title: "Loans",
-          tabBarIcon: ({ color }) => (
-            <Text style={[iconStyle, { color }]}>📚</Text>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="ai"
-        options={{
-          title: "AI",
-          tabBarIcon: ({ color }) => (
-            <Text style={[iconStyle, { color }]}>🤖</Text>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => (
-            <Text style={[iconStyle, { color }]}>👤</Text>
-          ),
-        }}
-      />
-    </Tabs>
+    <View style={[styles.wrapper, { bottom: insets.bottom + 12 }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Home"
+        accessibilityState={{ selected: homeActive }}
+        style={[styles.homeCircle, !homeActive && styles.homeCircleInactive]}
+        onPress={() => navigateTo("home")}
+      >
+        <Ionicons
+          name={homeActive ? "home" : "home-outline"}
+          size={24}
+          color={homeActive ? ACCENT_DARK : colors.textMuted}
+        />
+      </Pressable>
+
+      <View style={styles.pill}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Explore"
+          accessibilityState={{ selected: exploreOpen }}
+          style={[styles.pillItem, exploreOpen && styles.pillItemActive]}
+          onPress={onExplorePress}
+        >
+          <Ionicons
+            name={exploreOpen ? "compass" : "compass-outline"}
+            size={23}
+            color={exploreOpen ? ACCENT_DARK : colors.textMuted}
+          />
+        </Pressable>
+
+        {PILL_TABS.map((tab) => {
+          const focused = activeRouteName === tab.name && !exploreOpen;
+          return (
+            <Pressable
+              key={tab.name}
+              accessibilityRole="button"
+              accessibilityLabel={tab.name === "reading-lists" ? "Reading list" : "Profile"}
+              accessibilityState={{ selected: focused }}
+              style={[styles.pillItem, focused && styles.pillItemActive]}
+              onPress={() => navigateTo(tab.name)}
+            >
+              <Ionicons
+                name={(focused ? tab.icon : tab.iconOutline) as any}
+                size={23}
+                color={focused ? ACCENT_DARK : colors.textMuted}
+              />
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
   );
 }
+
+export default function TabsLayout() {
+  const [exploreOpen, setExploreOpen] = useState(false);
+
+  return (
+    <>
+      <Tabs
+        screenOptions={{ headerShown: false }}
+        tabBar={(props) => (
+          <FloatingTabBar
+            {...props}
+            exploreOpen={exploreOpen}
+            onExplorePress={() => setExploreOpen(true)}
+          />
+        )}
+      >
+        <Tabs.Screen name="home" options={{ title: "Home" }} />
+        <Tabs.Screen name="reading-lists" options={{ title: "Reading list" }} />
+        <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+      </Tabs>
+
+      <ExploreSheet visible={exploreOpen} onClose={() => setExploreOpen(false)} />
+    </>
+  );
+}
+
+const createStyles = (colors: any, isDark: boolean) =>
+  StyleSheet.create({
+    wrapper: {
+      position: "absolute",
+      left: 16,
+      right: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    homeCircle: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: ACCENT,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+    homeCircleInactive: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
+    },
+    pill: {
+      flex: 1,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-around",
+      paddingHorizontal: 6,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      elevation: 6,
+    },
+    pillItem: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    pillItemActive: {
+      backgroundColor: ACCENT,
+    },
+  });

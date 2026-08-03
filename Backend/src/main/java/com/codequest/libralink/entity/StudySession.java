@@ -14,8 +14,12 @@ public class StudySession {
     @Column(name = "user_id", nullable = false)
     private Integer userId;
 
-    @Column(name = "book_id", nullable = false)
+    // Nullable: a practice session can be built from a pasted topic/text with no source book.
+    @Column(name = "book_id")
     private Integer bookId;
+
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
 
     @Column(name = "session_type", length = 30)
     private String sessionType; // PRACTICE_EXAM, FLASHCARDS, SUMMARY_REVIEW
@@ -48,6 +52,9 @@ public class StudySession {
 
     public Integer getBookId() { return bookId; }
     public void setBookId(Integer bookId) { this.bookId = bookId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public String getSessionType() { return sessionType; }
     public void setSessionType(String sessionType) { this.sessionType = sessionType; }
