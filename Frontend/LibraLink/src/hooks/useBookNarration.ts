@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import { useEffect, useMemo, useState } from "react";
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { downloadAsync, cacheDirectory } from "expo-file-system/legacy";
 import { useAuth } from "../contexts/AuthContext";
 import { audioService, TtsTrack } from "../services/audio";
@@ -33,6 +33,13 @@ export function useBookNarration(bookId: number): BookNarration {
   const [localUri, setLocalUri] = useState<string | null>(null);
   const [durationSeconds, setDurationSeconds] = useState<number | undefined>(undefined);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Play through the iOS silent switch - otherwise a muted phone looks broken (same fix
+  // already applied on the standalone /audio screen, just missing here, which is what
+  // powers the book-detail narration card and PLAY BOOK).
+  useEffect(() => {
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+  }, []);
 
   // Play a downloaded local file rather than streaming the protected WAV (reliable playback).
   const source = useMemo(
