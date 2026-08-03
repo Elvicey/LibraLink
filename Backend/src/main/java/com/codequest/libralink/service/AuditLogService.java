@@ -40,6 +40,10 @@ public class AuditLogService {
         return scoped(auditLogRepository.findTop1000ByActionOrderByCreatedAtDesc(action));
     }
 
+    public List<AuditLog> getRecentLogs() {
+        return scoped(auditLogRepository.findTop1000ByOrderByCreatedAtDesc());
+    }
+
     private List<AuditLog> scoped(List<AuditLog> logs) {
         if (schoolContext.isPlatformSuperAdmin()) {
             return logs;

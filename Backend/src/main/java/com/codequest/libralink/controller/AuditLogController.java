@@ -1,6 +1,7 @@
 package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.AuditLog;
+import com.codequest.libralink.security.Roles;
 import com.codequest.libralink.service.AuditLogService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -11,8 +12,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 // Audit logs are a staff-only integrity/forensics tool: they must not be
-// forgeable or readable by regular end users.
-@PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+// forgeable or readable by regular end users. Was hardcoded to
+// hasAnyRole('LIBRARIAN', 'ADMIN') - predates the Roles.STAFF mechanical substitution
+// done for the multi-tenant retrofit elsewhere, so SCHOOL_ADMIN/PLATFORM_SUPER_ADMIN were
+// never actually able to reach any endpoint here despite audit logs existing specifically
+// for their oversight.
+@PreAuthorize(Roles.STAFF)
 @RestController
 @RequestMapping("/api/audit-logs")
 public class AuditLogController {
@@ -44,5 +49,13 @@ public class AuditLogController {
     @GetMapping("/action/{action}")
     public ResponseEntity<List<AuditLog>> getLogsByAction(@PathVariable String action) {
         return ResponseEntity.ok(auditLogService.getLogsByAction(action));
+    }
+
+    // Every other GET here requires already knowing a userId/entityType+id/action to look
+    // up - of no use for a general "what's been happening" browse view. Backs the Platform
+    // Super Admin audit-log viewer.
+    @GetMapping("/recent")
+    public ResponseEntity<List<AuditLog>> getRecentLogs() {
+        return ResponseEntity.ok(auditLogService.getRecentLogs());
     }
 }

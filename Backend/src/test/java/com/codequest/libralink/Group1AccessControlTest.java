@@ -222,6 +222,18 @@ class Group1AccessControlTest extends BaseApiTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void auditLogs_asSchoolAdmin_isAllowed() throws Exception {
+        // Regression: the controller was hardcoded to hasAnyRole('LIBRARIAN', 'ADMIN'),
+        // so a SCHOOL_ADMIN (a distinct role from the legacy ADMIN) got 403 here.
+        String email = uniqueEmail("g1schooladmin");
+        createTestSchoolAdmin(testInstitution(), email, "pass1234");
+        String schoolAdminToken = loginAs(email, "pass1234");
+        mockMvc.perform(get("/api/audit-logs/recent")
+                        .header("Authorization", bearerToken(schoolAdminToken)))
+                .andExpect(status().isOk());
+    }
+
     // --- C6: reservation ownership ---
 
     @Test

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, BookCopy, Building2, School, Users } from "lucide-react";
+import { BarChart3, BookCopy, Building2, History, School, Users } from "lucide-react";
 import { schoolsApi, type SchoolCodeResponse, type SchoolResponse } from "../../api/schools";
 import {
   AppShell,
@@ -15,12 +15,14 @@ import {
 } from "../../components/DashboardShell";
 import { FormField, SubmitButton } from "../../components/AuthLayout";
 import CirculationReport from "../../components/CirculationReport";
+import AuditLogViewer from "./AuditLogViewer";
 
-type Tab = "schools" | "reports";
+type Tab = "schools" | "reports" | "audit";
 
 const NAV: { key: Tab; label: string; icon: typeof Building2 }[] = [
   { key: "schools", label: "Schools", icon: Building2 },
   { key: "reports", label: "Reports", icon: BarChart3 },
+  { key: "audit", label: "Audit Log", icon: History },
 ];
 
 const HELP_TOPICS: HelpTopic[] = [
@@ -41,6 +43,11 @@ const HELP_TOPICS: HelpTopic[] = [
     question: "What does the Reports tab show?",
     answer:
       "Circulation activity across every school on the platform — catalogue size, active/overdue loans, pending reservations, and the top borrowed titles. Search analytics are school-specific, so they're not included here.",
+  },
+  {
+    question: "What does the Audit Log tab show?",
+    answer:
+      "The 1000 most recent recorded staff actions across every school, newest first — logins, book/role changes, and more. Filter by an exact action name (e.g. \"LOGIN\") to narrow it down.",
   },
 ];
 
@@ -109,11 +116,13 @@ export default function PlatformDashboard() {
       nav={NAV}
       activeKey={tab}
       onNavigate={(key) => setTab(key as Tab)}
-      pageTitle={tab === "schools" ? "Schools Directory" : "Reports Dashboard"}
+      pageTitle={tab === "schools" ? "Schools Directory" : tab === "reports" ? "Reports Dashboard" : "Audit Log"}
       pageSubtitle={
         tab === "schools"
           ? "Manage and monitor every school on the LibraLink platform"
-          : "Circulation activity across every school on the platform"
+          : tab === "reports"
+            ? "Circulation activity across every school on the platform"
+            : "Recent staff activity across every school on the platform"
       }
       search={tab === "schools" ? { value: query, onChange: setQuery, placeholder: "Search schools…" } : undefined}
       helpTopics={HELP_TOPICS}
@@ -130,6 +139,8 @@ export default function PlatformDashboard() {
     >
       {tab === "reports" ? (
         <CirculationReport includeSearchAnalytics={false} />
+      ) : tab === "audit" ? (
+        <AuditLogViewer />
       ) : (
         <>
           <Banner tone="error" message={error} />

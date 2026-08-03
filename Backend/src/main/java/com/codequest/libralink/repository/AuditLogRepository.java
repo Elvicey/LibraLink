@@ -16,4 +16,7 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Integer> {
     // every matching row ever recorded as the table grows. Ordered by recency so the cap
     // still returns the most useful/current rows; proper pagination is a follow-up.
     List<AuditLog> findTop1000ByActionOrderByCreatedAtDesc(String action);
+
+    // Same H9 capping rationale, for the unfiltered "recent activity" browse view.
+    List<AuditLog> findTop1000ByOrderByCreatedAtDesc();
 }

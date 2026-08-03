@@ -595,6 +595,12 @@ class CrossSchoolIsolationTest extends BaseApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].schoolId", not(hasItem(schoolB.getInstitutionId()))));
 
+        mockMvc.perform(get("/api/audit-logs/recent")
+                        .header("Authorization", bearerToken(librarianAToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].schoolId", not(hasItem(schoolB.getInstitutionId()))))
+                .andExpect(jsonPath("$[*].schoolId", hasItem(schoolA.getInstitutionId())));
+
         mockMvc.perform(get("/api/analytics/search-logs/user/" + studentA.getId())
                         .header("Authorization", bearerToken(librarianAToken)))
                 .andExpect(status().isOk())
@@ -711,6 +717,23 @@ class CrossSchoolIsolationTest extends BaseApiTest {
                         .header("Authorization", bearerToken(platformToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[*].email", hasItem(studentA.getEmail())));
+    }
+
+    @Test
+    void platformSuperAdmin_canViewAuditLogsAcrossAllSchools() throws Exception {
+        // Regression: AuditLogController used to be hardcoded to
+        // hasAnyRole('LIBRARIAN', 'ADMIN'), so PLATFORM_SUPER_ADMIN (and SCHOOL_ADMIN)
+        // got 403 from every endpoint here despite audit logs existing for exactly this
+        // kind of oversight.
+        String platformEmail = uniqueEmail("platform");
+        createTestPlatformSuperAdmin(platformEmail, "pass1234");
+        String platformToken = loginAs(platformEmail, "pass1234");
+
+        mockMvc.perform(get("/api/audit-logs/recent")
+                        .header("Authorization", bearerToken(platformToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].schoolId", hasItem(schoolA.getInstitutionId())))
+                .andExpect(jsonPath("$[*].schoolId", hasItem(schoolB.getInstitutionId())));
     }
 
     @Test
