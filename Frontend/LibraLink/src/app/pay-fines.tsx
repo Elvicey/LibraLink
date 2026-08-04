@@ -251,8 +251,8 @@ export default function PayFinesScreen() {
               <View style={styles.paystackCopy}>
                 <Text style={styles.paystackTitle}>Secure checkout with Paystack</Text>
                 <Text style={styles.paystackHint}>
-                  You'll be taken to Paystack's secure page to pay by card or mobile money. Each fine
-                  is paid separately. Close the page when you're done and we'll confirm the payment.
+                  You&apos;ll be taken to Paystack&apos;s secure page to pay by card or mobile money. Each fine
+                  is paid separately. Close the page when you&apos;re done and we&apos;ll confirm the payment.
                 </Text>
               </View>
             </View>

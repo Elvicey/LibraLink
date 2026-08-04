@@ -17,7 +17,7 @@ export default function Security() {
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [biometricsEnabled, setBiometricsEnabled] = useState(true);
   const [devices, setDevices] = useState(INITIAL_DEVICES);
-  const { colors, spacing, borderRadius, typography, isDark } = useTheme();
+  const { colors, spacing, typography, isDark } = useTheme();
 
   const handleRevokeDevice = (id: string) => {
     setDevices((prev) => prev.filter((d) => d.id !== id));

@@ -110,12 +110,6 @@ export default function LoginScreen() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const clearAllErrors = () => {
-    setBannerError(null);
-    setEmailError(null);
-    setPasswordError(null);
-  };
-
   const handleEmailChange = (text: string) => {
     setEmail(text);
     if (emailError) setEmailError(null);

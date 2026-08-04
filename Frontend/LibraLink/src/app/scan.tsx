@@ -78,7 +78,7 @@ export default function BarcodeScanner() {
 
         <Text style={[styles.title, { color: colors.textLight }]}>Barcode Scanner</Text>
         <Text style={[styles.subtitle, { color: "rgba(255, 255, 255, 0.6)" }]}>
-          Enter a book's barcode/ISBN below to reserve it for pickup.
+          Enter a book&apos;s barcode/ISBN below to reserve it for pickup.
         </Text>
 
         {/* Viewfinder block - decorative for now, no camera/barcode library wired in yet */}
@@ -140,7 +140,7 @@ export default function BarcodeScanner() {
         ) : (
           /* Manual code input entry row */
           <View style={styles.manualEntryBlock}>
-            <Text style={styles.manualLabel}>Enter the book's barcode or ISBN</Text>
+            <Text style={styles.manualLabel}>Enter the book&apos;s barcode or ISBN</Text>
             <View style={styles.manualRow}>
               <Input
                 placeholder="Enter Barcode ID manually"
@@ -257,7 +257,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       borderBottomWidth: 3,
     },
     overlayLoader: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: "rgba(6, 9, 19, 0.85)",
       justifyContent: "center",
       alignItems: "center",
@@ -288,7 +288,7 @@ const createStyles = (colors: any, spacing: any, borderRadius: any, typography: 
       textAlign: "center",
     },
     overlaySuccess: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: "rgba(6, 9, 19, 0.9)",
       justifyContent: "center",
       alignItems: "center",

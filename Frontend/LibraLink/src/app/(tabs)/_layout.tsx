@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Tabs } from "expo-router";
-import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import type { BottomTabBarProps } from "expo-router/build/react-navigation/bottom-tabs";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";

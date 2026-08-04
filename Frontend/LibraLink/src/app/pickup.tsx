@@ -405,7 +405,7 @@ export default function BookPickup() {
             </View>
             <Text style={styles.emptyTitle}>No pickup slots yet</Text>
             <Text style={styles.emptyBody}>
-              Open a book, tap Read Book, and choose "Reserve a physical copy".
+              Open a book, tap Read Book, and choose &quot;Reserve a physical copy&quot;.
             </Text>
             <Pressable style={styles.emptyButton} onPress={() => router.push("/search" as any)}>
               <Text style={styles.emptyButtonText}>Browse catalogue</Text>

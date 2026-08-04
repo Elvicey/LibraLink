@@ -36,6 +36,7 @@ public class BorrowRecordController {
         return ResponseEntity.ok(Map.of("processed", processed));
     }
 
+    @PreAuthorize("hasRole('LIBRARIAN')")
     @GetMapping
     public List<BorrowRecord> getAllBorrowRecords() {
         return borrowRecordService.getAllBorrowRecords();

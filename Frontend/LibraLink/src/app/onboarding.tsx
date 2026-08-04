@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.xl,
   },
   photoCardScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(10, 22, 40, 0.55)",
   },
   photoCardContent: {

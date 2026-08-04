@@ -179,10 +179,10 @@ export default function AI() {
         <Ionicons name="sparkles" size={30} color={ACCENT} />
       </View>
       <Text style={styles.emptyTitle}>
-        Hi {firstName || "there"}, I'm Libra
+        Hi {firstName || "there"}, I&apos;m Libra
       </Text>
       <Text style={styles.emptyBody}>
-        Describe what you need in plain English and I'll find books, compile reading
+        Describe what you need in plain English and I&apos;ll find books, compile reading
         lists, or explain where things are shelved.
       </Text>
 

@@ -32,7 +32,7 @@ public class ReservationController {
         return new ResponseEntity<>(reservationService.createReservation(reservation), HttpStatus.CREATED);
     }
 
-    @PreAuthorize(Roles.STAFF)
+    @PreAuthorize("hasRole('LIBRARIAN')")
     @GetMapping
     public List<Reservation> getAllReservations() {
         return reservationService.getAllReservations();

@@ -19,7 +19,7 @@ interface ScreenWrapperProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
   statusBarColor?: string;
   statusBarStyle?: "light-content" | "dark-content" | "default";
-  edges?: Array<"top" | "bottom" | "left" | "right">;
+  edges?: ("top" | "bottom" | "left" | "right")[];
 }
 
 export default function ScreenWrapper({

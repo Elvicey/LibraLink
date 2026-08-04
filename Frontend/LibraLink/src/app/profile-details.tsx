@@ -163,7 +163,7 @@ export default function ProfileDetails() {
             variant={isDark ? "glass" : "light"}
           />
           <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: -spacing.xs, marginBottom: spacing.sm }}>
-            Email can't be changed here — contact the library to update it.
+            Email can&apos;t be changed here — contact the library to update it.
           </Text>
           <Input
             label="Phone number"
