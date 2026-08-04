@@ -7,19 +7,21 @@
     "icon": "./assets/images/icon.png",
     "scheme": "libralink",
     "userInterfaceStyle": "automatic",
-    "ios": {
-      "icon": "./assets/expo.icon"
-    },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#080808",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.LibraLink",
-      "softwareKeyboardLayoutMode": "resize"
+      "package": "com.libralink.app",
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "output": "static",
@@ -30,11 +32,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "android": {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
-          }
+          "backgroundColor": "#080808",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 180
         }
       ],
       "expo-audio",
@@ -43,11 +43,19 @@
         {
           "cameraPermission": "Allow LibraLink to use the camera to scan pickup QR codes."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a3507de2-13b6-413f-9704-9d21c8d7937d"
+      }
+    },
+    "owner": "eyram_adzo"
   }
 }
