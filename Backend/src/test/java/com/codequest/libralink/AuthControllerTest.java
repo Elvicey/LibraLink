@@ -139,6 +139,131 @@ class AuthControllerTest extends BaseApiTest {
                 .andExpect(jsonPath("$.message").isNotEmpty());
     }
 
+    private Integer createSchoolWithDomain(String domain) {
+        Institution school = createSchool("Domain School " + System.nanoTime(), "DOMSCH" + System.nanoTime() % 100000);
+        school.setEmailDomain(domain);
+        institutionRepository.save(school);
+        return school.getInstitutionId();
+    }
+
+    /** A unique local-part with no domain, for building an email at a specific test domain
+     *  (uniqueEmail() already appends "@test.com", so it can't be reused here). */
+    private String uniqueLocalPart(String prefix) {
+        return prefix + "-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    private java.util.Map<String, Object> registerBody(String email, Integer institutionId) {
+        return java.util.Map.of(
+                "firstName", "Domain",
+                "lastName", "Test",
+                "email", email,
+                "password", "pass1234",
+                "studentId", uniqueStudentId(),
+                "institutionId", institutionId
+        );
+    }
+
+    @Test
+    void register_withMatchingEmailDomain_succeeds() throws Exception {
+        Integer schoolId = createSchoolWithDomain("knust.edu.gh");
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                registerBody(uniqueLocalPart("student") + "@knust.edu.gh", schoolId))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void register_withNonMatchingEmailDomain_returns400() throws Exception {
+        Integer schoolId = createSchoolWithDomain("knust.edu.gh");
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                registerBody(uniqueLocalPart("student") + "@gmail.com", schoolId))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", containsStringIgnoringCase("email")));
+    }
+
+    @Test
+    void register_domainMatchIsCaseInsensitive() throws Exception {
+        Integer schoolId = createSchoolWithDomain("knust.edu.gh");
+        String email = "Student." + System.nanoTime() + "@KNUST.EDU.GH";
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerBody(email, schoolId))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void register_schoolWithNoDomainConfigured_allowsAnyEmail() throws Exception {
+        Institution school = createSchool("Open School " + System.nanoTime(), "OPEN" + System.nanoTime() % 100000);
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                registerBody(uniqueLocalPart("student") + "@gmail.com", school.getInstitutionId()))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void register_subdomainConfigured_onlyExactSuffixMatches() throws Exception {
+        Integer schoolId = createSchoolWithDomain("st.knust.edu.gh");
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                registerBody(uniqueLocalPart("student") + "@knust.edu.gh", schoolId))))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                registerBody(uniqueLocalPart("student") + "@st.knust.edu.gh", schoolId))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void register_broaderDomainConfigured_acceptsBothExactAndSubdomain() throws Exception {
+        // Real KNUST addresses: students are "...@st.knust.edu.gh", staff/lecturers are
+        // plain "...@knust.edu.gh" - configuring the broader domain must accept both.
+        Integer schoolId = createSchoolWithDomain("knust.edu.gh");
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                registerBody(uniqueLocalPart("staff") + "@knust.edu.gh", schoolId))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                registerBody(uniqueLocalPart("student") + "@st.knust.edu.gh", schoolId))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void register_lookalikeDomain_doesNotMatchOnBareSuffix() throws Exception {
+        // "evilknust.edu.gh" and "notknust.edu.gh" both end with the literal characters
+        // "knust.edu.gh" but aren't actually subdomains of it - a plain String.endsWith
+        // suffix check would wrongly accept these; the dot-boundary check must reject them.
+        Integer schoolId = createSchoolWithDomain("knust.edu.gh");
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                registerBody(uniqueLocalPart("attacker") + "@evilknust.edu.gh", schoolId))))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                registerBody(uniqueLocalPart("attacker") + "@notknust.edu.gh", schoolId))))
+                .andExpect(status().isBadRequest());
+    }
+
     @Test
     void register_duplicateEmail_returns409() throws Exception {
         mockMvc.perform(post("/api/auth/register")

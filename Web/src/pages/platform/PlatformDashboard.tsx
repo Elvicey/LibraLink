@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, BookCopy, Building2, History, School, Users } from "lucide-react";
+import { BarChart3, BookCopy, Building2, History, School, Users, X } from "lucide-react";
 import { schoolsApi, type SchoolCodeResponse, type SchoolResponse } from "../../api/schools";
 import {
   AppShell,
@@ -49,6 +49,11 @@ const HELP_TOPICS: HelpTopic[] = [
     answer:
       "The 1000 most recent recorded staff actions across every school, newest first — logins, book/role changes, and more. Filter by an exact action name (e.g. \"LOGIN\") to narrow it down.",
   },
+  {
+    question: "What does a school's email domain do?",
+    answer:
+      "If set, only students with an email ending in that domain (e.g. \"knust.edu.gh\") can self-register for that school. Leave blank to allow any email — the default for every school until you set one.",
+  },
 ];
 
 export default function PlatformDashboard() {
@@ -59,6 +64,7 @@ export default function PlatformDashboard() {
   const [revealedCode, setRevealedCode] = useState<SchoolCodeResponse | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [query, setQuery] = useState("");
+  const [editingDomainFor, setEditingDomainFor] = useState<SchoolResponse | null>(null);
 
   async function loadSchools() {
     setLoading(true);
@@ -162,6 +168,17 @@ export default function PlatformDashboard() {
             </div>
           )}
 
+          {editingDomainFor && (
+            <EditSchoolDomainModal
+              school={editingDomainFor}
+              onClose={() => setEditingDomainFor(null)}
+              onSaved={() => {
+                setEditingDomainFor(null);
+                loadSchools();
+              }}
+            />
+          )}
+
           <Card title="Schools">
             {showCreate && (
               <CreateSchoolForm
@@ -187,6 +204,7 @@ export default function PlatformDashboard() {
                       <th className="py-2 pr-4 font-medium">School</th>
                       <th className="py-2 pr-4 font-medium">Status</th>
                       <th className="py-2 pr-4 font-medium">Code</th>
+                      <th className="py-2 pr-4 font-medium">Email domain</th>
                       <th className="py-2 pr-4 font-medium">Users</th>
                       <th className="py-2 pr-4 font-medium">Books</th>
                       <th className="py-2 pr-4 font-medium">Admins</th>
@@ -208,10 +226,23 @@ export default function PlatformDashboard() {
                             {school.schoolCodePending ? "Code pending" : "Redeemed"}
                           </Badge>
                         </td>
+                        <td className="py-3 pr-4">
+                          {school.emailDomain ? (
+                            <span className="font-mono text-xs text-ink">{school.emailDomain}</span>
+                          ) : (
+                            <span className="text-xs text-slate-400">Not set</span>
+                          )}
+                        </td>
                         <td className="py-3 pr-4">{school.userCount}</td>
                         <td className="py-3 pr-4">{school.bookCount}</td>
                         <td className="py-3 pr-4">{school.schoolAdminCount}</td>
                         <td className="py-3 pr-4 text-right space-x-2 whitespace-nowrap">
+                          <button
+                            onClick={() => setEditingDomainFor(school)}
+                            className="text-primary text-xs font-medium hover:underline"
+                          >
+                            Edit domain
+                          </button>
                           <button
                             onClick={() => handleRegenerateCode(school)}
                             className="text-primary text-xs font-medium hover:underline"
@@ -252,6 +283,7 @@ function CreateSchoolForm({ onCreated }: { onCreated: (result: SchoolCodeRespons
   const [name, setName] = useState("");
   const [shortName, setShortName] = useState("");
   const [city, setCity] = useState("");
+  const [emailDomain, setEmailDomain] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -260,10 +292,16 @@ function CreateSchoolForm({ onCreated }: { onCreated: (result: SchoolCodeRespons
     setError(null);
     setLoading(true);
     try {
-      const result = await schoolsApi.create({ name: name.trim(), shortName: shortName.trim() || undefined, city: city.trim() || undefined });
+      const result = await schoolsApi.create({
+        name: name.trim(),
+        shortName: shortName.trim() || undefined,
+        city: city.trim() || undefined,
+        emailDomain: emailDomain.trim() || undefined,
+      });
       setName("");
       setShortName("");
       setCity("");
+      setEmailDomain("");
       onCreated(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create school.");
@@ -275,14 +313,91 @@ function CreateSchoolForm({ onCreated }: { onCreated: (result: SchoolCodeRespons
   return (
     <form onSubmit={handleSubmit} className="mb-6 border border-slate-200 rounded-xl p-4 bg-slate-50">
       <Banner tone="error" message={error} />
-      <div className="grid sm:grid-cols-3 gap-3">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <FormField label="School name" value={name} onChange={(e) => setName(e.target.value)} disabled={loading} required />
         <FormField label="Short name" value={shortName} onChange={(e) => setShortName(e.target.value)} disabled={loading} />
         <FormField label="City" value={city} onChange={(e) => setCity(e.target.value)} disabled={loading} />
+        <FormField
+          label="Email domain (optional)"
+          placeholder="knust.edu.gh"
+          value={emailDomain}
+          onChange={(e) => setEmailDomain(e.target.value)}
+          disabled={loading}
+        />
       </div>
       <div className="max-w-xs">
         <SubmitButton loading={loading}>Create school</SubmitButton>
       </div>
     </form>
+  );
+}
+
+/** Narrowly scoped to just the email domain - not a general "edit school" form, since no
+ *  other field (name/city/etc.) is editable after creation today. */
+function EditSchoolDomainModal({
+  school,
+  onClose,
+  onSaved,
+}: {
+  school: SchoolResponse;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [domain, setDomain] = useState(school.emailDomain ?? "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await schoolsApi.update(school.id, { emailDomain: domain.trim() });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update email domain.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Edit email domain for ${school.name}`}
+        className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <h2 className="font-semibold text-ink">Email domain — {school.name}</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-50"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5">
+          <Banner tone="error" message={error} />
+          <p className="text-sm text-slate-500 mb-4">
+            If set, only students with an email ending in this domain can self-register for this
+            school. Leave blank to allow any email.
+          </p>
+          <FormField
+            label="Email domain"
+            placeholder="knust.edu.gh"
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            disabled={loading}
+          />
+          <div className="flex gap-3 max-w-xs">
+            <SubmitButton loading={loading}>Save</SubmitButton>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

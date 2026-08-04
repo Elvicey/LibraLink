@@ -10,6 +10,7 @@ export interface SchoolResponse {
   userCount: number;
   bookCount: number;
   schoolAdminCount: number;
+  emailDomain: string | null;
 }
 
 // Matches Backend dto/SchoolCodeResponse.java - returned once, at creation or
@@ -29,11 +30,15 @@ export interface CreateSchoolPayload {
   country?: string;
   email?: string;
   phone?: string;
+  emailDomain?: string;
 }
 
 export interface UpdateSchoolPayload {
   status?: "ACTIVE" | "SUSPENDED";
   regenerateCode?: boolean;
+  // Gates student self-registration to this domain. Omit to leave unchanged; send "" to
+  // clear/disable the restriction (matches Backend dto/UpdateSchoolRequest.java's contract).
+  emailDomain?: string;
 }
 
 export const schoolsApi = {

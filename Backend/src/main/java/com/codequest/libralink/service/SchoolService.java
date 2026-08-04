@@ -28,19 +28,22 @@ public class SchoolService {
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
     private final SchoolContext schoolContext;
+    private final AuditLogService auditLogService;
 
     public SchoolService(InstitutionRepository institutionRepository,
                          InviteCodeRepository inviteCodeRepository,
                          InviteCodeService inviteCodeService,
                          UserRepository userRepository,
                          BookRepository bookRepository,
-                         SchoolContext schoolContext) {
+                         SchoolContext schoolContext,
+                         AuditLogService auditLogService) {
         this.institutionRepository = institutionRepository;
         this.inviteCodeRepository = inviteCodeRepository;
         this.inviteCodeService = inviteCodeService;
         this.userRepository = userRepository;
         this.bookRepository = bookRepository;
         this.schoolContext = schoolContext;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -54,6 +57,7 @@ public class SchoolService {
         }
         school.setEmail(request.getEmail());
         school.setPhone(request.getPhone());
+        school.setEmailDomain(normalizeDomain(request.getEmailDomain()));
         school.setStatus("ACTIVE");
         school = institutionRepository.save(school);
 
@@ -80,6 +84,19 @@ public class SchoolService {
             }
             school.setStatus(status);
             school.setSuspendedAt(status.equals("SUSPENDED") ? java.time.LocalDateTime.now() : null);
+            institutionRepository.save(school);
+
+            // schoolId here is the TARGET school being acted on, not the caller's own
+            // school - this action is Platform-Admin-only, and a platform admin has no
+            // school of their own to log against.
+            Integer actorId = schoolContext.currentUser().map(u -> u.userId()).orElse(null);
+            auditLogService.log(actorId, school.getInstitutionId(),
+                    status.equals("SUSPENDED") ? "SCHOOL_SUSPENDED" : "SCHOOL_REACTIVATED",
+                    "SCHOOL", school.getInstitutionId(), null);
+        }
+
+        if (request.getEmailDomain() != null) {
+            school.setEmailDomain(normalizeDomain(request.getEmailDomain()));
             institutionRepository.save(school);
         }
 
@@ -112,6 +129,14 @@ public class SchoolService {
         long bookCount = bookRepository.countByInstitutionInstitutionId(id);
         long schoolAdminCount = userRepository.countByInstitutionAndRole(id, "SCHOOL_ADMIN");
         return new SchoolResponse(id, school.getName(), school.getShortName(), school.getStatus(),
-                pending, userCount, bookCount, schoolAdminCount);
+                pending, userCount, bookCount, schoolAdminCount, school.getEmailDomain());
+    }
+
+    /** Trims/lowercases; blank/null collapses to null (no restriction). Strips a leading
+     *  "@" or "." for forgiving input. */
+    private String normalizeDomain(String raw) {
+        if (raw == null) return null;
+        String trimmed = raw.trim().toLowerCase().replaceFirst("^[@.]+", "");
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

@@ -34,13 +34,15 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final EmailVerificationService emailVerificationService;
+    private final AuditLogService auditLogService;
 
     public AuthService(UserRepository userRepository, RoleRepository roleRepository,
                        InstitutionRepository institutionRepository,
                        InviteCodeService inviteCodeService,
                        SchoolContext schoolContext,
                        PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
-                       EmailVerificationService emailVerificationService) {
+                       EmailVerificationService emailVerificationService,
+                       AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.institutionRepository = institutionRepository;
@@ -49,6 +51,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.emailVerificationService = emailVerificationService;
+        this.auditLogService = auditLogService;
     }
 
     public AuthResponse login(String email, String password) {
@@ -65,6 +68,13 @@ public class AuthService {
         }
 
         assertSchoolNotSuspended(user.getInstitution());
+
+        // Not logged for a PLATFORM_SUPER_ADMIN (no institution to attach to) - schoolId is
+        // required on audit_logs, and this is inherently a per-school concept elsewhere.
+        if (user.getInstitution() != null) {
+            auditLogService.log(user.getId(), user.getInstitution().getInstitutionId(),
+                    "LOGIN", "USER", user.getId(), null);
+        }
 
         return toAuthResponse(user);
     }
@@ -268,6 +278,7 @@ public class AuthService {
         user.setActive(true);
         user.setEmailVerified(false);
         attachInstitution(user, request.getInstitutionId());
+        assertEmailMatchesSchoolDomain(email, user.getInstitution());
 
         Role role = roleRepository.findByName(roleName)
                 .orElseGet(() -> roleRepository.save(new Role(roleName)));
@@ -288,6 +299,38 @@ public class AuthService {
     private void assertSchoolNotSuspended(Institution school) {
         if (school != null && "SUSPENDED".equals(school.getStatus())) {
             throw new IllegalArgumentException("This school has been suspended.");
+        }
+    }
+
+    /**
+     * A school with no configured emailDomain (every school by default) accepts any email -
+     * the restriction only activates once a Platform Super Admin sets one. Case-insensitive
+     * exact-or-subdomain match: configuring "knust.edu.gh" allows both that exact domain
+     * (staff, e.g. "lecturer@knust.edu.gh") and any of its subdomains (students, e.g.
+     * "gkdogbey1@st.knust.edu.gh") - real KNUST addresses differ exactly like this. A school
+     * that wants ONLY a specific subdomain must configure that subdomain string itself.
+     *
+     * <p>Deliberately NOT a plain String.endsWith(domain) suffix check - that would also
+     * wrongly accept "attacker@evilknust.edu.gh" or "attacker@notknust.edu.gh", since those
+     * strings happen to share a suffix with "knust.edu.gh" without actually being a
+     * subdomain of it. Requiring either an exact match or a "." immediately before the
+     * configured domain closes that gap.
+     */
+    private void assertEmailMatchesSchoolDomain(String email, Institution school) {
+        if (school == null) {
+            return;
+        }
+        String domain = school.getEmailDomain();
+        if (domain == null || domain.isBlank()) {
+            return;
+        }
+        String normalizedDomain = domain.toLowerCase();
+        String emailDomainPart = email.contains("@") ? email.substring(email.indexOf('@') + 1).toLowerCase() : "";
+        boolean matches = emailDomainPart.equals(normalizedDomain)
+                || emailDomainPart.endsWith("." + normalizedDomain);
+        if (!matches) {
+            throw new IllegalArgumentException(
+                    "Please register with your " + school.getName() + " email address (must end in @" + domain + ").");
         }
     }
 

@@ -15,9 +15,11 @@ public class SchoolResponse {
     private long userCount;
     private long bookCount;
     private long schoolAdminCount;
+    private String emailDomain;
 
     public SchoolResponse(Integer id, String name, String shortName, String status,
-                           boolean schoolCodePending, long userCount, long bookCount, long schoolAdminCount) {
+                           boolean schoolCodePending, long userCount, long bookCount, long schoolAdminCount,
+                           String emailDomain) {
         this.id = id;
         this.name = name;
         this.shortName = shortName;
@@ -26,6 +28,7 @@ public class SchoolResponse {
         this.userCount = userCount;
         this.bookCount = bookCount;
         this.schoolAdminCount = schoolAdminCount;
+        this.emailDomain = emailDomain;
     }
 
     public Integer getId() { return id; }
@@ -36,4 +39,5 @@ public class SchoolResponse {
     public long getUserCount() { return userCount; }
     public long getBookCount() { return bookCount; }
     public long getSchoolAdminCount() { return schoolAdminCount; }
+    public String getEmailDomain() { return emailDomain; }
 }

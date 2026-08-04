@@ -109,37 +109,32 @@ device).
 
 ### Pointing the app at your local backend instead of production
 
-By default the mobile app talks to the **deployed production backend**
-(`https://libralink-rgp2.onrender.com`) — see
-[`src/config/api.ts`](Frontend/LibraLink/src/config/api.ts). To exercise your
-local backend and the multi-school changes instead, set the
-`EXPO_PUBLIC_API_BASE_URL` env var (same convention as Web's
-`VITE_API_BASE_URL` — Expo inlines `EXPO_PUBLIC_*` vars at build time, no
-extra dependency needed):
+**This changed** — the app no longer reads an env var for this. It's a plain
+hardcoded constant in
+[`src/config/api.ts`](Frontend/LibraLink/src/config/api.ts):
 
-```bash
-cd Frontend/LibraLink
-cp .env.example .env.local
+```ts
+const API_BASE_URL = "http://localhost:8080";
 ```
 
-Then open `.env.local` and uncomment the **one** line matching whichever
-device you're running on (only one at a time):
+That's already set for local dev against the iOS Simulator (which shares
+your Mac's network, so `localhost` works directly). To point at something
+else, edit that line directly:
 
-- **iOS Simulator** — shares your Mac's network, `http://localhost:8080`
-  works directly.
 - **Android emulator** — `http://10.0.2.2:8080` (Android's alias for the
   host machine's localhost).
 - **Physical device via Expo Go** — your Mac's LAN IP, e.g.
   `http://192.168.x.x:8080` (find it with `ipconfig getifaddr en0`). The
   phone must be on the same Wi-Fi network, and nothing (like a firewall)
   should be blocking inbound connections to port 8080.
+- **Deployed production backend** — `https://libralink-rgp2.onrender.com`
+  (revert to this before shipping/deploying).
 
-`.env.local` is git-ignored (`.env*.local` in `Frontend/LibraLink/.gitignore`),
-so this stays a personal override — no risk of accidentally committing a
-localhost URL. Delete or comment it out to fall back to production again.
-
-Restart `npx expo start` after changing `.env.local` — env vars are read at
-bundler startup, not hot-reloaded.
+There's a leftover `Frontend/LibraLink/.env.local` file from an earlier,
+env-var-based version of this — it has **no effect now** (`api.ts` doesn't
+read `process.env` at all), so don't bother editing it; edit `api.ts`
+instead. Restart `npx expo start` after changing it either way, since Metro
+doesn't hot-reload a change to a module-level constant reliably.
 
 ---
 
@@ -155,10 +150,11 @@ Left over from Phase 5/6 verification, in the local `libralink` Postgres DB:
 | Librarian | `kofi.mensah@ata.test` | `pass1234` | Accra Test Academy (#3) |
 | Legacy ADMIN | `admin@libralink.com` | (seeded, see `DataSeeder.java`) | Default School (Legacy Data) — has 17 books |
 
-A 4th school, **Tema Community Day School**, was also created during Phase 6
-verification with no admin yet (its school code was consumed by the demo —
-regenerate a new one from the Platform dashboard if you want to sign up an
-admin for it).
+The accounts above are still the reliable ones to log in with. Quite a few
+more test schools and one-off accounts have accumulated in the local DB
+since from ad-hoc testing (KNUST Main Campus, Smoke Test School, a couple of
+Curl Test Schools, etc.) — none of that is curated, so don't rely on it
+being there; the table above is the stable baseline.
 
 ---
 
@@ -183,12 +179,13 @@ Backend must be up before Web or Mobile will work against local data.
 
 ## 7. Troubleshooting
 
-- **Flyway silently doesn't run / `V1` gets skipped** — see the two
-  Spring-Boot-4.x-specific bugs already fixed and documented in
-  `HANDOVER.md` (missing `spring-boot-flyway` dependency; `baseline-version`
-  default of `1` treating `V1` as already applied). Both fixes are already
-  in `pom.xml` / `application.properties` — this is just a pointer if it
-  ever regresses.
+- **Flyway silently doesn't run / `V1` gets skipped** — two
+  Spring-Boot-4.x-specific bugs were fixed early on (missing
+  `spring-boot-flyway` dependency; `baseline-version` default of `1`
+  treating `V1` as already applied). Both fixes are already in `pom.xml` /
+  `application.properties` — this is just a pointer if it ever regresses
+  (the doc that originally wrote this up, `HANDOVER.md`, has since been
+  removed as stale, so there's no longer a separate write-up to link to).
 - **`./mvnw dependency:tree | grep -i flyway`** — sanity check if Flyway
   ever seems to silently not run.
 - **CORS "Failed to fetch" on PATCH requests from the Web portal** — fixed
@@ -196,7 +193,15 @@ Backend must be up before Web or Mobile will work against local data.
   `allowedMethods`, breaking `PATCH /api/schools/{id}`). If you see this
   again for a different method, check that list first.
 - **Port 8080 already in use** — `lsof -i :8080 -sTCP:LISTEN -t` to find the
-  PID, or a previous background run may still be alive.
+  PID. Check *what* it is before killing it — it's not always a leftover
+  LibraLink process; a completely unrelated project's dev server squatting
+  the port has happened before on this machine.
+- **`./run.sh: Permission denied`** — its execute bit occasionally gets
+  stripped (seen after switching git branches). Fix with
+  `chmod +x Backend/run.sh`.
+
+---
+
 ## 8. Optional integrations (Paystack, email, AI/TTS)
 
 These are disabled by default (nothing breaks without them). Config lives in
@@ -230,25 +235,50 @@ server-side.
 6. Going live: repeat with **live** keys (`sk_live_...` / `pk_live_...`) from
    Paystack's Live Mode, set as Render environment variables.
 
-### Email (password reset)
+### Email (password reset + student email verification)
 
-If `SPRING_MAIL_HOST` is blank, reset codes are logged to the server console
-instead — fine for local dev. To send real email via Gmail:
+**This changed** — email no longer goes through SMTP/Gmail at all (that
+dependency was removed). Both password-reset codes and the code students
+get during self-registration (see below) now go through **Brevo**'s
+transactional email API (a plain HTTPS call). If `BREVO_API_KEY` is blank,
+codes are just logged to the server console instead — fine for local dev.
 
-1. Enable 2-Step Verification on the Google account.
-2. Google Account → Security → **App passwords** → generate a 16-character
-   password.
-3. Set in `Backend/.env`:
+To send real email:
+
+1. Sign up at [brevo.com](https://www.brevo.com) (free tier: 300 emails/day,
+   no card required).
+2. **Verify a sender email** — Brevo won't send *from* an address it hasn't
+   verified. Go to **Senders, Domains & Dedicated IPs → Senders → Add a
+   sender** and verify one you control.
+3. **Generate an API key** — **Settings → SMTP & API → API Keys tab →
+   Generate a new API key**.
+4. Set in `Backend/.env`:
    ```
-   SPRING_MAIL_HOST=smtp.gmail.com
-   SPRING_MAIL_PORT=587
-   SPRING_MAIL_USERNAME=your-address@gmail.com
-   SPRING_MAIL_PASSWORD=your16charapppassword
-   SPRING_MAIL_FROM=your-address@gmail.com
+   BREVO_API_KEY=xkeysib-...
+   BREVO_SENDER_EMAIL=the-address-you-verified@example.com
+   BREVO_SENDER_NAME=LibraLink
+   EMAIL_VERIFICATION_EXPIRY_MINUTES=15
    ```
-   `SPRING_MAIL_PASSWORD` must be an App Password (not your normal Google
-   password), and `SPRING_MAIL_FROM` must equal `SPRING_MAIL_USERNAME` (Gmail
-   rewrites the From header to the authenticated account).
+
+### Student self-registration now requires email verification
+
+`POST /api/auth/register` no longer logs the student in immediately — it
+creates the account unverified, emails a 6-digit code (via Brevo, above),
+and returns `{email, message}` with **no token**. The account can't log in
+until `POST /api/auth/verify-email` confirms that code (mobile: the new
+`verify-email` screen after signup). `resend-verification` is there for a
+lost/expired code. This doesn't affect librarian/school-admin signup flows
+— those are unchanged.
+
+### School email domain restriction (optional, per school)
+
+A Platform Super Admin can optionally set an email domain on a school (Web
+portal → Schools → **Edit domain**, e.g. `knust.edu.gh`) to require students
+registering for that school to use a matching email. **Every school has no
+domain set by default**, so registration stays open to any email until an
+admin opts a school in — don't be surprised if a test registration suddenly
+starts failing with "Please register with your ... email address" if a
+domain was set on the school you picked.
 
 ### AI ("Ask Libra" chat, exam tools) + text-to-speech narration
 
@@ -266,5 +296,50 @@ Both share one Google AI Studio (Gemini) key:
 3. Without `AI_API_KEY`, Ask Libra still works using canned/keyword answers,
    and exam summary/question generation and audiobook narration generation
    are disabled.
+4. TTS generation gets its own longer HTTP read timeout (`TTS_READ_TIMEOUT_MS`,
+   default `90000` = 90s) separate from other outbound calls — a book with
+   more than a trivial amount of content can take Gemini well past a normal
+   20s timeout to synthesize. Only worth touching if you see "Read timed
+   out" errors on a long book even at the default.
+
+---
+
+## 9. Deploying to Render
+
+`render.yaml` at the repo root is a Blueprint defining all three deployed pieces:
+the `libralink-db` Postgres instance, the `libralink-backend` Docker web service
+(builds `Backend/Dockerfile`), and the `libralink-web` static site (builds
+`Web/`, with a SPA rewrite so client-side routes like `/librarian` don't 404 on
+refresh).
+
+1. On [Render](https://render.com) → **New +** → **Blueprint**, point it at this
+   repo/branch. It creates all three resources from `render.yaml`.
+2. Most env vars are pre-filled from the blueprint, but a handful are marked
+   `sync: false` (secret or not-knowable-in-advance) and need to be entered by
+   hand in the Render dashboard, per-service, using the real values from
+   `Backend/.env`:
+   - **`libralink-backend`**: `SPRING_DATASOURCE_URL` (Render's Postgres
+     "connectionString" has no `jdbc:` prefix — take the host/port/db from it
+     and build `jdbc:postgresql://<host>/<database>`), `JWT_SECRET`,
+     `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_FIRST_NAME`,
+     `SEED_ADMIN_LAST_NAME`, `EXPO_PUSH_ENABLED`, `BREVO_API_KEY`,
+     `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`, `PAYSTACK_SECRET_KEY`,
+     `PAYSTACK_PUBLIC_KEY`, `AI_API_KEY`, `TTS_READ_TIMEOUT_MS`, and
+     `ALLOWED_ORIGINS` (see step 3 below).
+   - **`libralink-web`**: `VITE_API_BASE_URL`.
+3. **Two-pass URL wiring** — the backend and web service URLs aren't known
+   until each first deploys, so after both are up:
+   - Set `libralink-backend`'s `ALLOWED_ORIGINS` to `libralink-web`'s real URL
+     (e.g. `https://libralink-web.onrender.com`) — otherwise the Web portal's
+     requests will be blocked by CORS.
+   - Set `libralink-web`'s `VITE_API_BASE_URL` to `libralink-backend`'s real
+     URL. Vite inlines this at build time, so trigger a manual redeploy of
+     `libralink-web` after setting it (env var changes alone don't apply to
+     already-built static assets).
+4. Leave `SEED_DEMO_ENABLED` unset/`false` in production (already the
+   blueprint default) so demo data doesn't get seeded into the real database.
+5. Verify: `curl https://<libralink-backend>.onrender.com/api/institutions`
+   should respond (not connection-refused), and the deployed Web portal
+   should load at `/login` and successfully sign in.
 
 ---

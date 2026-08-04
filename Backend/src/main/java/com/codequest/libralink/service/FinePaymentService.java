@@ -15,13 +15,15 @@ public class FinePaymentService {
     private final FinePaymentRepository finePaymentRepository;
     private final FineService fineService;
     private final SchoolContext schoolContext;
+    private final AuditLogService auditLogService;
 
     // Lombok removed: explicit constructor added
     public FinePaymentService(FinePaymentRepository finePaymentRepository, FineService fineService,
-                              SchoolContext schoolContext) {
+                              SchoolContext schoolContext, AuditLogService auditLogService) {
         this.finePaymentRepository = finePaymentRepository;
         this.fineService = fineService;
         this.schoolContext = schoolContext;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -79,6 +81,13 @@ public class FinePaymentService {
         fine.setUpdatedAt(now);
         fineService.saveFine(fine);
 
-        return finePaymentRepository.save(payment);
+        FinePayment saved = finePaymentRepository.save(payment);
+
+        Integer actorId = schoolContext.currentUser().map(u -> u.userId()).orElse(null);
+        String method = payment.getPaymentMethod() != null ? payment.getPaymentMethod() : "unknown";
+        auditLogService.log(actorId, fine.getSchoolId(), "FINE_PAID", "FINE", fine.getId(),
+                "Paid GHS " + amountPaid + " via " + method);
+
+        return saved;
     }
 }

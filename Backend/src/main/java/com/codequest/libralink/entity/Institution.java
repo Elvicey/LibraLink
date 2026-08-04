@@ -40,6 +40,12 @@ public class Institution {
     @Column(length = 30)
     private String phone;
 
+    // Gates student self-registration (AuthService.registerWithRole): null/blank means "no
+    // restriction, any email accepted" - the default for every school unless a Platform
+    // Super Admin sets one. Not used anywhere else.
+    @Column(name = "email_domain", length = 150)
+    private String emailDomain;
+
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
@@ -98,6 +104,9 @@ public class Institution {
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+
+    public String getEmailDomain() { return emailDomain; }
+    public void setEmailDomain(String emailDomain) { this.emailDomain = emailDomain; }
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
