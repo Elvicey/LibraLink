@@ -3,6 +3,7 @@ package com.codequest.libralink.service;
 import com.codequest.libralink.entity.Book;
 import com.codequest.libralink.entity.Course;
 import com.codequest.libralink.entity.Institution;
+import com.codequest.libralink.exception.ResourceNotFoundException;
 import com.codequest.libralink.repository.BookRepository;
 import com.codequest.libralink.repository.CourseRepository;
 import com.codequest.libralink.repository.InstitutionRepository;
@@ -34,11 +35,28 @@ public class CourseService {
 
     @Transactional
     public Course saveCourse(Course course) {
-        if (course.getInstitution() != null && course.getInstitution().getInstitutionId() != null) {
-            Institution managed = entityManager.getReference(Institution.class,
-                    course.getInstitution().getInstitutionId());
-            course.setInstitution(managed);
+        // Never trust a client-supplied id on create (H7) - see CategoryService.addCategory.
+        course.setId(null);
+        if (course.getName() == null || course.getName().isBlank()) {
+            throw new IllegalArgumentException("name is required");
         }
+        if (course.getInstitution() == null || course.getInstitution().getInstitutionId() == null) {
+            throw new IllegalArgumentException("institution.institutionId is required");
+        }
+
+        Integer institutionId = course.getInstitution().getInstitutionId();
+        Institution managed = institutionRepository.findById(institutionId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Institution not found with id: " + institutionId));
+        course.setInstitution(managed);
+
+        if (course.getStatus() == null || course.getStatus().isBlank()) {
+            course.setStatus("ACTIVE");
+        }
+        if (course.getCreatedAt() == null) {
+            course.setCreatedAt(java.time.LocalDateTime.now());
+        }
+
         return courseRepository.save(course);
     }
 
@@ -46,10 +64,18 @@ public class CourseService {
         return courseRepository.findByInstitutionInstitutionId(instId);
     }
 
+    @Transactional(readOnly = true)
+    public Course getCourseById(Integer courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("Course not found with id: " + courseId));
+        course.getBooks().size();
+        return course;
+    }
+
     @Transactional
     public Course addBooksToCourse(Integer courseId, List<Integer> bookIds) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
 
         Set<Book> books = new HashSet<>(course.getBooks());
         List<Book> newBooks = bookRepository.findAllById(bookIds);
@@ -62,7 +88,7 @@ public class CourseService {
     @Transactional
     public Course removeBookFromCourse(Integer courseId, Integer bookId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + courseId));
 
         course.getBooks().removeIf(book -> book.getId().equals(bookId));
 

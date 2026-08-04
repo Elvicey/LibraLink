@@ -11,11 +11,15 @@ public class ExamQuestion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "book_id", nullable = false)
+    // Nullable: questions can be generated from a pasted topic/text with no source book.
+    @Column(name = "book_id")
     private Integer bookId;
 
     @Column(name = "user_id", nullable = false)
     private Integer userId;
+
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
 
     @Column(name = "session_id")
     private Integer sessionId;
@@ -66,6 +70,9 @@ public class ExamQuestion {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public Integer getSessionId() { return sessionId; }
     public void setSessionId(Integer sessionId) { this.sessionId = sessionId; }

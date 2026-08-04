@@ -1,10 +1,15 @@
 package com.codequest.libralink.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "pickup_slots")
+@Table(name = "pickup_slots", indexes = {
+        @Index(name = "idx_pickup_user_id", columnList = "user_id"),
+        @Index(name = "idx_pickup_status", columnList = "status")
+})
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PickupSlot {
 
     @Id
@@ -13,6 +18,9 @@ public class PickupSlot {
 
     @Column(name = "user_id", nullable = false)
     private Integer userId;
+
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
 
     @Column(name = "loan_id")
     private Integer loanId;
@@ -42,12 +50,27 @@ public class PickupSlot {
     private LocalDateTime slotEnd;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     public PickupSlot() {}
+
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+        if (status == null || status.isBlank()) {
+            status = "SCHEDULED";
+        }
+        if (scheduledAt == null && slotStart != null) {
+            scheduledAt = slotStart;
+        }
+    }
 
     public PickupSlot(Integer id, Integer userId, Integer loanId, String qrCode,
                       String status, Integer reservationId, LocalDateTime scheduledAt,
@@ -74,6 +97,9 @@ public class PickupSlot {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public Integer getLoanId() { return loanId; }
     public void setLoanId(Integer loanId) { this.loanId = loanId; }

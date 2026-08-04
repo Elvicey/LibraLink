@@ -1,10 +1,16 @@
 package com.codequest.libralink.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "audit_logs")
+@Table(name = "audit_logs", indexes = {
+        @Index(name = "idx_audit_user_id", columnList = "user_id"),
+        @Index(name = "idx_audit_entity", columnList = "entity_type, entity_id"),
+        @Index(name = "idx_audit_action", columnList = "action"),
+        @Index(name = "idx_audit_created_at", columnList = "created_at")
+})
 public class AuditLog {
 
     @Id
@@ -14,6 +20,10 @@ public class AuditLog {
     @Column(name = "user_id")
     private Integer userId;
 
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
+
+    @NotBlank
     @Column(nullable = false, length = 100)
     private String action;
 
@@ -52,6 +62,9 @@ public class AuditLog {
 
     public Integer getUserId() { return userId; }
     public void setUserId(Integer userId) { this.userId = userId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public String getAction() { return action; }
     public void setAction(String action) { this.action = action; }

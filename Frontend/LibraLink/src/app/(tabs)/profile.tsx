@@ -1,140 +1,117 @@
-import { API_BASE_URL } from "../../config/api";
+import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import ProfileScreen from "../../components/profile/ProfileScreen";
 import { useAuth } from "../../contexts/AuthContext";
-import { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { borrowsService } from "../../services/borrows";
+import { reservationsService } from "../../services/reservations";
+import { usersService } from "../../services/users";
+
+function initialsFromName(firstName?: string | null, lastName?: string | null): string | null {
+  const first = (firstName || "").trim();
+  const last = (lastName || "").trim();
+  if (!first && !last) return null;
+  if (first && last) return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
+  return first.charAt(0).toUpperCase();
+}
 
 export default function Profile() {
   const router = useRouter();
-  const { userId } = useAuth();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { userId, firstName, lastName, email, roles, clearSession, setSession, token } = useAuth();
+
+  const [displayFirstName, setDisplayFirstName] = useState(firstName);
+  const [displayLastName, setDisplayLastName] = useState(lastName);
+  const [displayEmail, setDisplayEmail] = useState(email);
+  const [institutionName, setInstitutionName] = useState<string | null>(null);
+  const [phone, setPhone] = useState<string | null>(null);
+  const [studentId, setStudentId] = useState<string | null>(null);
+  const [indexNumber, setIndexNumber] = useState<string | null>(null);
+  const [programme, setProgramme] = useState<string | null>(null);
+  const [booksBorrowed, setBooksBorrowed] = useState(0);
+  const [activeHolds, setActiveHolds] = useState(0);
+
+  const load = useCallback(async () => {
+    if (!userId || !token) return;
+    try {
+      const [user, history, pickups] = await Promise.all([
+        usersService.getById(userId).catch(() => null),
+        borrowsService.getHistory(userId).catch(() => []),
+        reservationsService.getPickupsForUser(userId).catch(() => []),
+      ]);
+
+      if (user) {
+        setDisplayFirstName(user.firstName ?? null);
+        setDisplayLastName(user.lastName ?? null);
+        setDisplayEmail(user.email ?? null);
+        setInstitutionName(user.institution?.name ?? null);
+        setPhone(user.phoneNumber ?? null);
+        setStudentId(user.studentId ?? null);
+        setIndexNumber(user.indexNumber ?? null);
+        setProgramme(user.programme ?? null);
+        await setSession({
+          token,
+          userId,
+          roles,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          institutionId: user.institutionId ?? null,
+        });
+      }
+
+      setBooksBorrowed(history.length);
+      const openPickups = pickups.filter((p) => {
+        const status = (p.status || "").toUpperCase();
+        return status !== "CANCELLED" && status !== "COMPLETED" && status !== "DONE";
+      });
+      setActiveHolds(openPickups.length);
+    } catch {
+      // keep cached auth values
+    }
+  }, [userId, token, roles, setSession]);
 
   useEffect(() => {
-    if (!userId) return;
-    fetch(`${API_BASE_URL}/api/users/${userId}`)
-      .then((r) => r.json())
-      .then((data) => setUser(data))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, [userId]);
+    if (firstName) setDisplayFirstName(firstName);
+    if (lastName) setDisplayLastName(lastName);
+    if (email) setDisplayEmail(email);
+    load();
+  }, [firstName, lastName, email, load]);
 
-  const fullName = user
-    ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
-    : "User";
-  const email = user?.email || "";
-  const initial = (user?.firstName || "U").charAt(0).toUpperCase();
+  // The tab stays mounted, so refetch whenever it regains focus (e.g. returning from the
+  // edit screen) to reflect newly-saved phone / student details.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  const fullName = [displayFirstName, displayLastName].filter(Boolean).join(" ").trim();
+  const isPopulated = Boolean(fullName || displayEmail);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarInitial}>{initial}</Text>
-        </View>
-        <View style={styles.userInfo}>
-          {loading ? (
-            <ActivityIndicator size="small" color="#0b6efd" />
-          ) : (
-            <>
-              <Text style={styles.title}>{fullName}</Text>
-              <Text style={styles.email}>{email}</Text>
-              <Text style={styles.statusBadge}>Student member</Text>
-            </>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Library actions</Text>
-        <View style={styles.menuSection}>
-          <Pressable
-            style={styles.menuItem}
-            onPress={() => router.push("/borrowed" as any)}
-          >
-            <Text style={styles.menuText}>Borrowing history</Text>
-          </Pressable>
-          <Pressable
-            style={styles.menuItem}
-            onPress={() => router.push("/reading-lists" as any)}
-          >
-            <Text style={styles.menuText}>Reading lists</Text>
-          </Pressable>
-          <Pressable
-            style={styles.menuItem}
-            onPress={() => router.push("/notifications" as any)}
-          >
-            <Text style={styles.menuText}>Notifications</Text>
-          </Pressable>
-          <Pressable
-            style={styles.menuItem}
-            onPress={() => router.push("/pay-fines" as any)}
-          >
-            <Text style={styles.menuText}>Pay fines</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account settings</Text>
-        <View style={styles.menuSection}>
-          <Pressable
-            style={styles.menuItem}
-            onPress={() => router.push("/profile-details" as any)}
-          >
-            <Text style={styles.menuText}>Profile details</Text>
-          </Pressable>
-          <Pressable
-            style={styles.menuItem}
-            onPress={() => router.push("/security" as any)}
-          >
-            <Text style={styles.menuText}>Security</Text>
-          </Pressable>
-          <Pressable style={styles.menuItem}>
-            <Text style={styles.menuText}>Sign out</Text>
-          </Pressable>
-        </View>
-      </View>
-    </View>
+    <ProfileScreen
+      isPopulated={isPopulated}
+      user={{
+        name: fullName || "No name set",
+        initials: initialsFromName(displayFirstName, displayLastName),
+        role: "Student",
+        emailVerified: Boolean(displayEmail),
+        booksBorrowed: isPopulated ? booksBorrowed : "-",
+        activeHolds: isPopulated ? activeHolds : "-",
+        daysActive: "-",
+        email: displayEmail || "Not set",
+        phone: phone || "Not set",
+        studentId: studentId || "Not set",
+        programme: programme || "Not set",
+        indexNumber: indexNumber || "Not set",
+        institution: institutionName || "Not linked",
+        lastPasswordChange: "Update your credentials",
+      }}
+      onEditProfile={() => router.push("/profile-details" as any)}
+      onChangePassword={() => router.push("/change-password" as any)}
+      onLogout={async () => {
+        await clearSession();
+        router.replace("/signin" as any);
+      }}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: "#f7f9fc" },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: "#0b6efd",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  avatarInitial: { color: "white", fontSize: 28, fontWeight: "800" },
-  userInfo: { flex: 1 },
-  title: { fontSize: 28, fontWeight: "800" },
-  email: { color: "#6b7280", marginTop: 4 },
-  statusBadge: {
-    marginTop: 10,
-    alignSelf: "flex-start",
-    backgroundColor: "#eff6ff",
-    color: "#0b6efd",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 18,
-    fontWeight: "700",
-  },
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 12 },
-  menuSection: {
-    backgroundColor: "white",
-    borderRadius: 24,
-    overflow: "hidden",
-  },
-  menuItem: { padding: 16, borderBottomWidth: 1, borderColor: "#f1f3f5" },
-  menuText: { fontSize: 16, fontWeight: "600" },
-});

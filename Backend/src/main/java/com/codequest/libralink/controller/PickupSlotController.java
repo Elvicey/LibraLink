@@ -1,9 +1,12 @@
 package com.codequest.libralink.controller;
 
 import com.codequest.libralink.entity.PickupSlot;
+import com.codequest.libralink.security.CurrentUserProvider;
 import com.codequest.libralink.service.PickupSlotService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,32 +16,43 @@ import java.util.List;
 public class PickupSlotController {
 
     private final PickupSlotService pickupSlotService;
+    private final CurrentUserProvider currentUserProvider;
 
-    public PickupSlotController(PickupSlotService pickupSlotService) {
+    public PickupSlotController(PickupSlotService pickupSlotService, CurrentUserProvider currentUserProvider) {
         this.pickupSlotService = pickupSlotService;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @PostMapping
     public ResponseEntity<?> schedule(@RequestBody PickupSlot slot) {
         try {
-            return ResponseEntity.ok(pickupSlotService.scheduleSlot(slot));
+            // A patron can only schedule their own pickup; a librarian/admin may schedule
+            // on behalf of a specific patron by supplying userId.
+            slot.setUserId(currentUserProvider.resolveActingUserId(slot.getUserId(), "LIBRARIAN", "ADMIN"));
+            return new ResponseEntity<>(pickupSlotService.scheduleSlot(slot), HttpStatus.CREATED);
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
         }
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize(Roles.STAFF)
     @PostMapping("/scan")
-    public ResponseEntity<PickupSlot> scanQr(@RequestParam String qrCode, @RequestParam Integer librarianId) {
-        return ResponseEntity.ok(pickupSlotService.collectBookViaQr(qrCode, librarianId));
+    public ResponseEntity<?> scanQr(@RequestParam(required = false) String qrCode,
+                                    @RequestParam(required = false) Integer librarianId) {
+        try {
+            return ResponseEntity.ok(pickupSlotService.collectBookViaQr(qrCode, librarianId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
     }
 
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#userId, 'LIBRARIAN', 'ADMIN')")
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<PickupSlot>> getUserSlots(@PathVariable Integer userId) {
         return ResponseEntity.ok(pickupSlotService.getSlotsByUser(userId));
     }
 
-    @PreAuthorize("hasRole('LIBRARIAN')")
+    @PreAuthorize(Roles.STAFF)
     @GetMapping("/scheduled")
     public ResponseEntity<List<PickupSlot>> getScheduledSlots() {
         return ResponseEntity.ok(pickupSlotService.getAllScheduledSlots());

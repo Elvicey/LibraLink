@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtUtil {
@@ -24,6 +25,12 @@ public class JwtUtil {
     }
 
     public String generateToken(Integer userId, String email, List<String> roles) {
+        return generateToken(userId, email, roles, null);
+    }
+
+    // schoolId is null for PLATFORM_SUPER_ADMIN (not school-scoped); every other role's
+    // token carries it so per-request school-scoping can be enforced without a DB lookup.
+    public String generateToken(Integer userId, String email, List<String> roles, Integer schoolId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
@@ -31,6 +38,7 @@ public class JwtUtil {
                 .subject(String.valueOf(userId))
                 .claim("email", email)
                 .claim("roles", roles)
+                .claim("schoolId", schoolId)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(signingKey)
@@ -67,13 +75,28 @@ public class JwtUtil {
                 .get("email", String.class);
     }
 
-    @SuppressWarnings("unchecked")
-    public List<String> extractRoles(String token) {
+    public Integer extractSchoolId(String token) {
         return Jwts.parser()
                 .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
-                .get("roles", List.class);
+                .get("schoolId", Integer.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> extractRoles(String token) {
+        Object rolesObj = Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("roles");
+        if (rolesObj instanceof List<?> list) {
+            return list.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.toList());
+        }
+        return null;
     }
 }

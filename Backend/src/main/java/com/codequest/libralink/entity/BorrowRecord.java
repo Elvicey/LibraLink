@@ -5,28 +5,44 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "borrow_records")
+@Table(name = "borrow_records", indexes = {
+        @Index(name = "idx_borrow_user_id", columnList = "user_id"),
+        @Index(name = "idx_borrow_book_id", columnList = "book_id"),
+        @Index(name = "idx_borrow_status", columnList = "status"),
+        @Index(name = "idx_borrow_due_date", columnList = "due_date")
+})
 public class BorrowRecord {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne
+    // H10: these 4 associations were all EAGER (user/book/bookCopy/reservation were the
+    // worst offender named in the audit - a single unfiltered findAll()/findByX() eagerly
+    // joined 4 tables, each of which cascades into further EAGER associations of its own
+    // (User.roles, Book.institution, etc.), causing a large multi-table join explosion for
+    // even a simple record fetch. Flipped to LAZY; open-in-view (Spring Boot default) keeps
+    // the Hibernate session open through response serialization, so these still populate
+    // correctly in JSON responses, just via a separate query per access instead of one big
+    // join - a good trade for the endpoints here, which return small result sets.
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "copy_id")
     private BookCopy bookCopy;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reservation_id")
     private Reservation reservation;
+
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
 
     @Column(name = "status", nullable = false, length = 20)
     private String status = "BORROWED"; // CHECK (status IN ('BORROWED', 'RETURNED', 'OVERDUE', 'LOST', 'RENEWED'))
@@ -75,6 +91,9 @@ public class BorrowRecord {
 
     public Reservation getReservation() { return reservation; }
     public void setReservation(Reservation reservation) { this.reservation = reservation; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

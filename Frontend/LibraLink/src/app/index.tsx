@@ -1,27 +1,63 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import LoginScreen from "../components/auth/LoginScreen";
+import { loginColors } from "../constants/loginTheme";
 
-export default function Index() {
+const ONBOARDING_SEEN_KEY = "hasSeenOnboarding";
+
+export default function LoginEntry() {
   const router = useRouter();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    router.replace("./onboarding");
+    let active = true;
+
+    const checkOnboarding = async () => {
+      if (__DEV__) {
+        setTimeout(() => {
+          if (active) router.replace("/onboarding");
+        }, 0);
+        return;
+      }
+
+      const seen = await AsyncStorage.getItem(ONBOARDING_SEEN_KEY);
+      if (!active) return;
+
+      if (seen !== "true") {
+        setTimeout(() => {
+          if (active) router.replace("/onboarding");
+        }, 0);
+        return;
+      }
+
+      setReady(true);
+    };
+
+    checkOnboarding();
+
+    return () => {
+      active = false;
+    };
   }, [router]);
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>LibraLink — Redirecting to onboarding…</Text>
-    </View>
-  );
+  if (!ready) {
+    return (
+      <View style={styles.loadingScreen}>
+        <ActivityIndicator size="large" color={loginColors.teal} />
+      </View>
+    );
+  }
+
+  return <LoginScreen />;
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loadingScreen: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
+    backgroundColor: "#0a1628",
   },
-  title: { fontSize: 20, fontWeight: "700", marginBottom: 20 },
 });

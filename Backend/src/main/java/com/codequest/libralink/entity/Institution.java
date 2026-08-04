@@ -1,6 +1,8 @@
 package com.codequest.libralink.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @Entity
@@ -12,10 +14,14 @@ public class Institution {
     @Column(name = "institution_id")
     private Integer institutionId;
 
+    @NotBlank
     @Column(nullable = false, length = 200)
     private String name;
 
-    @Column(name = "short_name", length = 50)
+    // Medium: shortName is used as a short human-facing code for the institution; nothing
+    // stopped two institutions from being created with the same one. Plain unique columns
+    // allow multiple NULLs, so institutions that don't set a shortName are unaffected.
+    @Column(name = "short_name", length = 50, unique = true)
     private String shortName;
 
     @Column(nullable = false, length = 20)
@@ -27,6 +33,7 @@ public class Institution {
     @Column(length = 100)
     private String country = "Ghana";
 
+    @Email
     @Column(length = 150)
     private String email;
 
@@ -35,6 +42,19 @@ public class Institution {
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
+
+    // "School" fields (multi-tenant retrofit). institutionId is the school id everywhere
+    // else in the codebase - Institution IS School, not a separate concept. The actual
+    // school_code/OTP/librarian_code values live only in InviteCode - not duplicated here.
+
+    // ACTIVE | SUSPENDED. Distinct from isActive above (which is never set false anywhere
+    // in the app and has different semantics - "does this row exist" vs "is this school
+    // allowed to operate").
+    @Column(name = "status", nullable = false, length = 20)
+    private String status = "ACTIVE";
+
+    @Column(name = "suspended_at")
+    private LocalDateTime suspendedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -81,6 +101,12 @@ public class Institution {
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public LocalDateTime getSuspendedAt() { return suspendedAt; }
+    public void setSuspendedAt(LocalDateTime suspendedAt) { this.suspendedAt = suspendedAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

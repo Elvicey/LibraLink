@@ -3,8 +3,13 @@ package com.codequest.libralink.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+// Medium: StudentReadingProgressService.updateProgress does the same find-by-(student,item)
+// -or-create with no locking, for the same reason as UserAudioProgress above - the unique
+// constraint turns a possible silent duplicate-row race into a loud, already-handled 409.
 @Entity
-@Table(name = "student_reading_progress")
+@Table(name = "student_reading_progress",
+        uniqueConstraints = @UniqueConstraint(name = "uk_student_reading_progress_student_item",
+                columnNames = {"student_id", "list_item_id"}))
 public class StudentReadingProgress {
 
     @Id
@@ -16,6 +21,9 @@ public class StudentReadingProgress {
 
     @Column(name = "list_item_id", nullable = false)
     private Integer listItemId;
+
+    @Column(name = "school_id", nullable = false)
+    private Integer schoolId;
 
     @Column(nullable = false, length = 20)
     private String status = "UNREAD";
@@ -63,6 +71,9 @@ public class StudentReadingProgress {
 
     public Integer getListItemId() { return listItemId; }
     public void setListItemId(Integer listItemId) { this.listItemId = listItemId; }
+
+    public Integer getSchoolId() { return schoolId; }
+    public void setSchoolId(Integer schoolId) { this.schoolId = schoolId; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

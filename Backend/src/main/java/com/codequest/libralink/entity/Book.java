@@ -19,9 +19,10 @@ public class Book {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // Many books beInteger to one Institution
+    // Many books beInteger to one Institution (= School). NOT NULL as of the
+    // multi-tenant retrofit - every book belongs to exactly one school.
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "institution_id")
+    @JoinColumn(name = "institution_id", nullable = false)
     private Institution institution;
 
     @Column(nullable = false, length = 500)
@@ -53,6 +54,13 @@ public class Book {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    // Full readable text of the book (added by a librarian/admin). Served only via
+    // GET /api/books/{id}/content and used for the in-app reader + AI narration, so it's
+    // kept out of the normal book JSON (list/detail) to keep those responses small.
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Column(columnDefinition = "TEXT")
+    private String content;
 
     @Column(name = "cover_image_url", length = 500)
     private String coverImageUrl;
@@ -152,6 +160,9 @@ public class Book {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
 
     public String getCoverImageUrl() { return coverImageUrl; }
     public void setCoverImageUrl(String coverImageUrl) { this.coverImageUrl = coverImageUrl; }

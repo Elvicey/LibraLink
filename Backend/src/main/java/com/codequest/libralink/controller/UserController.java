@@ -6,13 +6,11 @@ import com.codequest.libralink.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.codequest.libralink.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-<<<<<<< HEAD
 import java.util.Map;
-=======
->>>>>>> origin/main
 
 @RestController
 @RequestMapping("/api/users")
@@ -26,24 +24,31 @@ public class UserController {
         this.roleService = roleService;
     }
 
-    // Create User
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<User> createUser(@RequestBody User user) {
         User registeredUser = userService.registerUser(user);
         return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
     }
 
-<<<<<<< HEAD
-=======
-    // Get All Users
->>>>>>> origin/main
+    @PreAuthorize(Roles.STAFF)
     @GetMapping
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
-<<<<<<< HEAD
 
+    // Staff-only, school-scoped, narrowed to LIBRARIAN/ADMIN/SCHOOL_ADMIN - the School
+    // Admin dashboard's Staff tab uses this instead of getAllUsers so students never show
+    // up in a staff-management view; students are looked up by student id instead.
+    @PreAuthorize(Roles.STAFF)
+    @GetMapping("/staff")
+    public ResponseEntity<List<User>> getStaffUsers() {
+        return ResponseEntity.ok(userService.getStaffUsers());
+    }
+
+    // Self-or-staff check lives in UserService (a student fetching their own record has
+    // no staff role to check against a path variable) - see UserService.getUserById.
     @GetMapping("/{id}")
     public ResponseEntity<User> getUserById(@PathVariable Integer id) {
         return userService.getUserById(id)
@@ -51,7 +56,16 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    // Librarians identify students by student number, not by internal numeric id -
+    // this is the lookup CirculationScan/FinesLookup use before calling their existing,
+    // id-based endpoints.
+    @PreAuthorize(Roles.STAFF)
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<User> getUserByStudentId(@PathVariable String studentId) {
+        return ResponseEntity.ok(userService.getUserByStudentId(studentId));
+    }
+
+    @PreAuthorize(Roles.STAFF)
     @PostMapping("/{id}/roles")
     public ResponseEntity<?> assignRole(
             @PathVariable Integer id,
@@ -67,10 +81,25 @@ public class UserController {
                     "roles", updated.getRoles().stream().map(r -> r.getName()).toList()
             ));
         } catch (IllegalArgumentException e) {
+            if (e.getMessage() != null && e.getMessage().contains("no longer supported")) {
+                return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            }
             return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         }
     }
 
+    @PreAuthorize("@currentUserProvider.isSelfOrHasAnyRole(#id, 'ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateProfile(
+            @PathVariable Integer id,
+            @RequestBody Map<String, String> body) {
+        User updated = userService.updateProfile(
+                id, body.get("firstName"), body.get("lastName"), body.get("phoneNumber"),
+                body.get("studentId"), body.get("indexNumber"), body.get("programme"));
+        return ResponseEntity.ok(updated);
+    }
+
+    @PreAuthorize("@currentUserProvider.isCurrentUser(#id)")
     @PutMapping("/{id}/push-token")
     public ResponseEntity<Map<String, String>> updatePushToken(
             @PathVariable Integer id,
@@ -79,6 +108,4 @@ public class UserController {
         userService.updatePushToken(id, token);
         return ResponseEntity.ok(Map.of("message", "Push token updated"));
     }
-=======
->>>>>>> origin/main
 }
