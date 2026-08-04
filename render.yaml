@@ -1,0 +1,90 @@
+databases:
+  - name: libralink-db
+    plan: starter
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: libralink-backend
+    runtime: docker
+    dockerfilePath: Backend/Dockerfile
+    dockerContext: Backend
+    plan: starter
+    envVars:
+      # Render sets PORT automatically for web services; the app reads it via
+      # server.port=${PORT:8080}, so no need to declare it here.
+      - key: SPRING_DATASOURCE_URL
+        sync: false # Render's DB connectionString has no jdbc:postgresql:// prefix -
+        # fill this in manually after the DB is created, e.g.
+        # jdbc:postgresql://<host>/<database>
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: libralink-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: libralink-db
+          property: password
+      - key: JWT_SECRET
+        sync: false
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      - key: SEED_ADMIN_FIRST_NAME
+        sync: false
+      - key: SEED_ADMIN_LAST_NAME
+        sync: false
+      - key: SEED_DEMO_ENABLED
+        value: "false"
+      - key: PICKUP_WINDOW_MINUTES
+        value: "30"
+      - key: EXPO_PUSH_ENABLED
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        sync: false
+      - key: BREVO_SENDER_NAME
+        sync: false
+      - key: EMAIL_VERIFICATION_EXPIRY_MINUTES
+        value: "15"
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: PAYSTACK_BASE_URL
+        value: https://api.paystack.co
+      - key: PAYSTACK_CURRENCY
+        value: GHS
+      - key: TTS_MODEL
+        value: gemini-2.5-flash-preview-tts
+      - key: TTS_VOICE
+        value: Kore
+      - key: TTS_READ_TIMEOUT_MS
+        sync: false
+      - key: AI_API_URL
+        value: https://generativelanguage.googleapis.com/v1beta
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: gemini-flash-latest
+      - key: ALLOWED_ORIGINS
+        sync: false # set to the deployed libralink-web URL once known, e.g.
+        # https://libralink-web.onrender.com (comma-separated if there's more than one)
+
+  - type: web
+    name: libralink-web
+    runtime: static
+    rootDir: Web
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false # set to the deployed libralink-backend URL, e.g.
+        # https://libralink-backend.onrender.com - Vite inlines this at build time, so
+        # redeploy libralink-web after setting it if the backend URL wasn't known yet

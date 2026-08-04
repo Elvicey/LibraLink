@@ -303,3 +303,43 @@ Both share one Google AI Studio (Gemini) key:
    out" errors on a long book even at the default.
 
 ---
+
+## 9. Deploying to Render
+
+`render.yaml` at the repo root is a Blueprint defining all three deployed pieces:
+the `libralink-db` Postgres instance, the `libralink-backend` Docker web service
+(builds `Backend/Dockerfile`), and the `libralink-web` static site (builds
+`Web/`, with a SPA rewrite so client-side routes like `/librarian` don't 404 on
+refresh).
+
+1. On [Render](https://render.com) → **New +** → **Blueprint**, point it at this
+   repo/branch. It creates all three resources from `render.yaml`.
+2. Most env vars are pre-filled from the blueprint, but a handful are marked
+   `sync: false` (secret or not-knowable-in-advance) and need to be entered by
+   hand in the Render dashboard, per-service, using the real values from
+   `Backend/.env`:
+   - **`libralink-backend`**: `SPRING_DATASOURCE_URL` (Render's Postgres
+     "connectionString" has no `jdbc:` prefix — take the host/port/db from it
+     and build `jdbc:postgresql://<host>/<database>`), `JWT_SECRET`,
+     `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_FIRST_NAME`,
+     `SEED_ADMIN_LAST_NAME`, `EXPO_PUSH_ENABLED`, `BREVO_API_KEY`,
+     `BREVO_SENDER_EMAIL`, `BREVO_SENDER_NAME`, `PAYSTACK_SECRET_KEY`,
+     `PAYSTACK_PUBLIC_KEY`, `AI_API_KEY`, `TTS_READ_TIMEOUT_MS`, and
+     `ALLOWED_ORIGINS` (see step 3 below).
+   - **`libralink-web`**: `VITE_API_BASE_URL`.
+3. **Two-pass URL wiring** — the backend and web service URLs aren't known
+   until each first deploys, so after both are up:
+   - Set `libralink-backend`'s `ALLOWED_ORIGINS` to `libralink-web`'s real URL
+     (e.g. `https://libralink-web.onrender.com`) — otherwise the Web portal's
+     requests will be blocked by CORS.
+   - Set `libralink-web`'s `VITE_API_BASE_URL` to `libralink-backend`'s real
+     URL. Vite inlines this at build time, so trigger a manual redeploy of
+     `libralink-web` after setting it (env var changes alone don't apply to
+     already-built static assets).
+4. Leave `SEED_DEMO_ENABLED` unset/`false` in production (already the
+   blueprint default) so demo data doesn't get seeded into the real database.
+5. Verify: `curl https://<libralink-backend>.onrender.com/api/institutions`
+   should respond (not connection-refused), and the deployed Web portal
+   should load at `/login` and successfully sign in.
+
+---
