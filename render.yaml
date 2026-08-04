@@ -1,3 +1,6 @@
+# Reference Blueprint - not currently active. Render's free tier doesn't support Blueprint
+# deploys, so the live deployment (see LAUNCH.md #9 for real URLs) was created by hand, one
+# service at a time, mirroring this file. Useful as-is if the account is ever upgraded.
 databases:
   - name: libralink-db
     plan: starter
