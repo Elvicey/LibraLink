@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -133,9 +133,14 @@ export default function BookPickup() {
     }
   }, [userId, token]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Refetch whenever this screen regains focus (also fires on first mount), so a
+  // reservation scheduled elsewhere (or just confirmed here) shows up immediately
+  // instead of requiring a full app restart.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   useEffect(() => {
     if (!hasPending) {
