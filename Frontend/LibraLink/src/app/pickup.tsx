@@ -75,6 +75,28 @@ function formatDate(date: Date) {
   return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
+function formatTimeOfDay(date: Date) {
+  return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+/** A slot card's time range, e.g. "Thu, Aug 6, 10:00 AM – 10:30 AM". Falls back to "—" if
+ *  neither startIso nor endIso parses (matches the previous raw-string fallback). */
+function formatSlotRange(startIso?: string, endIso?: string) {
+  const start = startIso ? new Date(startIso) : null;
+  const end = endIso ? new Date(endIso) : null;
+  const validStart = start && !Number.isNaN(start.getTime()) ? start : null;
+  const validEnd = end && !Number.isNaN(end.getTime()) ? end : null;
+
+  if (!validStart && !validEnd) {
+    return "—";
+  }
+  if (validStart && validEnd) {
+    return `${formatDate(validStart)}, ${formatTimeOfDay(validStart)} – ${formatTimeOfDay(validEnd)}`;
+  }
+  const only = validStart || validEnd!;
+  return `${formatDate(only)}, ${formatTimeOfDay(only)}`;
+}
+
 function getCalendarDays(month: Date) {
   const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
   const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
@@ -433,7 +455,7 @@ export default function BookPickup() {
               <View style={styles.slotRow}>
                 <Ionicons name="time-outline" size={15} color={colors.textMuted} />
                 <Text style={styles.slotMeta}>
-                  {slot.slotStart || slot.scheduledAt || "—"} → {slot.slotEnd || "—"}
+                  {formatSlotRange(slot.slotStart || slot.scheduledAt, slot.slotEnd)}
                 </Text>
               </View>
 
