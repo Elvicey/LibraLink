@@ -53,17 +53,21 @@ export function inferSubject(book: Book): string {
 }
 
 export const booksService = {
-  list: (): Promise<Book[]> => api.get<Book[]>("/api/books", { auth: false }),
+  // Sends the auth token when the caller is logged in (the normal case in this app) so the
+  // backend scopes results to the student's own school - GET /api/books is permitAll, so an
+  // actually-anonymous caller still gets an unscoped response, this only stops an already
+  // logged-in student from seeing/reserving another school's books by never sending their
+  // token at all.
+  list: (): Promise<Book[]> => api.get<Book[]>("/api/books"),
 
   search: (q: string): Promise<Book[]> =>
-    api.get<Book[]>(`/api/books/search?q=${encodeURIComponent(q)}`, { auth: false }),
+    api.get<Book[]>(`/api/books/search?q=${encodeURIComponent(q)}`),
 
-  getById: (id: number): Promise<Book> =>
-    api.get<Book>(`/api/books/${id}`, { auth: false }),
+  getById: (id: number): Promise<Book> => api.get<Book>(`/api/books/${id}`),
 
-  /** The book's full readable text for the in-app reader (empty string if none set). Public. */
+  /** The book's full readable text for the in-app reader (empty string if none set). */
   getContent: (id: number): Promise<{ content: string }> =>
-    api.get<{ content: string }>(`/api/books/${id}/content`, { auth: false }),
+    api.get<{ content: string }>(`/api/books/${id}/content`),
 
   /** Save the book's full text (librarian/admin only). */
   updateContent: (id: number, content: string): Promise<{ id: number; hasContent: boolean }> =>
